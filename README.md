@@ -2,6 +2,9 @@
 
 This project is a Python-based application that integrates with a free and uncensored LLM API via Telegram bot. 
 
+[Groq: Supported models](https://console.groq.com/docs/models)
+
+
 ## Setup
 
 1. Clone the repository
