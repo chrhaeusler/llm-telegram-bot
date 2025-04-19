@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"name": "standard",
+			"path": "./"
+		},
+		{
+			"path": "fake-github"
+		}
+	],
+	"settings": {}
+}

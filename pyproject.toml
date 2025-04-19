@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "llm-telegram-bot"
+version = "0.1.0"
+description = "A Python project integrating Telegram bot with LLM API"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.26"
+python-telegram-bot = "^13.0"
+PyYAML = "^5.4"
+
+[tool.poetry.dev-dependencies]
+black = "^21.9b0"
+pytest = "^6.2"
+mypy = "^0.910"
+ruff = "^0.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
