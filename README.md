@@ -3,6 +3,7 @@
 This project is a Python-based application that integrates with a free and uncensored LLM API via Telegram bot.
 
 [Groq: Supported models](https://console.groq.com/docs/models)
+[Mistral: Model overvie](https://docs.mistral.ai/getting-started/models/models_overview/)
 
 ## Setup
 
@@ -51,6 +52,9 @@ To get the Chat ID, visit:
 - LLM API token from Services like Groq.com or Mistral.ai
 
 ## Usage
+
 just type
+
 ```bash
 python main.py
+```

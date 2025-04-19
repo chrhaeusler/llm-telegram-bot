@@ -50,7 +50,8 @@ def send_startup_message(bot_token, chat_id, service, model, temperature, max_to
         f"Service: {service}\n"
         f"Model: {model}\n"
         f"Temperature: {temperature}\n"
-        f"Max Tokens: {max_tokens}"
+        f"Max Tokens: {max_tokens}\n"
+        f'Send "/help" for help'
     )
     send_message(bot_token, chat_id, startup_message)
 
@@ -129,19 +130,13 @@ class ChatSession:
                 "/services – List available services\n"
                 "/cservice <name> – Change service (e.g. mistral or groq)\n"
                 "/models – List models for current service\n"
-                "/cmodel <name> – Change to a model in current service\n"
+                "/cmodel <name> – Change model of current service\n"
+                "/temperature <float> - Change model's temperature\n"
+                "/maxtokens <int> - Change max token"
             )
         elif cmd == "services":
             return self.list_services()
-        elif cmd == "models":
-            return self.list_models()
-        elif cmd == "cmodel":
-            if not arg:
-                return "Usage: /cmodel <model name>"
-            if arg not in self.models_info.get(self.service, {}):
-                return f"Model '{arg}' not found in service '{self.service}'."
-            self.model = arg
-            return f"Model switched to '{self.model}'"
+
         elif cmd == "cservice":
             if not arg:
                 return "Usage: /cservice <service name>"
@@ -152,8 +147,40 @@ class ChatSession:
             self.service = arg
             self.model = self.config["services"][arg]["model"]
             return f"Service switched to '{self.service}', using model '{self.model}'"
+
+        elif cmd == "models":
+            return self.list_models()
+
         elif cmd == "modelinfo":
             return self.model_info(arg)
+
+        elif cmd == "cmodel":
+            if not arg:
+                return "Usage: /cmodel <model name>"
+            if arg not in self.models_info.get(self.service, {}):
+                return f"Model '{arg}' not found in service '{self.service}'."
+            self.model = arg
+            return f"Model switched to '{self.model}'"
+
+        elif cmd == "temperature":
+            try:
+                new_temp = float(arg)
+                if not (0 <= new_temp <= 2):
+                    return "Temperature must be between 0.0 and 2.0"
+                self.temperature = new_temp
+                return f"Temperature set to {new_temp}"
+            except ValueError:
+                return "Usage: /temperature <float> (e.g. /temperature 0.7)"
+
+        elif cmd == "maxtokens":
+            try:
+                new_max = int(arg)
+                if new_max <= 0:
+                    return "Max tokens must be a positive integer"
+                self.max_tokens = new_max
+                return f"Max tokens set to {new_max}"
+            except ValueError:
+                return "Usage: /maxtokens <int> (e.g. /maxtokens 512)"
         else:
             return f"Unknown command: /{cmd}. Use /help to list available commands."
 
