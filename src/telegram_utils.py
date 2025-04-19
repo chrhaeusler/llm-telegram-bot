@@ -118,6 +118,26 @@ class ChatSession:
             f"{info.get('censored', 'N/A')}\n"
         )
 
+    def save_defaults(self, path: str = "config/config.yaml") -> str:
+        """Write current service, model, temperature, and max_tokens to the default block in config.yaml."""
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f)
+
+            # Update the default section
+            cfg.setdefault("default", {})
+            cfg["default"]["service"] = self.service
+            cfg["default"]["model"] = self.model
+            cfg["default"]["temperature"] = self.temperature
+            cfg["default"]["maxtoken"] = self.max_tokens
+
+            with open(path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(cfg, f, sort_keys=False)
+
+            return "Defaults saved to config.yaml ✅"
+        except Exception as e:
+            return f"[ERROR] Failed to write config.yaml: {e}"
+
     def handle_command(self, text: str) -> str:
         parts = text.lstrip("/").split(maxsplit=1)
         cmd = parts[0].lower()
@@ -132,8 +152,10 @@ class ChatSession:
                 "/models – List models for current service\n"
                 "/cmodel <name> – Change model of current service\n"
                 "/temperature <float> - Change model's temperature\n"
-                "/maxtokens <int> - Change max token"
+                "/maxtokens <int> - Change max token\n"
+                "/setdefaults - Set current settings as default"
             )
+
         elif cmd == "services":
             return self.list_services()
 
@@ -181,6 +203,11 @@ class ChatSession:
                 return f"Max tokens set to {new_max}"
             except ValueError:
                 return "Usage: /maxtokens <int> (e.g. /maxtokens 512)"
+        # Write current service, model, temperature, and max_tokens to
+        # the default block in config.yaml.
+        elif cmd == "setdefaults":
+            return self.save_defaults()
+
         else:
             return f"Unknown command: /{cmd}. Use /help to list available commands."
 
