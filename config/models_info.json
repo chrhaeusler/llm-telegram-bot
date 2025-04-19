@@ -2,7 +2,7 @@
   "mistral": {
     "mistral-small-latest": {
       "creator": "Mistral AI",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Fast inference, minimal resources, good for simple conversations and tasks.",
@@ -12,7 +12,7 @@
     },
     "mixtral-12b-240": {
       "creator": "Mistral AI",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Mixture-of-experts architecture improves performance on diverse tasks.",
@@ -22,7 +22,7 @@
     },
     "open-mistral-nemo": {
       "creator": "Mistral AI",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Strong multilingual capabilities across many languages.",
@@ -32,7 +32,7 @@
     },
     "open-codestral-mamba": {
       "creator": "Mistral AI",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Optimized for coding tasks, such as code completion and generation.",
@@ -44,7 +44,7 @@
   "groq": {
     "distil-whisper-large-v3-en": {
       "creator": "OpenAI (distilled by Groq)",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Efficient speech-to-text transcription with high accuracy.",
@@ -54,7 +54,7 @@
     },
     "gemma2-9b-it": {
       "creator": "Groq",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Instruction-tuned for general tasks, efficient inference.",
@@ -64,7 +64,7 @@
     },
     "llama-3.1-8b-instant": {
       "creator": "Meta",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Very fast inference, low latency for quick responses.",
@@ -74,7 +74,7 @@
     },
     "llama-3.3-70b-versatile": {
       "creator": "Meta",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "High reasoning and generalization across domains.",
@@ -84,7 +84,7 @@
     },
     "llama-guard-3-8b": {
       "creator": "Meta",
-      "censored": true,
+      "censored": "censored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Built-in safety filters for harmful content.",
@@ -94,7 +94,7 @@
     },
     "llama3-70b-8192": {
       "creator": "Meta",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Large context window (8192 tokens) and deep reasoning capabilities.",
@@ -104,7 +104,7 @@
     },
     "llama3-8b-8192": {
       "creator": "Meta",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Extended context with efficient runtime.",
@@ -114,7 +114,7 @@
     },
     "meta-llama/llama-4-maverick-17b-128e-instruct": {
       "creator": "Meta",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Instruction-tuned with massive (128k) context support.",
@@ -124,7 +124,7 @@
     },
     "meta-llama/llama-4-scout-17b-16e-instruct": {
       "creator": "Meta",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Balanced performance with moderate context (16k).",
@@ -134,7 +134,7 @@
     },
     "mistral-saba-24b": {
       "creator": "Mistral AI",
-      "censored": false,
+      "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
       "strengths": "Powerful and efficient for varied tasks.",
