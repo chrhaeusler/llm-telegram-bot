@@ -1,9 +1,13 @@
 # llm-telegram-bot
 
-This project is a Python-based application that integrates with a free and uncensored LLM API via Telegram bot.
+This project is a Python-based application that servers as a middle-man between a Telegram bot and a LLM API.
 
-- [Mistral: Model overvie](https://docs.mistral.ai/getting-started/models/models_overview/)
-- [Groq: Supported models](https://console.groq.com/docs/models)
+Supported are:
+
+1. [Mistral: Model overview](https://docs.mistral.ai/getting-started/models/models_overview/)
+2. [Groq: Supported models](https://console.groq.com/docs/models)
+
+- other [Free LLM Ressources ](https://github.com/cheahjs/free-llm-api-resources)(not yet implemented)
 
 ## Setup
 

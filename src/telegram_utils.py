@@ -33,9 +33,11 @@ def get_updates(token: str, offset: int = None, timeout: int = 0) -> list:
     return response.json().get("result", [])
 
 
-def send_message(token: str, chat_id: int, text: str) -> None:
+def send_message(
+    token: str, chat_id: int, text: str, parse_mode: str = "Markdown"
+) -> None:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
     try:
         resp = requests.post(url, json=payload, timeout=10)
         resp.raise_for_status()
@@ -99,7 +101,17 @@ class ChatSession:
         svc_models = self.models_info.get(self.service, {})
         if not svc_models:
             return f"No models found for service '{self.service}'."
-        return f"Models for {self.service}:\n" + "\n".join(svc_models.keys())
+
+        lines = [f"*Models for {self.service}*:\n"]
+        for name, info in svc_models.items():
+            lines.append(f"*{name}*")
+            lines.append(info.get("short", "No short description available."))
+            lines.append(f"*Strengths:* {info.get('strengths', 'N/A')}")
+            lines.append(f"*Weaknesses:* {info.get('weaknesses', 'N/A')}")
+            lines.append(f"*Censor status:* {info.get('censored', 'unknown')}")
+            lines.append("")  # blank line between models
+
+        return "\n".join(lines).rstrip()
 
     def model_info(self, model_name: str = "") -> str:
         svc_models = self.models_info.get(self.service, {})
@@ -110,12 +122,11 @@ class ChatSession:
             return f"Model '{target_model}' not found for service '{self.service}'."
 
         return (
-            f"{target_model}\n"
-            f"by {info.get('creator', 'N/A')}\n"
-            f"Strengths: {info.get('strengths', 'N/A')}\n"
-            f"Weaknesses: {info.get('weaknesses', 'N/A')}\n"
-            f"Details: {info.get('details', 'N/A')}\n"
-            f"{info.get('censored', 'N/A')}\n"
+            f"*{target_model}* ({info.get('censored', 'N/A')})\n"
+            f"by {info.get('creator', 'N/A')}\n\n"
+            f"*Strengths*\n{info.get('strengths', 'N/A')}\n\n"
+            f"*Weaknesses*\n{info.get('weaknesses', 'N/A')}\n\n"
+            f"*Details*\n{info.get('details', 'N/A')}\n\n"
         )
 
     def save_defaults(self, path: str = "config/config.yaml") -> str:

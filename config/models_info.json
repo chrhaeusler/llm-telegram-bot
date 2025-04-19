@@ -8,7 +8,7 @@
       "strengths": "Fast inference, minimal resources, good for simple conversations and tasks.",
       "weaknesses": "Less capable in complex reasoning and long-context tasks compared to larger models.",
       "short": "Mistral Small v24.09: light, efficient, general-purpose.",
-      "details": "Released March 2025. Offers multimodal capabilities and up to 131k token context. Open-source under Apache 2.0."
+      "details": "Mistral-Small-Latest is the compact, efficient offering from Mistral AI designed for real-time inference and embedded use cases. It balances performance and resource use, making it an excellent fit for chatbots, mobile assistants, and lightweight backend services. Despite its small size, the model supports up to 131k tokens of context, allowing it to handle fairly complex instructions and follow-ups. It supports multilingual input and provides decent fluency across common languages.\n\nThe model was released in March 2025 under the Apache 2.0 license and features a streamlined transformer architecture. It focuses on delivering low latency responses and staying responsive even under load. Mistral-Small is particularly useful for tasks such as summarization, FAQ bots, code snippets, and short Q&A conversations. Though not as deep in reasoning as larger models, its responsiveness and deployability make it ideal for real-time systems."
     },
     "mixtral-12b-240": {
       "creator": "Mistral AI",
@@ -18,7 +18,7 @@
       "strengths": "Mixture-of-experts architecture improves performance on diverse tasks.",
       "weaknesses": "Requires more compute and has higher latency than smaller models.",
       "short": "Mixtral 12B: powerful MoE model for varied tasks.",
-      "details": "Supports dynamic routing for efficient inference. Context window 2048 tokens. Released December 2023. Apache 2.0."
+      "details": "Mixtral-12B-240 is a mixture-of-experts (MoE) model from Mistral AI designed to balance inference efficiency with high performance. It includes 12 billion total parameters and routes each input through a select subset of its expert networks. This allows it to maintain high expressiveness while keeping compute costs lower than a full dense model. Its architecture shines in general-purpose reasoning, text generation, classification, and content understanding tasks.\n\nReleased in December 2023, Mixtral supports a context window of 2048 tokens and is open-source under Apache 2.0. It's particularly effective in situations where response diversity or breadth is needed, such as writing, analysis, and multi-turn conversation. However, its compute footprint is heavier than Mistral-Small, making it more suitable for server-based or cloud deployments rather than mobile or edge environments."
     },
     "open-mistral-nemo": {
       "creator": "Mistral AI",
@@ -28,7 +28,7 @@
       "strengths": "Strong multilingual capabilities across many languages.",
       "weaknesses": "Smaller model size may limit performance on code or niche domains.",
       "short": "Mistral NeMo: multilingual open model.",
-      "details": "Released July 2024. 12B parameters. Great for translation and cross-lingual tasks. Apache 2.0."
+      "details": "Open-Mistral-NeMo is a multilingual transformer model developed by Mistral AI with a focus on cross-lingual applications. Trained to handle dozens of languages with high fidelity, it offers strong translation, multilingual summarization, and internationalized chatbot capabilities. The model comprises 12 billion parameters and uses optimized attention mechanisms to handle diverse linguistic structures.\n\nReleased in July 2024 under Apache 2.0, NeMo is particularly valuable in government, education, and content creation sectors that demand language flexibility. While it's a generalist in nature, it was trained with additional emphasis on multi-language corpora, making it more accurate in handling idioms, cultural expressions, and formatting nuances across languages. It may underperform in low-resource domains like code or scientific reasoning."
     },
     "open-codestral-mamba": {
       "creator": "Mistral AI",
@@ -38,7 +38,7 @@
       "strengths": "Optimized for coding tasks, such as code completion and generation.",
       "weaknesses": "Less versatile for general conversation or non-code tasks.",
       "short": "Codestral Mamba: 7B code-specialized model.",
-      "details": "Released July 2024. 7B parameters. Excels at fill-in-the-middle and test generation. Apache 2.0."
+      "details": "Codestral-Mamba is a 7B parameter model created by Mistral AI and focused entirely on software development tasks. It is trained heavily on source code and developer conversations, excelling at code generation, refactoring, inline comments, and completing functions or modules. Notably, it performs 'fill-in-the-middle' completions, useful for inserting code into existing contexts.\n\nReleased in July 2024 under the Apache 2.0 license, Codestral-Mamba supports autocomplete-style interactions for languages like Python, JavaScript, Rust, and C++. It's best used in developer IDE plugins, documentation assistants, and code review bots. While it may handle light general conversation, its strengths lie clearly in syntactic and semantic understanding of programming languages.."
     }
   },
   "groq": {
@@ -50,7 +50,7 @@
       "strengths": "Efficient speech-to-text transcription with high accuracy.",
       "weaknesses": "Not applicable for text generation.",
       "short": "Distilled Whisper v3 Large (EN): fast English ASR.",
-      "details": "Distilled from OpenAI Whisper v3. Supports English transcription. Released 2024. High accuracy on diverse audio inputs."
+      "details": "Distil‑Whisper‑Large‑v3‑EN is a condensed version of OpenAI’s Whisper v3, distilled by Groq to run efficiently on edge devices while retaining high transcription fidelity for English. It uses a streamlined encoder‑decoder transformer architecture with approximately 1.5 billion parameters, optimized via knowledge distillation to nearly match the accuracy of the full‑size model in recognizing spoken language. The model excels at noisy‑audio scenarios—phone calls, background chatter, and low‑bitrate recordings—thanks to specialized pre‑ and post‑processing layers that filter out ambient noise and normalize volume levels.\n\nReleased in early 2024 under an open‑source Apache 2.0 license, Distil‑Whisper‑Large‑v3‑EN supports real‑time streaming transcription with latencies as low as 200 ms on modern inference hardware. It integrates seamlessly into transcription pipelines, live captions, and voice‑assistant backends. While its design focuses solely on English, it can handle code‑switching segments moderately well. Note that it does not perform text‑generation tasks—its domain is strictly automatic speech recognition (ASR), and it does not support punctuation prediction beyond basic sentence breaks."
     },
     "gemma2-9b-it": {
       "creator": "Groq",
@@ -60,7 +60,7 @@
       "strengths": "Instruction-tuned for general tasks, efficient inference.",
       "weaknesses": "May struggle with highly specialized domains.",
       "short": "Gemma2 9B (IT): general-purpose instruction model.",
-      "details": "Released 2024. 9B parameters. Good for chat and Q&A tasks with moderate resource usage."
+      "details": "Gemma2‑9B‑IT is Groq’s nine‑billion‑parameter instruction‑tuned language model trained on a multilingual corpus with an emphasis on Italian language tasks. It combines a dense transformer backbone with fine‑tuning on high‑quality instruction datasets, yielding strong performance in conversational Q&A, summarization, and translation between Italian and English. At 9 B parameters, Gemma2‑9B‑IT offers a middle ground: rich linguistic understanding and context handling without the compute demands of much larger models.\n\nLaunched in mid‑2024, this model features a 4 k‑token context window and is optimized for throughput on Groq’s tensor‑processor hardware, achieving sub‑50 ms per‑token latency in batch mode. It shines in customer support bots, educational tutoring systems, and multilingual content creation tools that require fluency in Italian. Its primary limitations are in very narrow technical domains—highly specialized medical or legal jargon may see occasional inaccuracies—and in handling very long documents, where summarization may truncate important details."
     },
     "llama-3.1-8b-instant": {
       "creator": "Meta",
@@ -70,7 +70,7 @@
       "strengths": "Very fast inference, low latency for quick responses.",
       "weaknesses": "Smaller size limits depth of reasoning.",
       "short": "LLaMA 3.1 8B Instant: speed-first 8B model.",
-      "details": "Released 2024. 8B parameters. Optimized for instant chat with a 4k token context window."
+      "details": "LLaMA 3.1 8B Instant is Meta’s eight‑billion‑parameter variant tuned for ultra‑fast inference, targeting interactive chat experiences where latency is critical. It builds on the original LLaMA 3 architecture but prunes and quantizes weights to enable real‑time response generation even on consumer‑grade GPUs. Despite its compact size, it preserves much of the core reasoning and factual retrieval capabilities of its larger siblings, thanks to carefully balanced parameter allocation in key attention layers.\n\nDebuted in late 2024, this model supports a 4 k‑token context window and leverages dynamic attention mechanisms to focus compute on the most relevant input segments. It’s ideal for mobile chat apps, interactive gaming NPCs, and any scenario where end‑user experience demands sub‑100 ms generation times. Its trade‑off is somewhat reduced depth in multi‑step reasoning and lower performance in highly creative or abstract writing tasks compared to larger LLaMA 3 variants."
     },
     "llama-3.3-70b-versatile": {
       "creator": "Meta",
@@ -80,7 +80,7 @@
       "strengths": "High reasoning and generalization across domains.",
       "weaknesses": "High inference cost and increased latency.",
       "short": "LLaMA 3.3 70B Versatile: robust all-around performer.",
-      "details": "Released 2024. 70B parameters. Strong performance on varied tasks with 4k context."
+      "details": "LLaMA 3.3 70B Versatile is Meta’s flagship seventy‑billion‑parameter transformer, engineered for broad‑spectrum NLP tasks from deep reasoning and code generation to long‑form content creation. It features a uniform attention design with 70 B dense parameters and a 4 k‑token context window, striking a balance between generality and efficiency. Trained on a massive mixture of web text, books, code repositories, and instruction datasets, it exhibits top‑tier performance in benchmarks like MMLU and HumanEval.\n\nReleased in late 2024 under Meta’s research license, LLaMA 3.3 excels in applications that demand nuanced understanding of complex queries—legal analysis, scientific summarization, and multi‑turn customer support. Its main weakness is inference cost: generating long responses can be slow without powerful GPUs, and deployment in latency‑sensitive environments requires careful batching or quantization. Nonetheless, for centralized servers or cloud services, it remains a go‑to model for high‑accuracy generation."
     },
     "llama-guard-3-8b": {
       "creator": "Meta",
@@ -90,7 +90,7 @@
       "strengths": "Built-in safety filters for harmful content.",
       "weaknesses": "Cannot generate certain sensitive or unsafe content.",
       "short": "LLaMA Guard 3 8B: safe mode 8B model.",
-      "details": "Released 2023. 8B parameters. Designed for classification and safe completions with strict filtering."
+      "details": "LLaMA Guard 3 8B is an eight‑billion‑parameter variant of Meta’s LLaMA series, fine‑tuned with integrated safety and content‑filtering layers to proactively block or rephrase harmful, biased, or sensitive outputs. It uses a hybrid of standard transformer blocks and auxiliary classification heads that score each potential token for policy adherence before selection. This architecture ensures that disallowed content is either sanitized or replaced with a safe fallback.\n\nIntroduced in mid‑2023, Guard 3 8B supports a 4 k‑token context window and is released under Meta’s research license with usage restrictions aimed at enterprise safety‑critical applications. It’s especially well‑suited for moderation assistants, educational platforms, and corporate chatbots where compliance with content policies is paramount. The trade‑off is a slightly higher latency per token (~20% above non‑guarded variants) and occasional over‑censoring in edge‑case queries, which may require fine‑tuning thresholds."
     },
     "llama3-70b-8192": {
       "creator": "Meta",
@@ -100,7 +100,7 @@
       "strengths": "Large context window (8192 tokens) and deep reasoning capabilities.",
       "weaknesses": "Slow and resource-intensive for inference.",
       "short": "LLaMA3 70B 8k: large context, detailed responses.",
-      "details": "Released late 2024. 70B parameters with 8192-token context window for extended dialogues."
+      "details": "LLaMA3 70B 8 k is the extended‑context version of Meta’s seventy‑billion‑parameter LLaMA 3 model, offering an 8 192‑token window for handling long dialogues, documents, and multi‑document contexts. Architecturally identical to LLaMA 3.3 70B, it simply increases the positional embedding capacity and internal attention mechanisms to track far more tokens—ideal for legal transcripts, full‑length novels, and multi‑session chat histories.\n\nReleased in late 2024, this variant excels in long‑form content generation, multi‑document summarization, and analysis of lengthy codebases. Its compute demands are significant—requiring high‑memory GPUs or multi‑GPU setups—but for enterprises with those resources, it unlocks deep context reasoning across large text spans. The downsides are the same as its core model: high inference cost and potential hallucinations without careful prompt engineering."
     },
     "llama3-8b-8192": {
       "creator": "Meta",
@@ -120,7 +120,7 @@
       "strengths": "Instruction-tuned with massive (128k) context support.",
       "weaknesses": "Heavy resource requirements and slower inference.",
       "short": "LLaMA 4 Maverick 17B Inst: 128k instruction model.",
-      "details": "Released Nov 2024. 17B parameters, 128k token context window for long-form tasks."
+      "details": "LLaMA3 8B 8 k brings the extended 8 192‑token context to the more compact eight‑billion‑parameter LLaMA 3 architecture. This model uses the same attention and embedding adjustments as its larger counterpart, enabling moderate‑cost handling of long documents—meeting a sweet spot for teams that need extended context without the scale of 70 B parameters.\n\nIntroduced in late 2024, LLaMA3 8B 8 k is well‑suited for document Q&A, multi‑turn chatbots that maintain long memories, and technical analysis where code or specs span thousands of tokens. It delivers faster inference than 70 B variants while supporting many of the same extended‑context workflows. Its limitation is that, despite the longer context, it will still lack some of the deep reasoning finesse of larger models."
     },
     "meta-llama/llama-4-scout-17b-16e-instruct": {
       "creator": "Meta",
@@ -130,7 +130,7 @@
       "strengths": "Balanced performance with moderate context (16k).",
       "weaknesses": "Less context capacity than Maverick.",
       "short": "LLaMA 4 Scout 17B: 16k instruct model.",
-      "details": "Released Nov 2024. 17B parameters, 16k token typical context window."
+      "details": "LLaMA 4 Maverick 17B 128K‑Instruct is Meta’s next‑generation seventeen‑billion‑parameter model, fine‑tuned for instruction‑following with an enormous 128 000‑token context window. It integrates sparse MoE layers alongside dense transformer blocks, enabling efficient scaling of context without a linear compute increase. This design supports tasks from full‑document summarization to codebase understanding and scientific paper analysis within a single prompt.\n\nReleased in November 2024 under Meta’s research license, Maverick emphasizes versatility in instruction compliance and factual grounding. Its major use cases include AI research assistants, legal document review, and large‑scale code generation. The trade‑off is that such a large context and MoE routing introduces additional latency and operational complexity; deploying it requires careful infrastructure planning, but the expanded context truly redefines what’s possible in a single API call."
     },
     "mistral-saba-24b": {
       "creator": "Mistral AI",
@@ -140,7 +140,7 @@
       "strengths": "Powerful and efficient for varied tasks.",
       "weaknesses": "High memory and compute requirements.",
       "short": "Mistral Saba 24B: high-performance generalist.",
-      "details": "Released 2025. 24B parameters with efficient architecture for robust performance."
+      "details": "LLaMA 4 Scout 17B 16K‑Instruct is a lighter sibling to Maverick, maintaining the seventeen‑billion‑parameter core but with a 16 000‑token context window and fewer expert subnetworks (16 experts vs. 128). It is tuned specifically for interactive, low‑latency instruction tasks—think dynamic code review, interactive tutoring, and rapid document navigation. The reduced expert count keeps inference speeds reasonable while still capturing most benefits of MoE.\n\nIntroduced alongside Maverick in late 2024, Scout is ideal for hybrid deployments where some extended context is needed but real‑time interaction remains crucial. It’s open under Meta’s research license and shines in QA systems, developer tools, and educational platforms. Its smaller expert footprint means it may slightly underperform Maverick on ultra‑long tasks, but for most 16 k‑token applications, Scout delivers a strong balance of speed, cost, and comprehension."
     }
   }
 }
