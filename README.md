@@ -1,13 +1,26 @@
 # llm-telegram-bot
 
-This project is a Python-based application that servers as a middle-man between a Telegram bot and a LLM API.
+A lightweight Python bot that proxies messages between Telegram and various LLM APIs.  
+Modular, configurable, and extendable—switch services, models, temperature, and token limits on the fly.
 
-Supported are:
+## Features
 
-1. [Mistral: Model overview](https://docs.mistral.ai/getting-started/models/models_overview/)
-2. [Groq: Supported models](https://console.groq.com/docs/models)
+- **Multi‑service support**: [Mistral AI](https://docs.mistral.ai/getting-started/models/) and [Groq: Supported models](https://console.groq.com/docs/models) (add more via config)
+- **Dynamic model switching**: chat commands `/models`, `/cmodel <name>`
+- **Service switching**: chat commands `/services`, `/cservice <name>`
+- **Runtime parameter tuning**: chat commands `/temperature <float>`, `/maxtokens <int>`
+- **Persistence**: save defaults (`/setasdefaults`), factory reset (`/factoryreset`), show settings (`/showsettings`)
+- **Model listings**: chat command `/models`
+- **Model information**: chat command `/modelinfo`
+- **Graceful backoff**: idle vs active polling intervals, exponential backoff
+- **Error handling**: API errors forwarded into the chat
 
-- other [Free LLM Ressources ](https://github.com/cheahjs/free-llm-api-resources)(not yet implemented)
+## Prerequisites
+
+- Python ≥ 3.10
+- `venv` or `virtualenv`
+- Telegram Bot API token
+- LLM API keys (Mistral, Groq, etc.)
 
 ## Setup
 
@@ -39,29 +52,37 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-4. Set up environment variables for the bot credentials
-   s. config-template.yaml (save to config.yaml so it gets ignored by git)
+## Configuration
 
-### Create Telegram Bot
+1. Copy the template to config.yaml (untracked by git) and fill in your tokens & settings
 
-- Put in a telegram bot's API key and the chat ID into the `config/config-template.yaml` file and save as `config.yaml`
-- To create a bot, and get the bot's API and a chat ID:
-  1. Send a message to @BotFather and create a bot by typing `/newbot`; you will get the bot's API key from BotFather the moment you created the bot
-  2. Send a message to your bot (to open a chat with the bot)
-  3. To get the Chat ID, visit (substitute 123456...Nf4c with your bot's API key):
-     - `https://api.telegram.org/bot12345678:AAFoxxxxn0hwA-2TVSxxxNf4c/getUpdates"
+```bash
+cp config/config-template.yaml config/config.yaml
+```
 
-## Requirements
+### If you do not have a Telegram Bot yet...
 
-- Python 3.10
-- virtualenv
-- Telegram Bot API token
-- LLM API token from Services like Groq.com or Mistral.ai
+1. Send a message to @BotFather and create a bot by typing `/newbot`; you will get the bot's API key from BotFather the moment you created the bot
+2. Send a message to your bot (to open a chat with the bot)
+3. To get the Chat ID, visit (substitute 123456...Nf4c with your bot's API key):
+   - `https://api.telegram.org/bot12345678:AAFoxxxxn0hwA-2TVSxxxNf4c/getUpdates"
 
 ## Usage
-
-just type
 
 ```bash
 python main.py
 ```
+
+---
+
+---
+
+## To Do
+
+- Add more LLM services (e.g. [Free LLM Ressources ](https://github.com/cheahjs/free-llm-api-resources))
+- Code Cleanup & Refactoring
+- Async I/O: Switch from blocking requests + time.sleep loops to aiohttp and asyncio with long‑polling or webhooks.
+- Logging & Metrics: Add structured logging (e.g. Python’s logging module) to trace errors.
+- Automated Testing
+- Add a setup.py or pyproject.toml
+- CI pipeline: lint (ruff), type‑check (mypy), format (black), run tests.
