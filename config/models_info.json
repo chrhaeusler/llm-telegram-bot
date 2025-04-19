@@ -1,0 +1,146 @@
+{
+  "mistral": {
+    "mistral-small-latest": {
+      "creator": "Mistral AI",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Fast inference, minimal resources, good for simple conversations and tasks.",
+      "weaknesses": "Less capable in complex reasoning and long-context tasks compared to larger models.",
+      "short": "Mistral Small v24.09: light, efficient, general-purpose.",
+      "details": "Released March 2025. Offers multimodal capabilities and up to 131k token context. Open-source under Apache 2.0."
+    },
+    "mixtral-12b-240": {
+      "creator": "Mistral AI",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Mixture-of-experts architecture improves performance on diverse tasks.",
+      "weaknesses": "Requires more compute and has higher latency than smaller models.",
+      "short": "Mixtral 12B: powerful MoE model for varied tasks.",
+      "details": "Supports dynamic routing for efficient inference. Context window 2048 tokens. Released December 2023. Apache 2.0."
+    },
+    "open-mistral-nemo": {
+      "creator": "Mistral AI",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Strong multilingual capabilities across many languages.",
+      "weaknesses": "Smaller model size may limit performance on code or niche domains.",
+      "short": "Mistral NeMo: multilingual open model.",
+      "details": "Released July 2024. 12B parameters. Great for translation and cross-lingual tasks. Apache 2.0."
+    },
+    "open-codestral-mamba": {
+      "creator": "Mistral AI",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Optimized for coding tasks, such as code completion and generation.",
+      "weaknesses": "Less versatile for general conversation or non-code tasks.",
+      "short": "Codestral Mamba: 7B code-specialized model.",
+      "details": "Released July 2024. 7B parameters. Excels at fill-in-the-middle and test generation. Apache 2.0."
+    }
+  },
+  "groq": {
+    "distil-whisper-large-v3-en": {
+      "creator": "OpenAI (distilled by Groq)",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Efficient speech-to-text transcription with high accuracy.",
+      "weaknesses": "Not applicable for text generation.",
+      "short": "Distilled Whisper v3 Large (EN): fast English ASR.",
+      "details": "Distilled from OpenAI Whisper v3. Supports English transcription. Released 2024. High accuracy on diverse audio inputs."
+    },
+    "gemma2-9b-it": {
+      "creator": "Groq",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Instruction-tuned for general tasks, efficient inference.",
+      "weaknesses": "May struggle with highly specialized domains.",
+      "short": "Gemma2 9B (IT): general-purpose instruction model.",
+      "details": "Released 2024. 9B parameters. Good for chat and Q&A tasks with moderate resource usage."
+    },
+    "llama-3.1-8b-instant": {
+      "creator": "Meta",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Very fast inference, low latency for quick responses.",
+      "weaknesses": "Smaller size limits depth of reasoning.",
+      "short": "LLaMA 3.1 8B Instant: speed-first 8B model.",
+      "details": "Released 2024. 8B parameters. Optimized for instant chat with a 4k token context window."
+    },
+    "llama-3.3-70b-versatile": {
+      "creator": "Meta",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "High reasoning and generalization across domains.",
+      "weaknesses": "High inference cost and increased latency.",
+      "short": "LLaMA 3.3 70B Versatile: robust all-around performer.",
+      "details": "Released 2024. 70B parameters. Strong performance on varied tasks with 4k context."
+    },
+    "llama-guard-3-8b": {
+      "creator": "Meta",
+      "censored": true,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Built-in safety filters for harmful content.",
+      "weaknesses": "Cannot generate certain sensitive or unsafe content.",
+      "short": "LLaMA Guard 3 8B: safe mode 8B model.",
+      "details": "Released 2023. 8B parameters. Designed for classification and safe completions with strict filtering."
+    },
+    "llama3-70b-8192": {
+      "creator": "Meta",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Large context window (8192 tokens) and deep reasoning capabilities.",
+      "weaknesses": "Slow and resource-intensive for inference.",
+      "short": "LLaMA3 70B 8k: large context, detailed responses.",
+      "details": "Released late 2024. 70B parameters with 8192-token context window for extended dialogues."
+    },
+    "llama3-8b-8192": {
+      "creator": "Meta",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Extended context with efficient runtime.",
+      "weaknesses": "Smaller model, less nuanced than larger variants.",
+      "short": "LLaMA3 8B 8k: 8B model with extended context.",
+      "details": "Released 2024. 8B parameters, 8192-token context window, balanced speed vs capability."
+    },
+    "meta-llama/llama-4-maverick-17b-128e-instruct": {
+      "creator": "Meta",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Instruction-tuned with massive (128k) context support.",
+      "weaknesses": "Heavy resource requirements and slower inference.",
+      "short": "LLaMA 4 Maverick 17B Inst: 128k instruction model.",
+      "details": "Released Nov 2024. 17B parameters, 128k token context window for long-form tasks."
+    },
+    "meta-llama/llama-4-scout-17b-16e-instruct": {
+      "creator": "Meta",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Balanced performance with moderate context (16k).",
+      "weaknesses": "Less context capacity than Maverick.",
+      "short": "LLaMA 4 Scout 17B: 16k instruct model.",
+      "details": "Released Nov 2024. 17B parameters, 16k token typical context window."
+    },
+    "mistral-saba-24b": {
+      "creator": "Mistral AI",
+      "censored": false,
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Powerful and efficient for varied tasks.",
+      "weaknesses": "High memory and compute requirements.",
+      "short": "Mistral Saba 24B: high-performance generalist.",
+      "details": "Released 2025. 24B parameters with efficient architecture for robust performance."
+    }
+  }
+}
