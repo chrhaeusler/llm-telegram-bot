@@ -138,6 +138,41 @@ class ChatSession:
         except Exception as e:
             return f"[ERROR] Failed to write config.yaml: {e}"
 
+    def factory_reset(self):
+        factory_defaults = {
+            "service": "mistral",
+            "model": "mistral-small-latest",
+            "temperature": 0.7,
+            "maxtoken": 100,
+        }
+
+        # Set active in-session values
+        self.service = factory_defaults["service"]
+        self.model = factory_defaults["model"]
+        self.temperature = factory_defaults["temperature"]
+        self.max_tokens = factory_defaults["maxtoken"]
+
+        # Overwrite the YAML config file
+        try:
+            with open("config/config.yaml", "r") as f:
+                config_data = yaml.safe_load(f) or {}
+
+            config_data["factorydefaults"] = factory_defaults
+
+            with open("config/config.yaml", "w") as f:
+                yaml.safe_dump(config_data, f, sort_keys=False)
+
+                self.service = "mistral"
+                self.model = "mistral-small-latest"
+                self.temperature = 0.7
+                self.max_tokens = 100
+                self.save_defaults()  # Also persist these as the new defaults
+                return "Bot and defaults set to factory settings"
+
+            return "Factory reset complete. All settings restored to defaults."
+        except Exception as e:
+            return f"Factory reset failed: {str(e)}"
+
     def handle_command(self, text: str) -> str:
         parts = text.lstrip("/").split(maxsplit=1)
         cmd = parts[0].lower()
@@ -147,13 +182,15 @@ class ChatSession:
             return (
                 "Available commands:\n"
                 "/help – Show this message\n"
+                "/showsettings - Show service, model, temperature & max tokens\n"
                 "/services – List available services\n"
                 "/cservice <name> – Change service (e.g. mistral or groq)\n"
                 "/models – List models for current service\n"
                 "/cmodel <name> – Change model of current service\n"
                 "/temperature <float> - Change model's temperature\n"
                 "/maxtokens <int> - Change max token\n"
-                "/setdefaults - Set current settings as default"
+                "/setasdefaults - Set current settings as default\n"
+                "/factoryreset - Reset to factory defaults"
             )
 
         elif cmd == "services":
@@ -205,9 +242,20 @@ class ChatSession:
                 return "Usage: /maxtokens <int> (e.g. /maxtokens 512)"
         # Write current service, model, temperature, and max_tokens to
         # the default block in config.yaml.
-        elif cmd == "setdefaults":
+        elif cmd == "setasdefaults":
             return self.save_defaults()
 
+        elif cmd == "showsettings":
+            return (
+                f"Current settings:\n"
+                f"- Service: {self.service}\n"
+                f"- Model: {self.model}\n"
+                f"- Temperature: {self.temperature}\n"
+                f"- Max Tokens: {self.max_tokens}"
+            )
+
+        elif cmd == "factoryreset":
+            return self.factory_reset()
         else:
             return f"Unknown command: /{cmd}. Use /help to list available commands."
 
