@@ -46,7 +46,7 @@ To get the Chat ID, visit:
 
 ## Requirements
 
-- Python 3.x
+- Python 3.10
 - virtualenv
 - Telegram Bot API token
 - LLM API token from Services like Groq.com or Mistral.ai
