@@ -13,20 +13,17 @@ signal.signal(signal.SIGINT, lambda sig, frame: sys.exit(0))
 
 # --- Utility functions ---
 def load_yaml(path) -> dict:
-    """Load and return the YAML configuration from given path."""
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def load_models_info(path) -> dict:
-    """Load and return the models info JSON from given path."""
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 # --- Telegram API helpers ---
 def get_updates(token: str, offset: int = None, timeout: int = 0) -> list:
-    """Poll Telegram getUpdates endpoint and return update list."""
     url = f"https://api.telegram.org/bot{token}/getUpdates"
     params = {"timeout": timeout}
     if offset is not None:
@@ -37,7 +34,6 @@ def get_updates(token: str, offset: int = None, timeout: int = 0) -> list:
 
 
 def send_message(token: str, chat_id: int, text: str) -> None:
-    """Send a text message via Telegram Bot API."""
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
     try:
@@ -47,9 +43,20 @@ def send_message(token: str, chat_id: int, text: str) -> None:
         print(f"[ERROR] Telegram send_message failed: {e}")
 
 
-# --- LLM API proxy functions ---
+def send_startup_message(bot_token, chat_id, service, model, temperature, max_tokens):
+    startup_message = (
+        f"Bot started\n"
+        f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        f"Service: {service}\n"
+        f"Model: {model}\n"
+        f"Temperature: {temperature}\n"
+        f"Max Tokens: {max_tokens}"
+    )
+    send_message(bot_token, chat_id, startup_message)
+
+
+# --- LLM API helpers ---
 def get_service_conf(config: dict, service_name: str) -> tuple:
-    """Return endpoint and api_key for a given service, or raise ValueError if unavailable."""
     svc = config.get("services", {}).get(service_name)
     if not svc or not svc.get("enabled", False):
         raise ValueError(f"Service '{service_name}' not found or not enabled.")
@@ -59,31 +66,23 @@ def get_service_conf(config: dict, service_name: str) -> tuple:
     return svc["endpoint"], api_key
 
 
-# --- Chat session state ---
+# --- Chat session class ---
 class ChatSession:
-    """
-    Manages chat state, user commands, and proxies messages to the LLM service.
-    """
-
     def __init__(self, cfg: dict, models_info: dict):
-        # Load defaults from config
         default = cfg.get("default", {})
         tel_cfg = cfg.get("telegram", {})
 
         self.config = cfg
         self.models_info = models_info
 
-        # Session parameters
         self.service = default.get("service")
         self.model = default.get("model")
         self.temperature = tel_cfg.get("default_temperature", 0.7)
         self.max_tokens = tel_cfg.get("default_max_tokens", 100)
 
-        # Telegram settings
         self.bot_token = tel_cfg.get("bot_token")
-        self.allowed_users = set(tel_cfg.get("allowed_user_ids", []))
+        self.allowed_users = set(tel_cfg.get("chat_id", []))
 
-        # Polling intervals
         self.poll_idle = tel_cfg.get("polling_interval_idle", 60)
         self.poll_active = tel_cfg.get("polling_interval_active", 5)
         self.interval = self.poll_idle
@@ -91,46 +90,74 @@ class ChatSession:
         self.offset = None
 
     def list_services(self) -> str:
-        """List all available services, one per line."""
-        return "\n".join(self.config.get("services", {}).keys())
+        return "Available services:\n" + "\n".join(
+            self.config.get("services", {}).keys()
+        )
 
     def list_models(self) -> str:
-        """List models for current service with 'censored' status and short description."""
         svc_models = self.models_info.get(self.service, {})
-        lines = []
-        for name, info in svc_models.items():
-            cens_status = info.get("censored", "unknown")
-            lines.append(f"{name} ({cens_status}): {info.get('short')}")
-        # Double newline after listing
-        return "\n".join(lines) + "\n\n"
+        if not svc_models:
+            return f"No models found for service '{self.service}'."
+        return f"Models for {self.service}:\n" + "\n".join(svc_models.keys())
 
-    def model_info(self, model_name: str) -> str:
-        """Return detailed info for a model, or list available models if no name given."""
+    def model_info(self, model_name: str = "") -> str:
         svc_models = self.models_info.get(self.service, {})
-        if not model_name:
-            # No model specified: list all model names
-            return "\n".join(svc_models.keys())
-        info = svc_models.get(model_name)
+        target_model = model_name.strip() or self.model
+
+        info = svc_models.get(target_model)
         if not info:
-            return f"Model '{model_name}' not found for service '{self.service}'."
+            return f"Model '{target_model}' not found for service '{self.service}'."
+
         return (
-            f"Creator: {info.get('creator')}\n"
-            f"{info.get('censored')}\n"
-            f"Strengths: {info.get('strengths')}\n"
-            f"Weaknesses: {info.get('weaknesses')}\n"
-            f"Details: {info.get('details')}"
+            f"{target_model}\n"
+            f"by {info.get('creator', 'N/A')}\n"
+            f"Strengths: {info.get('strengths', 'N/A')}\n"
+            f"Weaknesses: {info.get('weaknesses', 'N/A')}\n"
+            f"Details: {info.get('details', 'N/A')}\n"
+            f"{info.get('censored', 'N/A')}\n"
         )
 
     def handle_command(self, text: str) -> str:
-        """Parse and execute slash commands, returning a reply string."""
         parts = text.lstrip("/").split(maxsplit=1)
-        cmd = parts[0]
+        cmd = parts[0].lower()
         arg = parts[1].strip() if len(parts) > 1 else ""
-        # Command handling logic...
-        return None
+
+        if cmd == "help":
+            return (
+                "Available commands:\n"
+                "/help – Show this message\n"
+                "/services – List available services\n"
+                "/cservice <name> – Change service (e.g. mistral or groq)\n"
+                "/models – List models for current service\n"
+                "/cmodel <name> – Change to a model in current service\n"
+            )
+        elif cmd == "services":
+            return self.list_services()
+        elif cmd == "models":
+            return self.list_models()
+        elif cmd == "cmodel":
+            if not arg:
+                return "Usage: /cmodel <model name>"
+            if arg not in self.models_info.get(self.service, {}):
+                return f"Model '{arg}' not found in service '{self.service}'."
+            self.model = arg
+            return f"Model switched to '{self.model}'"
+        elif cmd == "cservice":
+            if not arg:
+                return "Usage: /cservice <service name>"
+            if arg not in self.config.get("services", {}):
+                return f"Service '{arg}' not found."
+            if not self.config["services"][arg].get("enabled", False):
+                return f"Service '{arg}' is not enabled."
+            self.service = arg
+            self.model = self.config["services"][arg]["model"]
+            return f"Service switched to '{self.service}', using model '{self.model}'"
+        elif cmd == "modelinfo":
+            return self.model_info(arg)
+        else:
+            return f"Unknown command: /{cmd}. Use /help to list available commands."
 
     def process_update(self, update: dict) -> None:
-        """Process a single Telegram update: handle commands or chat messages."""
         msg = update.get("message")
         if not msg:
             return
@@ -140,15 +167,12 @@ class ChatSession:
         chat_id = msg["chat"]["id"]
         text = msg.get("text", "")
 
-        # Reset backoff on activity
-        self.last_active = datetime.utcnow()
+        self.last_active = datetime.now()
         self.interval = self.poll_active
 
-        # Check if it's a command
         if text.startswith("/"):
             reply = self.handle_command(text)
         else:
-            # Regular chat message: proxy to LLM
             try:
                 endpoint, api_key = get_service_conf(self.config, self.service)
                 payload = {
@@ -171,7 +195,6 @@ class ChatSession:
         send_message(self.bot_token, chat_id, reply)
 
     def run(self) -> None:
-        """Main loop: poll for updates and process each one, with backoff."""
         while True:
             updates = get_updates(
                 self.bot_token, offset=self.offset, timeout=self.interval
@@ -181,8 +204,6 @@ class ChatSession:
                     self.process_update(upd)
                     self.offset = upd["update_id"] + 1
             else:
-                # No updates: exponential backoff towards idle interval
                 if self.last_active:
                     self.interval = min(self.poll_idle, self.interval * 2)
-
             time.sleep(0)
