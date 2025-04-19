@@ -13,5 +13,10 @@ This project is a Python-based application that integrates with a free and uncen
 - Python 3.x
 - virtualenv
 - Telegram Bot API token
+- LLM API token from Services like Groq.com or Mistral.ai
 
+## Usage
+
+```bash
 git clone git@github.com:chrhaeusler/llm-telegram-bot.git
+```

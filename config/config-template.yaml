@@ -1,0 +1,25 @@
+# Configuration for LLM bot integration
+# Make sure to save as "config.yaml" so it will be ignore by git
+default:
+  service: mistral
+  model: mistral-small-latest
+
+services:
+  groq:
+    enabled: true
+    model: mixtral-8x7b-32768 # Can also be e.g. llama3-70b-8192
+    endpoint: https://api.groq.com/openai/v1/chat/completions
+    token_ref: <your_token>
+
+  mistral:
+    enabled: true
+    model: mistral-small-latest
+    endpoint: https://api.mistral.ai/v1/chat/completions
+    token_ref: <your_token>
+
+telegram:
+  bot_token_ref: telegram_bot_token # Refers to credentials.json
+  allowed_user_ids:
+    - 123456789 # Your Telegram user ID, for security
+  polling_interval_idle: 120 # seconds
+  polling_interval_active: 1 # seconds
