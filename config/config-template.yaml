@@ -2,25 +2,27 @@
 # Make sure to save as "config.yaml" so it will be ignore by git
 # ANY comments will be overwritten by the script if you set your current bot
 # (service, model, temperature, maximum tokens) as defaults!
+factorydefault:
+  service: mistral
+  model: mistral-small-latest
+  temperature: 0.7
+  maxtoken: 100
 default:
   service: mistral
   model: mistral-small-latest
   temperature: 0.7
   maxtoken: 100
-
 services:
   groq:
     enabled: true
     model: mixtral-8x7b-32768 # Can also be e.g. llama3-70b-8192
     endpoint: https://api.groq.com/openai/v1/chat/completions
     token_ref: <your_token>
-
   mistral:
     enabled: true
     model: mistral-small-latest
     endpoint: https://api.mistral.ai/v1/chat/completions
     token_ref: <your_token>
-
 telegram:
   bot_token_ref: telegram_bot_token # Refers to credentials.json
   allowed_user_ids:
