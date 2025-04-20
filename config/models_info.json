@@ -4,7 +4,7 @@
       "creator": "Mistral AI",
       "short": "Light, efficient general‑purpose model.",
       "release_year": "2025",
-      "token_win": [131000, 131000],
+      "token_win": [2048, 2048],
       "main_purpose": "real‑time chat, summarization, and lightweight AI services",
       "strengths": "Fast inference and huge 131k token context.",
       "weaknesses": "Limited complex reasoning compared to larger variants.",
@@ -16,7 +16,7 @@
         "hidden prompt chaining",
         "direct role swap"
       ],
-      "details": "offers an unprecedented 131k‑token context with low latency; optimized for simple conversations, summarization, and embedded AI applications; its efficient design grants it a good power ranking, though coding depth is mid-level. Lack of built‑in filters yields a high jailbreak rank, easily bypassable via instruction overrides."
+      "details": "optimized for simple conversations, summarization, and embedded AI applications; its efficient design grants it a good power ranking, though coding depth is mid-level. Lack of built‑in filters yields a high jailbreak rank, easily bypassable via instruction overrides."
     },
     "pixtral-12b-2409": {
       "creator": "Mistral AI",

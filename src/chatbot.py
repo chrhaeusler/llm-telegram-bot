@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
 """
-To Do: Docstrings
-To Do: implement all commands from telegram_utils.py
-To Do: bring "print_help" in line wit commands from with telegram_utils.py()
-To Do: when starting, use defaults from .config.yaml that are formatted like this:
-```yaml
-default:
-  service: groq
-  model: deepseek-r1-distill-llama-70b
-  temperature: 0.7
-  maxtoken: 4096
-```
-To Do: def prompt_filename_suggestion should parse the previous response into the next
-prompt because the model forgets the last response immedtiately
-To Do: Color scheme should follow the color scheme of VSCode's Theme "Visual Studio Dark"
-To Do: Set background to #111111
-```
+CLI Chat Interface for LLMs
 
+This script provides an interactive CLI for chatting with a large language model.
+It uses a default configuration from `../config/config.yaml` and supports session
+persistence, response saving, and syntax highlighting based on content.
+
+To Do:
+- Console should allow to accept code block to be copy into it not just line
+- being able to scroll up to previous commands at prompt would be awesome
+- Bring print_help in line with commands available in telegram_utils (-> make a function)
+- Use defaults from config.yaml ✅
+- Implement all commands from telegram_utils.py
 """
-
 
 import argparse
 import json
@@ -43,7 +37,7 @@ from telegram_utils import (
 
 # Init formatting tools
 colorama_init(autoreset=True)
-console = Console()
+console = Console(style="on #111111")
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent
@@ -56,11 +50,13 @@ SAVE_ENABLED = False
 
 
 def sanitize_filename(name: str) -> str:
+    """Sanitize a string to make it a valid filename."""
     name = re.sub(r"[^\w\-.]", "_", name).strip("_")
     return name if "." in name else f"{name}.txt"
 
 
 def save_response(response: str, suggested_filename: str):
+    """Save a model's response to a file in TMP_DIR with timestamped filename."""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     final_name = sanitize_filename(suggested_filename)
     full_path = TMP_DIR / f"{timestamp}_{final_name}"
@@ -84,6 +80,7 @@ def save_response(response: str, suggested_filename: str):
 
 
 def prompt_filename_suggestion(session: ChatSession, reply: str) -> str:
+    """Ask the LLM to suggest a filename for the last reply."""
     try:
         endpoint, api_key = get_service_conf(session.config, session.service)
 
@@ -91,12 +88,11 @@ def prompt_filename_suggestion(session: ChatSession, reply: str) -> str:
             {
                 "role": "user",
                 "content": (
-                    "Write an a good file name for the previous response. "
-                    'ONLY return the file name + extension in quotes, like this: "my_code.py". '
-                    "Do not write anything else."
+                    f"This was your last response:\n\n{reply}\n\n"
+                    "Please suggest a very short file name (with extension) to save this reply. "
+                    'Only respond with the file name in double quotes, like: "summary.md".'
                 ),
-            },
-            {"role": "assistant", "content": reply},
+            }
         ]
 
         resp = requests.post(
@@ -134,6 +130,7 @@ def prompt_filename_suggestion(session: ChatSession, reply: str) -> str:
 
 
 def detect_language_block(text):
+    """Try to guess the language of a code block for syntax highlighting."""
     if text.strip().startswith("{"):
         return "json"
     elif text.strip().startswith("#") or "#!/bin/bash" in text:
@@ -148,6 +145,7 @@ def detect_language_block(text):
 
 
 def print_response_styled(reply: str):
+    """Print bot reply with syntax highlighting if it's code."""
     language = detect_language_block(reply)
     if language:
         syntax = Syntax(reply, language, theme="monokai", line_numbers=False)
@@ -157,19 +155,20 @@ def print_response_styled(reply: str):
 
 
 def print_help():
+    """Return full help text for all supported commands."""
     return (
         "🛠️ Available commands:\n"
         "/help                - Show this help message\n"
         "/showsettings        - Show current session parameters\n"
-        "/modelinfo <name>    - Show info for current or named model\n"
+        "/model               - Show info for current or named model\n"
         "/maxtokens <int>     - Set max tokens (e.g. 256)\n"
         "/temperature <float> - Set temperature\n"
-        "/models              - chow models available for current service"
-        "/cmodel <name>       - change to another model"
-        "/services <name>     - Change service\n"
+        "/models              - Show models for current service\n"
+        "/cmodel <name>       - Change to another model\n"
+        "/services            - List available services\n"
         "/cservice <name>     - Change service\n"
         "/setasdefaults       - Save current settings to config.yaml\n"
-        "/factoryresets       - Reset to factory defaults"
+        "/factoryreset        - Reset to factory defaults\n"
         "/save on             - Enable saving responses to ../tmp/\n"
         "/save off            - Disable saving responses\n"
         "\n💡 You can also enable saving from the start using `--save`"
@@ -177,6 +176,7 @@ def print_help():
 
 
 def main():
+    """Main CLI entry point for the chatbot."""
     global SAVE_ENABLED
 
     parser = argparse.ArgumentParser(
@@ -195,16 +195,22 @@ def main():
 
     config = load_yaml(CONFIG_PATH)
     models_info = load_models_info(MODELS_PATH)
-    session = ChatSession(config, models_info)
 
-    if args.service:
-        session.service = args.service
-    if args.model:
-        session.model = args.model
-    if args.temperature is not None:
-        session.temperature = args.temperature
-    if args.max_tokens is not None:
-        session.max_tokens = args.max_tokens
+    # Apply CLI overrides to config
+    default_conf = config.get("default", {})
+    default_conf.update(
+        {
+            k: v
+            for k, v in vars(args).items()
+            if v is not None and k in ["service", "model", "temperature", "max_tokens"]
+        }
+    )
+
+    session = ChatSession(config, models_info)
+    session.service = default_conf.get("service", session.service)
+    session.model = default_conf.get("model", session.model)
+    session.temperature = default_conf.get("temperature", session.temperature)
+    session.max_tokens = default_conf.get("max_tokens", session.max_tokens)
 
     print(
         f"\n{Style.BRIGHT}{Fore.CYAN}💬 CLI Chat Mode (type /help for commands, Ctrl+C to quit){Style.RESET_ALL}\n"

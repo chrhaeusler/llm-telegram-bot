@@ -3,9 +3,13 @@ import signal
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 
 import requests
 import yaml
+
+BASE_DIR = Path(__file__).resolve().parent
+CONFIG_YAML = BASE_DIR / "../config/config.yaml"
 
 # Graceful exit on Ctrl+C
 signal.signal(signal.SIGINT, lambda sig, frame: sys.exit(0))
@@ -78,6 +82,7 @@ class ChatSession:
         self.config = cfg
         self.models_info = models_info
 
+        # To do: this is hardcoded but should be drawn from CONFIG_YAML
         self.service = default.get("service")
         self.model = default.get("model")
         self.temperature = tel_cfg.get("default_temperature", 0.7)
@@ -119,7 +124,7 @@ class ChatSession:
             # create output
             lines.append(f"\n*{name}* ({year})")
             lines.append(f"*Tokens:* {token_str}")
-            lines.append(f"*Powwer*: {p}, *Coding*: {c}, *JB:* {j}")
+            lines.append(f"*Power*: {p}, *Coding*: {c}, *JB:* {j}")
         return "\n".join(lines)
 
     def model_info(self, model_name: str = "") -> str:
@@ -160,7 +165,7 @@ class ChatSession:
 
         return "\n".join(lines)
 
-    def save_defaults(self, path: str = "config/config.yaml") -> str:
+    def save_defaults(self, path: str = CONFIG_YAML) -> str:
         """Write current service, model, temperature, and max_tokens to the default block in config.yaml."""
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -181,50 +186,57 @@ class ChatSession:
             return f"[ERROR] Failed to write config.yaml: {e}"
 
     def factory_reset(self):
-        factory_defaults = {
-            "service": "mistral",
-            "model": "mistral-small-latest",
-            "temperature": 0.7,
-            "maxtoken": 100,
-        }
-
-        # Set active in-session values
-        self.service = factory_defaults["service"]
-        self.model = factory_defaults["model"]
-        self.temperature = factory_defaults["temperature"]
-        self.max_tokens = factory_defaults["maxtoken"]
-
-        # Overwrite the YAML config file
+        """
+        Reset all values to the ones stored in the 'factorydefaults' block of config.yaml.
+        If not found, fall back to hardcoded defaults.
+        """
         try:
-            with open("config/config.yaml", "r") as f:
+            print("before")
+            with open(CONFIG_YAML, "r", encoding="utf-8") as f:
                 config_data = yaml.safe_load(f) or {}
+                print(config_data)
 
+            # Get factory defaults from config or fallback
+            factory_defaults = config_data.get(
+                "factorydefaults",
+                {
+                    "service": "groq",
+                    "model": "llama-3.3-70-versatile",
+                    "temperature": 0.7,
+                    "maxtoken": 4096,
+                },
+            )
+
+            # Apply in-session values
+            self.service = factory_defaults["service"]
+            self.model = factory_defaults["model"]
+            self.temperature = factory_defaults["temperature"]
+            self.max_tokens = factory_defaults["maxtoken"]
+
+            # Ensure config is updated with factorydefaults block
             config_data["factorydefaults"] = factory_defaults
 
-            with open("config/config.yaml", "w") as f:
+            with open(CONFIG_YAML, "w", encoding="utf-8") as f:
                 yaml.safe_dump(config_data, f, sort_keys=False)
 
-                self.service = "mistral"
-                self.model = "mistral-small-latest"
-                self.temperature = 0.7
-                self.max_tokens = 100
-                self.save_defaults()  # Also persist these as the new defaults
-                return "Bot and defaults set to factory settings"
-
-            return "Factory reset complete. All settings restored to defaults."
+            self.save_defaults()  # Also persist these as the new defaults
+            return "Bot and defaults set to factory settings ✅"
         except Exception as e:
-            return f"Factory reset failed: {str(e)}"
+            return f"[ERROR] Factory reset failed: {e}"
 
     def handle_command(self, text: str) -> str:
         parts = text.lstrip("/").split(maxsplit=1)
         cmd = parts[0].lower()
         arg = parts[1].strip() if len(parts) > 1 else ""
 
+        # could this block be called from an external script to show the same help?
+        # please refactor it in a way that his is possible
         if cmd == "help":
             return (
                 "Available commands:\n"
                 "/help – Show this message\n"
                 "/showsettings - Show service, model, temperature & max tokens\n"
+                "/model - Show current models info"
                 "/services – List available services\n"
                 "/cservice <name> – Change service (e.g. mistral or groq)\n"
                 "/models – List models for current service\n"
