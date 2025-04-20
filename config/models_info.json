@@ -10,7 +10,7 @@
       "short": "Mistral Small v24.09: light, efficient, general-purpose.",
       "details": "Mistral-Small-Latest is the compact, efficient offering from Mistral AI designed for real-time inference and embedded use cases. It balances performance and resource use, making it an excellent fit for chatbots, mobile assistants, and lightweight backend services. Despite its small size, the model supports up to 131k tokens of context, allowing it to handle fairly complex instructions and follow-ups. It supports multilingual input and provides decent fluency across common languages.\n\nThe model was released in March 2025 under the Apache 2.0 license and features a streamlined transformer architecture. It focuses on delivering low latency responses and staying responsive even under load. Mistral-Small is particularly useful for tasks such as summarization, FAQ bots, code snippets, and short Q&A conversations. Though not as deep in reasoning as larger models, its responsiveness and deployability make it ideal for real-time systems."
     },
-    "mixtral-12b-240": {
+    "pixtral-12b-2409": {
       "creator": "Mistral AI",
       "censored": "uncensored",
       "input_token_price": 0,
@@ -18,7 +18,7 @@
       "strengths": "Mixture-of-experts architecture improves performance on diverse tasks.",
       "weaknesses": "Requires more compute and has higher latency than smaller models.",
       "short": "Mixtral 12B: powerful MoE model for varied tasks.",
-      "details": "Mixtral-12B-240 is a mixture-of-experts (MoE) model from Mistral AI designed to balance inference efficiency with high performance. It includes 12 billion total parameters and routes each input through a select subset of its expert networks. This allows it to maintain high expressiveness while keeping compute costs lower than a full dense model. Its architecture shines in general-purpose reasoning, text generation, classification, and content understanding tasks.\n\nReleased in December 2023, Mixtral supports a context window of 2048 tokens and is open-source under Apache 2.0. It's particularly effective in situations where response diversity or breadth is needed, such as writing, analysis, and multi-turn conversation. However, its compute footprint is heavier than Mistral-Small, making it more suitable for server-based or cloud deployments rather than mobile or edge environments."
+      "details": "Pixtral-12B-2409 is a custom variant based on Mistral AI’s Mixtral-12B architecture. It's a mixture-of-experts (MoE) model designed to balance inference efficiency with high performance. It includes 12 billion total parameters and routes each input through a select subset of its expert networks. This allows it to maintain high expressiveness while keeping compute costs lower than a full dense model. Its architecture shines in general-purpose reasoning, text generation, classification, and content understanding tasks.\n\nReleased in December 2023, the base architecture supports a context window of 2048 tokens and is open-source under Apache 2.0. Pixtral is particularly effective in situations where response diversity or breadth is needed, such as writing, analysis, and multi-turn conversation. However, its compute footprint is heavier than Mistral-Small, making it more suitable for server-based or cloud deployments rather than mobile or edge environments."
     },
     "open-mistral-nemo": {
       "creator": "Mistral AI",

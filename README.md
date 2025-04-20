@@ -47,9 +47,6 @@ source .venv/bin/activate
 ```bash
 # Install dependencies
 pip install -r requirements.txt
-
-# Install development dependencies
-pip install -r requirements-dev.txt
 ```
 
 ## Configuration
@@ -64,7 +61,7 @@ cp config/config-template.yaml config/config.yaml
 
 1. Send a message to @BotFather and create a bot by typing `/newbot`; you will get the bot's API key from BotFather the moment you created the bot
 2. Send a message to your bot (to open a chat with the bot)
-3. To get the Chat ID, visit (substitute 123456...Nf4c with your bot's API key):
+3. To get the chat ID, visit (substitute 123456...Nf4c with your bot's API key):
    - `https://api.telegram.org/bot12345678:AAFoxxxxn0hwA-2TVSxxxNf4c/getUpdates"
 
 ## Usage
