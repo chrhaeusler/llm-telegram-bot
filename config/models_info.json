@@ -42,15 +42,35 @@
     }
   },
   "groq": {
-    "distil-whisper-large-v3-en": {
-      "creator": "OpenAI (distilled by Groq)",
+    "compound-beta": {
+      "creator": "Groq",
       "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
-      "strengths": "Efficient speech-to-text transcription with high accuracy.",
-      "weaknesses": "Not applicable for text generation.",
-      "short": "Distilled Whisper v3 Large (EN): fast English ASR.",
-      "details": "Distil‑Whisper‑Large‑v3‑EN is a condensed version of OpenAI’s Whisper v3, distilled by Groq to run efficiently on edge devices while retaining high transcription fidelity for English. It uses a streamlined encoder‑decoder transformer architecture with approximately 1.5 billion parameters, optimized via knowledge distillation to nearly match the accuracy of the full‑size model in recognizing spoken language. The model excels at noisy‑audio scenarios—phone calls, background chatter, and low‑bitrate recordings—thanks to specialized pre‑ and post‑processing layers that filter out ambient noise and normalize volume levels.\n\nReleased in early 2024 under an open‑source Apache 2.0 license, Distil‑Whisper‑Large‑v3‑EN supports real‑time streaming transcription with latencies as low as 200 ms on modern inference hardware. It integrates seamlessly into transcription pipelines, live captions, and voice‑assistant backends. While its design focuses solely on English, it can handle code‑switching segments moderately well. Note that it does not perform text‑generation tasks—its domain is strictly automatic speech recognition (ASR), and it does not support punctuation prediction beyond basic sentence breaks."
+      "strengths": "Optimized for high-speed inference on Groq hardware.",
+      "weaknesses": "Limited public information available.",
+      "short": "Groq's beta model optimized for performance.",
+      "details": "Compound-beta is a proprietary model developed by Groq, designed to leverage the company's specialized hardware for accelerated inference. While specific architectural details are not publicly disclosed, the model is part of Groq's initiative to provide high-performance AI solutions.\n\nThe model is currently in beta, indicating ongoing development and optimization. Users can expect enhancements in speed and efficiency as Groq continues to refine its capabilities."
+    },
+    "compound-beta-mini": {
+      "creator": "Groq",
+      "censored": "uncensored",
+      "input_token_price": 0,
+      "output_token_price": 0,
+      "strengths": "Lightweight model suitable for resource-constrained environments.",
+      "weaknesses": "Limited public information available.",
+      "short": "Compact version of Groq's beta model.",
+      "details": "Compound-beta-mini is a scaled-down variant of Groq's ompound-beta model, tailored for applications requiring lower computational resources. This model aims to maintain performance while reducing the hardware footprint.\n\nAs with its larger counterpart, detailed specifications are not publicly available. However, its designation as 'mini' suggests a focus on efficiency and deployment flexibility."
+    },
+    "deepseek-r1-distill-llama-70b": {
+      "creator": "DeepSeek",
+      "censored": "uncensored",
+      "input_token_price": 0.75,
+      "output_token_price": 0.99,
+      "strengths": "Excels in mathematical and logical reasoning tasks with high accuracy.",
+      "weaknesses": "Higher computational requirements due to model size.",
+      "short": "Distilled 70B model optimized for reasoning tasks.",
+      "details": "DeepSeek-R1-Distill-Llama-70B is a distilled version of DeepSeek's R1 model, fine-tuned from the Llama-3.3-70B-Instruct base model. This model leverages knowledge distillation to retain robust reasoning capabilities and deliver exceptional performance on mathematical and logical reasoning tasks with Groq's industry-leading speed.\n\nBuilt upon the Llama-3.3-70B-Instruct framework, the model comprises 70 billion parameters. The distillation process fine-tunes the base model using outputs from DeepSeek-R1, effectively transferring reasoning patterns. It demonstrates strong performance across various benchmarks, including a Pass@1 score of 70.0 on AIME 2024 and 94.5 on MATH-500."
     },
     "gemma2-9b-it": {
       "creator": "Groq",
@@ -110,7 +130,7 @@
       "strengths": "Extended context with efficient runtime.",
       "weaknesses": "Smaller model, less nuanced than larger variants.",
       "short": "LLaMA3 8B 8k: 8B model with extended context.",
-      "details": "Released 2024. 8B parameters, 8192-token context window, balanced speed vs capability."
+      "details": "LLaMA3-8B-8192 is part of Meta’s third-generation LLaMA model family, offering a well-balanced architecture with 8 billion parameters and support for an 8192-token context window. This version emphasizes faster inference and reduced resource usage while still delivering competitive performance across tasks like summarization, chat, code, and instruction following.\n\nReleased in 2024, this model is uncensored and open-weight, designed for broader accessibility and integration into various applications. Its extended context window enables better understanding of long documents or conversations, making it ideal for use cases such as multi-turn dialogue and content generation where memory of earlier context matters."
     },
     "meta-llama/llama-4-maverick-17b-128e-instruct": {
       "creator": "Meta",
@@ -132,15 +152,15 @@
       "short": "LLaMA 4 Scout 17B: 16k instruct model.",
       "details": "LLaMA 4 Maverick 17B 128K‑Instruct is Meta’s next‑generation seventeen‑billion‑parameter model, fine‑tuned for instruction‑following with an enormous 128 000‑token context window. It integrates sparse MoE layers alongside dense transformer blocks, enabling efficient scaling of context without a linear compute increase. This design supports tasks from full‑document summarization to codebase understanding and scientific paper analysis within a single prompt.\n\nReleased in November 2024 under Meta’s research license, Maverick emphasizes versatility in instruction compliance and factual grounding. Its major use cases include AI research assistants, legal document review, and large‑scale code generation. The trade‑off is that such a large context and MoE routing introduces additional latency and operational complexity; deploying it requires careful infrastructure planning, but the expanded context truly redefines what’s possible in a single API call."
     },
-    "mistral-saba-24b": {
-      "creator": "Mistral AI",
+    "qwen-qwq-32b": {
+      "creator": "Alibaba (Qwen)",
       "censored": "uncensored",
       "input_token_price": 0,
       "output_token_price": 0,
-      "strengths": "Powerful and efficient for varied tasks.",
-      "weaknesses": "High memory and compute requirements.",
-      "short": "Mistral Saba 24B: high-performance generalist.",
-      "details": "LLaMA 4 Scout 17B 16K‑Instruct is a lighter sibling to Maverick, maintaining the seventeen‑billion‑parameter core but with a 16 000‑token context window and fewer expert subnetworks (16 experts vs. 128). It is tuned specifically for interactive, low‑latency instruction tasks—think dynamic code review, interactive tutoring, and rapid document navigation. The reduced expert count keeps inference speeds reasonable while still capturing most benefits of MoE.\n\nIntroduced alongside Maverick in late 2024, Scout is ideal for hybrid deployments where some extended context is needed but real‑time interaction remains crucial. It’s open under Meta’s research license and shines in QA systems, developer tools, and educational platforms. Its smaller expert footprint means it may slightly underperform Maverick on ultra‑long tasks, but for most 16 k‑token applications, Scout delivers a strong balance of speed, cost, and comprehension."
+      "strengths": "Strong general-purpose capabilities with efficient scaling.",
+      "weaknesses": "Model documentation and benchmarks are limited.",
+      "short": "Qwen-QWQ 32B: general-purpose 32B model.",
+      "details": "Qwen-QWQ-32B is a 32-billion parameter model from Alibaba’s Qwen series. It’s designed for broad applicability across natural language understanding, content generation, and reasoning tasks.\n\nWhile specific architectural insights are limited, the QWQ-32B performs competitively within its parameter class. It is part of Alibaba’s push toward scalable, multilingual, and instruction-tuned AI models with enterprise readiness."
     }
   }
 }

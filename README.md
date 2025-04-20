@@ -5,7 +5,7 @@ Modular, configurable, and extendable—switch services, models, temperature, an
 
 ## Features
 
-- **Multi‑service support**: [Mistral AI](https://docs.mistral.ai/getting-started/models/) and [Groq: Supported models](https://console.groq.com/docs/models) (add more via config)
+- **Multi‑service support**: [Mistral AI](https://docs.mistral.ai/getting-started/models/) and [Groq: Supported models](https://console.groq.com/docs/rate-limits) (add more via config)
 - **Dynamic model switching**: chat commands `/models`, `/cmodel <name>`
 - **Service switching**: chat commands `/services`, `/cservice <name>`
 - **Runtime parameter tuning**: chat commands `/temperature <float>`, `/maxtokens <int>`
