@@ -23,12 +23,12 @@ def load_models_info(path) -> dict:
 
 
 # --- Telegram API helpers ---
-def get_updates(token: str, offset: int = None, timeout: int = 0) -> list:
+def get_updates(token: str, offset: int = None, timeout: int = 10) -> list:
     url = f"https://api.telegram.org/bot{token}/getUpdates"
     params = {"timeout": timeout}
     if offset is not None:
         params["offset"] = offset
-    response = requests.get(url, params=params, timeout=timeout + 5)
+    response = requests.get(url, params=params, timeout=timeout + 30)
     response.raise_for_status()
     return response.json().get("result", [])
 
@@ -39,7 +39,7 @@ def send_message(
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
     try:
-        resp = requests.post(url, json=payload, timeout=10)
+        resp = requests.post(url, json=payload, timeout=60)
         resp.raise_for_status()
     except requests.RequestException as e:
         print(f"[ERROR] Telegram send_message failed: {e}")
@@ -108,7 +108,6 @@ class ChatSession:
             lines.append(info.get("short", "No short description available."))
             lines.append(f"*Strengths:* {info.get('strengths', 'N/A')}")
             lines.append(f"*Weaknesses:* {info.get('weaknesses', 'N/A')}")
-            lines.append(f"*Censor status:* {info.get('censored', 'unknown')}")
             lines.append("")  # blank line between models
 
         return "\n".join(lines).rstrip()
@@ -122,7 +121,7 @@ class ChatSession:
             return f"Model '{target_model}' not found for service '{self.service}'."
 
         return (
-            f"*{target_model}* ({info.get('censored', 'N/A')})\n"
+            f"*{target_model}*\n"
             f"by {info.get('creator', 'N/A')}\n\n"
             f"*Strengths*\n{info.get('strengths', 'N/A')}\n\n"
             f"*Weaknesses*\n{info.get('weaknesses', 'N/A')}\n\n"
@@ -221,7 +220,7 @@ class ChatSession:
         elif cmd == "models":
             return self.list_models()
 
-        elif cmd == "modelinfo":
+        elif cmd == "model":
             return self.model_info(arg)
 
         elif cmd == "cmodel":
@@ -298,10 +297,11 @@ class ChatSession:
                     endpoint,
                     json=payload,
                     headers={"Authorization": f"Bearer {api_key}"},
-                    timeout=20,
+                    timeout=60,
                 )
                 resp.raise_for_status()
                 reply = resp.json()["choices"][0]["message"]["content"]
+
             except Exception as e:
                 reply = f"API Error: {e}"
 

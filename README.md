@@ -11,7 +11,7 @@ Modular, configurable, and extendable—switch services, models, temperature, an
 - **Runtime parameter tuning**: chat commands `/temperature <float>`, `/maxtokens <int>`
 - **Persistence**: save defaults (`/setasdefaults`), factory reset (`/factoryreset`), show settings (`/showsettings`)
 - **Model listings**: chat command `/models`
-- **Model information**: chat command `/modelinfo`
+- **Model information**: chat command `/model`
 - **Graceful backoff**: idle vs active polling intervals, exponential backoff
 - **Error handling**: API errors forwarded into the chat
 
