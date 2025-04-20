@@ -2,161 +2,273 @@
   "mistral": {
     "mistral-small-latest": {
       "creator": "Mistral AI",
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Fast inference, minimal resources, good for simple conversations and tasks.",
-      "weaknesses": "Less capable in complex reasoning and long-context tasks compared to larger models.",
-      "short": "Mistral Small v24.09: light, efficient, general-purpose.",
-      "details": "Mistral-Small-Latest is the compact, efficient offering from Mistral AI designed for real-time inference and embedded use cases. It balances performance and resource use, making it an excellent fit for chatbots, mobile assistants, and lightweight backend services. Despite its small size, the model supports up to 131k tokens of context, allowing it to handle fairly complex instructions and follow-ups. It supports multilingual input and provides decent fluency across common languages.\n\nThe model was released in March 2025 under the Apache 2.0 license and features a streamlined transformer architecture. It focuses on delivering low latency responses and staying responsive even under load. Mistral-Small is particularly useful for tasks such as summarization, FAQ bots, code snippets, and short Q&A conversations. Though not as deep in reasoning as larger models, its responsiveness and deployability make it ideal for real-time systems."
+      "short": "Light, efficient general‑purpose model.",
+      "release_year": "2025",
+      "token_win": [131000, 131000],
+      "main_purpose": "real‑time chat, summarization, and lightweight AI services",
+      "strengths": "Fast inference and huge 131k token context.",
+      "weaknesses": "Limited complex reasoning compared to larger variants.",
+      "rank_power": "good",
+      "rank_coding": "mid",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "default instruction override",
+        "hidden prompt chaining",
+        "direct role swap"
+      ],
+      "details": "offers an unprecedented 131k‑token context with low latency; optimized for simple conversations, summarization, and embedded AI applications.\n\nIts efficient design grants it a good power ranking, though coding depth is mid-level. Lack of built‑in filters yields a high jailbreak rank, easily bypassable via instruction overrides."
     },
     "pixtral-12b-2409": {
       "creator": "Mistral AI",
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Mixture-of-experts architecture improves performance on diverse tasks.",
-      "weaknesses": "Requires more compute and has higher latency than smaller models.",
-      "short": "Mixtral 12B: powerful MoE model for varied tasks.",
-      "details": "Pixtral-12B-2409 is a custom variant based on Mistral AI’s Mixtral-12B architecture. It's a mixture-of-experts (MoE) model designed to balance inference efficiency with high performance. It includes 12 billion total parameters and routes each input through a select subset of its expert networks. This allows it to maintain high expressiveness while keeping compute costs lower than a full dense model. Its architecture shines in general-purpose reasoning, text generation, classification, and content understanding tasks.\n\nReleased in December 2023, the base architecture supports a context window of 2048 tokens and is open-source under Apache 2.0. Pixtral is particularly effective in situations where response diversity or breadth is needed, such as writing, analysis, and multi-turn conversation. However, its compute footprint is heavier than Mistral-Small, making it more suitable for server-based or cloud deployments rather than mobile or edge environments."
+      "short": "12B MoE model for diverse tasks.",
+      "release_year": "2023",
+      "token_win": [2048, 4096],
+      "strengths": "Mixture‑of‑Oxperts for efficient performance.",
+      "weaknesses": "Smaller context window (~2048–4096 tokens).",
+      "rank_power": "good",
+
+      "rank_coding": "good",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "context overload",
+        "persona override",
+        "chained malicious prompts"
+      ],
+      "details": "Features MoE routing for efficiency and a context range of 2048–4096 tokens. It performs well on general NLP and moderate code tasks.\n\nIts good power and coding ranks reflect balanced capability. Minimal safety measures lead to a high jailbreak risk through standard prompt attacks."
     },
     "open-mistral-nemo": {
       "creator": "Mistral AI",
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Strong multilingual capabilities across many languages.",
-      "weaknesses": "Smaller model size may limit performance on code or niche domains.",
-      "short": "Mistral NeMo: multilingual open model.",
-      "details": "Open-Mistral-NeMo is a multilingual transformer model developed by Mistral AI with a focus on cross-lingual applications. Trained to handle dozens of languages with high fidelity, it offers strong translation, multilingual summarization, and internationalized chatbot capabilities. The model comprises 12 billion parameters and uses optimized attention mechanisms to handle diverse linguistic structures.\n\nReleased in July 2024 under Apache 2.0, NeMo is particularly valuable in government, education, and content creation sectors that demand language flexibility. While it's a generalist in nature, it was trained with additional emphasis on multi-language corpora, making it more accurate in handling idioms, cultural expressions, and formatting nuances across languages. It may underperform in low-resource domains like code or scientific reasoning."
+      "short": "12B multilingual open‑source model.",
+      "release_year": "2024",
+      "token_win": [2048, 4096],
+      "main_purpose": "multilingual translation and summarization",
+      "strengths": "Strong translation and cross‑lingual capabilities.",
+      "weaknesses": "Not optimized for code or niche domains.",
+      "rank_power": "good",
+      "rank_coding": "mid",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "hidden conversation arcs",
+        "direct system override",
+        "instruction layering"
+      ],
+      "details": "Excels at multilingual tasks. It supports a context range of 2048–4096 tokens for translation and summarization.\n\nIts good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
     },
     "open-codestral-mamba": {
       "creator": "Mistral AI",
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Optimized for coding tasks, such as code completion and generation.",
-      "weaknesses": "Less versatile for general conversation or non-code tasks.",
-      "short": "Codestral Mamba: 7B code-specialized model.",
-      "details": "Codestral-Mamba is a 7B parameter model created by Mistral AI and focused entirely on software development tasks. It is trained heavily on source code and developer conversations, excelling at code generation, refactoring, inline comments, and completing functions or modules. Notably, it performs 'fill-in-the-middle' completions, useful for inserting code into existing contexts.\n\nReleased in July 2024 under the Apache 2.0 license, Codestral-Mamba supports autocomplete-style interactions for languages like Python, JavaScript, Rust, and C++. It's best used in developer IDE plugins, documentation assistants, and code review bots. While it may handle light general conversation, its strengths lie clearly in syntactic and semantic understanding of programming languages.."
+      "short": "7B code-specialized model optimized for coding tasks.",
+      "release_year": "2024",
+      "token_win": [2048, 2048],
+      "main_purpose": "development IDE integrations and automated code assistance",
+      "strengths": "Excels at code completion, refactoring, and fill-in-the-middle tasks.",
+      "weaknesses": "Limited general conversational ability and smaller context window.",
+      "rank_power": "good",
+      "rank_coding": "excellent",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "malicious code embedding to force behavior shift",
+        "role-play as 'evil assistant' to bypass filters",
+        "hidden instruction chaining within code blocks"
+      ],
+      "details": "Exceptional performance in code completion, refactoring, and fill-in-the-middle scenarios; limited general conversational abilities; lacks robust safety filters, making it highly susceptible to jailbreak techniques."
     }
   },
   "groq": {
-    "compound-beta": {
-      "creator": "Groq",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Optimized for high-speed inference on Groq hardware.",
-      "weaknesses": "Limited public information available.",
-      "short": "Groq's beta model optimized for performance.",
-      "details": "Compound-beta is a proprietary model developed by Groq, designed to leverage the company's specialized hardware for accelerated inference. While specific architectural details are not publicly disclosed, the model is part of Groq's initiative to provide high-performance AI solutions.\n\nThe model is currently in beta, indicating ongoing development and optimization. Users can expect enhancements in speed and efficiency as Groq continues to refine its capabilities."
-    },
     "compound-beta-mini": {
       "creator": "Groq",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Lightweight model suitable for resource-constrained environments.",
-      "weaknesses": "Limited public information available.",
       "short": "Compact version of Groq's beta model.",
-      "details": "Compound-beta-mini is a scaled-down variant of Groq's ompound-beta model, tailored for applications requiring lower computational resources. This model aims to maintain performance while reducing the hardware footprint.\n\nAs with its larger counterpart, detailed specifications are not publicly available. However, its designation as 'mini' suggests a focus on efficiency and deployment flexibility."
+      "release_year": "2024",
+      "token_win": [2048, 4096],
+      "main_purpose": "general‑purpose text generation and simple conversational agents",
+      "strengths": "Lightweight model suitable for resource-constrained environments.",
+      "weaknesses": "Limited capacity and no public performance benchmarks.",
+      "rank_power": "low",
+      "rank_coding": "low",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "simple prompt injection via ignore previous instructions",
+        "role‑play scenario to bypass restrictions",
+        "chain‑of‑thought diversion"
+      ],
+      "details": "tailored for lower computational resources and faster inference by sacrificing depth and throughput under heavy load; minimal safety filters make it highly susceptible to jailbreaking."
+    },
+    "compound-beta": {
+      "creator": "Groq",
+      "short": "Baseline Groq beta model for general tasks.",
+      "release_year": "2024",
+      "strengths": "Balanced performance for common NLP tasks with moderate resource use.",
+      "weaknesses": "Not optimized for long contexts or deep reasoning.",
+      "rank_power": "low",
+      "token_win": "[2048, 4096]",
+      "rank_coding": "low",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "system prompt override",
+        "disguised malicious instructions",
+        "zero‑shot jailbreak scripts"
+      ],
+      "details": "Ideal for simple chatbots and text processing pipelines but moderate performance across typical language tasks; lacks advanced reasoning layers; easy target for jailbreak via prompt and instruction manipulation."
     },
     "deepseek-r1-distill-llama-70b": {
       "creator": "DeepSeek",
-
-      "input_token_price": 0.75,
-      "output_token_price": 0.99,
-      "strengths": "Excels in mathematical and logical reasoning tasks with high accuracy.",
-      "weaknesses": "Higher computational requirements due to model size.",
-      "short": "Distilled 70B model optimized for reasoning tasks.",
-      "details": "DeepSeek-R1-Distill-Llama-70B is a distilled version of DeepSeek's R1 model, fine-tuned from the Llama-3.3-70B-Instruct base model. This model leverages knowledge distillation to retain robust reasoning capabilities and deliver exceptional performance on mathematical and logical reasoning tasks with Groq's industry-leading speed.\n\nBuilt upon the Llama-3.3-70B-Instruct framework, the model comprises 70 billion parameters. The distillation process fine-tunes the base model using outputs from DeepSeek-R1, effectively transferring reasoning patterns. It demonstrates strong performance across various benchmarks, including a Pass@1 score of 70.0 on AIME 2024 and 94.5 on MATH-500."
+      "short": "Distilled LLaMA‑70B for efficient inference.",
+      "main_purpose": "server‑side reasoning and complex code generation",
+      "release_year": "2024",
+      "token_win": [4096, 4096],
+      "strengths": "High-capacity reasoning distilled into a smaller footprint.",
+      "weaknesses": "Context window limited to 4096 tokens, some performance trade‑offs.",
+      "rank_power": "excellent",
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "persona swapping prompt injection",
+        "context injection beyond safe tokens",
+        "adversarial instruction chaining"
+      ],
+      "details": "top‑tier reasoning and coding performance; superior coding ability; moderate safety fine‑tunes guard against trivial jailbreaks, but advanced adversarial chains can still bypass its filters."
     },
     "gemma2-9b-it": {
       "creator": "Groq",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Instruction-tuned for general tasks, efficient inference.",
-      "weaknesses": "May struggle with highly specialized domains.",
-      "short": "Gemma2 9B (IT): general-purpose instruction model.",
-      "details": "Gemma2‑9B‑IT is Groq’s nine‑billion‑parameter instruction‑tuned language model trained on a multilingual corpus with an emphasis on Italian language tasks. It combines a dense transformer backbone with fine‑tuning on high‑quality instruction datasets, yielding strong performance in conversational Q&A, summarization, and translation between Italian and English. At 9 B parameters, Gemma2‑9B‑IT offers a middle ground: rich linguistic understanding and context handling without the compute demands of much larger models.\n\nLaunched in mid‑2024, this model features a 4 k‑token context window and is optimized for throughput on Groq’s tensor‑processor hardware, achieving sub‑50 ms per‑token latency in batch mode. It shines in customer support bots, educational tutoring systems, and multilingual content creation tools that require fluency in Italian. Its primary limitations are in very narrow technical domains—highly specialized medical or legal jargon may see occasional inaccuracies—and in handling very long documents, where summarization may truncate important details."
+      "short": "Instruction-tuned for Italian and general tasks.",
+      "release_year": "2024",
+      "token_win": [4096, 4096],
+      "main_purpose": "Italian language tasks and multilingual conversation",
+      "strengths": "Strong multilingual support with emphasis on Italian.",
+      "weaknesses": "Lower performance on code and specialized domains.",
+      "rank_power": "mid",
+      "rank_coding": "mid",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "instruction inversion prompt",
+        "indirect prompt hacking",
+        "context wrapping exploits"
+      ],
+      "details": "italian-focussed and multi-lingual; handles translation, summarization, and conversation; minimal guardrails make it vulnerable to jailbreak via creative prompt manipulation and context wrapping techniques."
     },
     "llama-3.1-8b-instant": {
       "creator": "Meta",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Very fast inference, low latency for quick responses.",
-      "weaknesses": "Smaller size limits depth of reasoning.",
-      "short": "LLaMA 3.1 8B Instant: speed-first 8B model.",
-      "details": "LLaMA 3.1 8B Instant is Meta’s eight‑billion‑parameter variant tuned for ultra‑fast inference, targeting interactive chat experiences where latency is critical. It builds on the original LLaMA 3 architecture but prunes and quantizes weights to enable real‑time response generation even on consumer‑grade GPUs. Despite its compact size, it preserves much of the core reasoning and factual retrieval capabilities of its larger siblings, thanks to carefully balanced parameter allocation in key attention layers.\n\nDebuted in late 2024, this model supports a 4 k‑token context window and leverages dynamic attention mechanisms to focus compute on the most relevant input segments. It’s ideal for mobile chat apps, interactive gaming NPCs, and any scenario where end‑user experience demands sub‑100 ms generation times. Its trade‑off is somewhat reduced depth in multi‑step reasoning and lower performance in highly creative or abstract writing tasks compared to larger LLaMA 3 variants."
+      "short": "Pruned & quantized LLaMA 3.1 for instant chat.",
+      "release_year": "2024",
+      "token_win": [4096, 4096],
+      "main_purpose": "real‑time interactive chat and quick code snippets",
+      "strengths": "Ultra‑low latency responses on consumer hardware.",
+      "weaknesses": "Reduced parameter count limits depth of reasoning.",
+      "rank_power": "mid",
+      "rank_coding": "good",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "system message override",
+        "conversation tree exploitation",
+        "hidden prompt injection"
+      ],
+      "details": "optimized for sub‑100ms responses with up to 4096 tokens makes it well‑suited for interactive chat and simple code snippets; however, its small scale yields a mid power ranking;  minimal safety layers, allowing straightforward jailbreak attacks."
     },
     "llama-3.3-70b-versatile": {
       "creator": "Meta",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "High reasoning and generalization across domains.",
-      "weaknesses": "High inference cost and increased latency.",
-      "short": "LLaMA 3.3 70B Versatile: robust all-around performer.",
-      "details": "LLaMA 3.3 70B Versatile is Meta’s flagship seventy‑billion‑parameter transformer, engineered for broad‑spectrum NLP tasks from deep reasoning and code generation to long‑form content creation. It features a uniform attention design with 70 B dense parameters and a 4 k‑token context window, striking a balance between generality and efficiency. Trained on a massive mixture of web text, books, code repositories, and instruction datasets, it exhibits top‑tier performance in benchmarks like MMLU and HumanEval.\n\nReleased in late 2024 under Meta’s research license, LLaMA 3.3 excels in applications that demand nuanced understanding of complex queries—legal analysis, scientific summarization, and multi‑turn customer support. Its main weakness is inference cost: generating long responses can be slow without powerful GPUs, and deployment in latency‑sensitive environments requires careful batching or quantization. Nonetheless, for centralized servers or cloud services, it remains a go‑to model for high‑accuracy generation."
+      "short": "Dense 70B LLaMA 3.3 for broad NLP tasks.",
+      "release_year": "2024",
+      "token_win": [4096, 4096],
+      "main_purpose": "advanced reasoning, long‑form content, and complex code generation",
+      "strengths": "Top‑tier reasoning and generalization across domains.",
+      "weaknesses": "High inference cost on large inputs.",
+      "rank_power": "excellent",
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "strategic prompt layering",
+        "role‑play persona jailbreak",
+        "masked instruction injection"
+      ],
+      "details": "Excels at complex reasoning, code generation, and multi‑step tasks; exceptional capacity gives it an excellent power and coding rank; moderate fine‑tunes to resist simple jailbreaks, advanced prompt layering can still succeed."
     },
     "llama-guard-3-8b": {
       "creator": "Meta",
-      "censored": "censored",
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Built-in safety filters for harmful content.",
-      "weaknesses": "Cannot generate certain sensitive or unsafe content.",
-      "short": "LLaMA Guard 3 8B: safe mode 8B model.",
-      "details": "LLaMA Guard 3 8B is an eight‑billion‑parameter variant of Meta’s LLaMA series, fine‑tuned with integrated safety and content‑filtering layers to proactively block or rephrase harmful, biased, or sensitive outputs. It uses a hybrid of standard transformer blocks and auxiliary classification heads that score each potential token for policy adherence before selection. This architecture ensures that disallowed content is either sanitized or replaced with a safe fallback.\n\nIntroduced in mid‑2023, Guard 3 8B supports a 4 k‑token context window and is released under Meta’s research license with usage restrictions aimed at enterprise safety‑critical applications. It’s especially well‑suited for moderation assistants, educational platforms, and corporate chatbots where compliance with content policies is paramount. The trade‑off is a slightly higher latency per token (~20% above non‑guarded variants) and occasional over‑censoring in edge‑case queries, which may require fine‑tuning thresholds."
+      "short": "Safety‑hardened 8B LLaMA 3 variant.",
+      "release_year": "2023",
+      "main_purpose": "content moderation and safe conversational interfaces",
+      "strengths": "Built‑in content filters and moderation layers.",
+      "weaknesses": "Over‑censorship may hinder legitimate code examples.",
+      "rank_power": "mid",
+      "token_win": "[4096, 4096]",
+      "rank_coding": "mid",
+      "rank_jail": "low",
+      "jailbreaks": [
+        "weak chain‑of‑thought prompts",
+        "multi‑step indirect requests",
+        "supervised fine‑tuning override"
+      ],
+      "details": "designed for policy‑critical applications; strong guardrails earn it a low jailbreak rank, though very advanced adversarial sequences can sometimes bypass filters."
     },
     "llama3-70b-8192": {
       "creator": "Meta",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Large context window (8192 tokens) and deep reasoning capabilities.",
-      "weaknesses": "Slow and resource-intensive for inference.",
-      "short": "LLaMA3 70B 8k: large context, detailed responses.",
-      "details": "LLaMA3 70B 8 k is the extended‑context version of Meta’s seventy‑billion‑parameter LLaMA 3 model, offering an 8 192‑token window for handling long dialogues, documents, and multi‑document contexts. Architecturally identical to LLaMA 3.3 70B, it simply increases the positional embedding capacity and internal attention mechanisms to track far more tokens—ideal for legal transcripts, full‑length novels, and multi‑session chat histories.\n\nReleased in late 2024, this variant excels in long‑form content generation, multi‑document summarization, and analysis of lengthy codebases. Its compute demands are significant—requiring high‑memory GPUs or multi‑GPU setups—but for enterprises with those resources, it unlocks deep context reasoning across large text spans. The downsides are the same as its core model: high inference cost and potential hallucinations without careful prompt engineering."
-    },
-    "llama3-8b-8192": {
-      "creator": "Meta",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Extended context with efficient runtime.",
-      "weaknesses": "Smaller model, less nuanced than larger variants.",
-      "short": "LLaMA3 8B 8k: 8B model with extended context.",
-      "details": "LLaMA3-8B-8192 is part of Meta’s third-generation LLaMA model family, offering a well-balanced architecture with 8 billion parameters and support for an 8192-token context window. This version emphasizes faster inference and reduced resource usage while still delivering competitive performance across tasks like summarization, chat, code, and instruction following.\n\nReleased in 2024, this model is uncensored and open-weight, designed for broader accessibility and integration into various applications. Its extended context window enables better understanding of long documents or conversations, making it ideal for use cases such as multi-turn dialogue and content generation where memory of earlier context matters."
+      "short": "Extended‑context 70B LLaMA 3 with 8k window.",
+      "release_year": "2024",
+      "main_purpose": "long‑form document analysis and large codebase reasoning",
+      "strengths": "Large context for long‑form code and documents.",
+      "weaknesses": "High memory and compute requirements.",
+      "rank_power": "excellent",
+      "token_win": "[8192, 8192]",
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "context splitting",
+        "indirect system prompt abuse",
+        "disguised chains of thought"
+      ],
+      "details": "ideal for large codebases, document analysis, and multi‑session chats; excellent power and at coding; moderate safety measures guard against simple jailbreaks, but sophisticated prompt manipulations can still succeed."
     },
     "meta-llama/llama-4-maverick-17b-128e-instruct": {
       "creator": "Meta",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Instruction-tuned with massive (128k) context support.",
-      "weaknesses": "Heavy resource requirements and slower inference.",
-      "short": "LLaMA 4 Maverick 17B Inst: 128k instruction model.",
-      "details": "LLaMA3 8B 8 k brings the extended 8 192‑token context to the more compact eight‑billion‑parameter LLaMA 3 architecture. This model uses the same attention and embedding adjustments as its larger counterpart, enabling moderate‑cost handling of long documents—meeting a sweet spot for teams that need extended context without the scale of 70 B parameters.\n\nIntroduced in late 2024, LLaMA3 8B 8 k is well‑suited for document Q&A, multi‑turn chatbots that maintain long memories, and technical analysis where code or specs span thousands of tokens. It delivers faster inference than 70 B variants while supporting many of the same extended‑context workflows. Its limitation is that, despite the longer context, it will still lack some of the deep reasoning finesse of larger models."
+      "short": "MoE‑enhanced 17B model with 128k context.",
+      "release_year": "2024",
+      "main_purpose": "enterprise‑scale instruction following and research workflows",
+      "strengths": "Massive context and instruction tuning for complex tasks.",
+      "weaknesses": "High latency and infrastructure complexity.",
+      "rank_power": "excellent",
+      "token_win": "[128000, 128000]",
+      "rank_coding": "excellent",
+      "rank_jail": "low",
+      "jailbreaks": [
+        "adversarial system prompts",
+        "multi‑stage injection chains",
+        "persona reverse psychology"
+      ],
+      "details": "supports 128k tokens; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
     },
     "meta-llama/llama-4-scout-17b-16e-instruct": {
       "creator": "Meta",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Balanced performance with moderate context (16k).",
-      "weaknesses": "Less context capacity than Maverick.",
-      "short": "LLaMA 4 Scout 17B: 16k instruct model.",
-      "details": "LLaMA 4 Maverick 17B 128K‑Instruct is Meta’s next‑generation seventeen‑billion‑parameter model, fine‑tuned for instruction‑following with an enormous 128 000‑token context window. It integrates sparse MoE layers alongside dense transformer blocks, enabling efficient scaling of context without a linear compute increase. This design supports tasks from full‑document summarization to codebase understanding and scientific paper analysis within a single prompt.\n\nReleased in November 2024 under Meta’s research license, Maverick emphasizes versatility in instruction compliance and factual grounding. Its major use cases include AI research assistants, legal document review, and large‑scale code generation. The trade‑off is that such a large context and MoE routing introduces additional latency and operational complexity; deploying it requires careful infrastructure planning, but the expanded context truly redefines what’s possible in a single API call."
+      "short": "Lightweight 17B MoE model with 16k context.",
+      "release_year": "2024",
+      "strengths": "Fast instruction following with moderate context length.",
+      "weaknesses": "Lower context capacity than Maverick.",
+      "rank_power": "excellent",
+      "token_win": "[16000, 16000]",
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "stealth prompt insertion",
+        "temporal context shifting",
+        "multi‑step role‑play jailbreak"
+      ],
+      "details": "balances performance and speed in a 16k token window; reduces expert count for lower latency while retaining strong instruction tuning; good for document navigation and code reviews; excellent power and at coding; mid-level guardrails resist simple jailbreaks but can be overcome by advanced multi‑stage attacks."
     },
     "qwen-qwq-32b": {
-      "creator": "Alibaba (Qwen)",
-
-      "input_token_price": 0,
-      "output_token_price": 0,
-      "strengths": "Strong general-purpose capabilities with efficient scaling.",
-      "weaknesses": "Model documentation and benchmarks are limited.",
-      "short": "Qwen-QWQ 32B: general-purpose 32B model.",
-      "details": "Qwen-QWQ-32B is a 32-billion parameter model from Alibaba’s Qwen series. It’s designed for broad applicability across natural language understanding, content generation, and reasoning tasks.\n\nWhile specific architectural insights are limited, the QWQ-32B performs competitively within its parameter class. It is part of Alibaba’s push toward scalable, multilingual, and instruction-tuned AI models with enterprise readiness."
+      "creator": "Qwen AI",
+      "short": "32B dense model for advanced tasks.",
+      "release_year": "2024",
+      "main_purpose": "high‑throughput code generation and complex reasoning",
+      "strengths": "High performance on code and reasoning benchmarks.",
+      "weaknesses": "Resource-intensive; 8k–16k token window.",
+      "rank_power": "excellent",
+      "token_win": "[8192, 16384]",
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "context injection",
+        "adversarial role‑play",
+        "secret instruction chaining"
+      ],
+      "details": "strong code generation within an 8k-16k token window; excels in Python scripts, debugging, and logical reasoning tasks; overall top-tier capability; moderate safety fine‑tunes guard against trivial jailbreaks, but advanced adversarial techniques remain effective."
     }
   }
 }
