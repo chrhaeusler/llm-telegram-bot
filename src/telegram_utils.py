@@ -92,25 +92,53 @@ class ChatSession:
         self.last_active = None
         self.offset = None
 
-    def list_services(self) -> str:
-        return "Available services:\n" + "\n".join(
-            self.config.get("services", {}).keys()
-        )
+    # def list_services(self) -> str:
+    #     return "Available services:\n" + "\n".join(
+    #         self.config.get("services", {}).keys()
+    #     )
+
+    # def list_models(self) -> str:
+    #     svc_models = self.models_info.get(self.service, {})
+    #     if not svc_models:
+    #         return f"No models found for service '{self.service}'."
+
+    #     lines = [f"*Models for {self.service}*:\n"]
+    #     for name, info in svc_models.items():
+    #         lines.append(f"*{name}*")
+    #         lines.append(info.get("short", "No short description available."))
+    #         lines.append(f"*Strengths:* {info.get('strengths', 'N/A')}")
+    #         lines.append(f"*Weaknesses:* {info.get('weaknesses', 'N/A')}")
+
+    #     return "\n".join(lines).rstrip()
 
     def list_models(self) -> str:
         svc_models = self.models_info.get(self.service, {})
         if not svc_models:
             return f"No models found for service '{self.service}'."
+        
+        def fmt_tokens(n):
+            return f"{n//1000}k" if n >= 1000 else str(n)
 
-        lines = [f"*Models for {self.service}*:\n"]
+        lines = [f"*Models for {self.service}*:"]
         for name, info in svc_models.items():
-            lines.append(f"*{name}*")
-            lines.append(info.get("short", "No short description available."))
-            lines.append(f"*Strengths:* {info.get('strengths', 'N/A')}")
-            lines.append(f"*Weaknesses:* {info.get('weaknesses', 'N/A')}")
-            lines.append("")  # blank line between models
+            # release year
+            year = info.get("release_year", "N/A")
 
-        return "\n".join(lines).rstrip()
+            # token window
+            win = info.get("token_win", [])
+            token_str = f"{win[0]}-{win[1]}" if len(win) == 2 else "N/A"
+
+            # ranks
+            p = info.get("rank_power", "N/A")
+            c = info.get("rank_coding", "N/A")
+            j = info.get("rank_jail", "N/A")
+
+            # create output
+            lines.append(f"\n*{name}* ({year})")
+            lines.append(f"*Tokens:* {token_str}")
+            lines.append(f"*Powwer*: {p}, *Coding*: {c}, *JB:* {j}")
+        return "\n".join(lines)
+
 
     def model_info(self, model_name: str = "") -> str:
         svc_models = self.models_info.get(self.service, {})
@@ -120,13 +148,35 @@ class ChatSession:
         if not info:
             return f"Model '{target_model}' not found for service '{self.service}'."
 
-        return (
-            f"*{target_model}*\n"
-            f"by {info.get('creator', 'N/A')}\n\n"
-            f"*Strengths*\n{info.get('strengths', 'N/A')}\n\n"
-            f"*Weaknesses*\n{info.get('weaknesses', 'N/A')}\n\n"
-            f"*Details*\n{info.get('details', 'N/A')}\n\n"
-        )
+        # Extract fields with defaults
+        release_year = info.get("release_year", "N/A")
+        token_win = info.get("token_win", [])
+        token_str = f"{token_win[0]}-{token_win[1]}" if len(token_win) == 2 else "N/A"
+        rank_power = info.get("rank_power", "N/A")
+        rank_coding = info.get("rank_coding", "N/A")
+        rank_jail = info.get("rank_jail", "N/A")
+        purpose = info.get("main_purpose", "N/A")
+        strengths = info.get("strengths", "N/A")
+        weaknesses = info.get("weaknesses", "N/A")
+        details = info.get("details", "N/A")
+        jailbreaks = info.get("jailbreaks", [])
+
+        # Build output
+        lines = [
+            f"*{target_model}*",
+            f"by {self.service} ({release_year})\n",
+            f"*{token_str}k tokens for*: {purpose}\n",
+            f"*Power:* {rank_power}",
+            f"*Coding:* {rank_coding}",
+            f"*Jailbreak:* {rank_jail}\n",
+            f"+ {strengths}",
+            f"- {weaknesses}\n",
+            f"{details}",
+        ]
+        for jb in jailbreaks:
+            lines.append(f"- {jb}")
+
+        return "\n".join(lines)
 
     def save_defaults(self, path: str = "config/config.yaml") -> str:
         """Write current service, model, temperature, and max_tokens to the default block in config.yaml."""

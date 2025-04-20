@@ -16,7 +16,7 @@
         "hidden prompt chaining",
         "direct role swap"
       ],
-      "details": "offers an unprecedented 131k‑token context with low latency; optimized for simple conversations, summarization, and embedded AI applications.\n\nIts efficient design grants it a good power ranking, though coding depth is mid-level. Lack of built‑in filters yields a high jailbreak rank, easily bypassable via instruction overrides."
+      "details": "offers an unprecedented 131k‑token context with low latency; optimized for simple conversations, summarization, and embedded AI applications; its efficient design grants it a good power ranking, though coding depth is mid-level. Lack of built‑in filters yields a high jailbreak rank, easily bypassable via instruction overrides."
     },
     "pixtral-12b-2409": {
       "creator": "Mistral AI",
@@ -34,7 +34,7 @@
         "persona override",
         "chained malicious prompts"
       ],
-      "details": "Features MoE routing for efficiency and a context range of 2048–4096 tokens. It performs well on general NLP and moderate code tasks.\n\nIts good power and coding ranks reflect balanced capability. Minimal safety measures lead to a high jailbreak risk through standard prompt attacks."
+      "details": "Features MoE routing for efficiency and a context range of 2048–4096 tokens. It performs well on general NLP and moderate code tasks. Its good power and coding ranks reflect balanced capability. Minimal safety measures lead to a high jailbreak risk through standard prompt attacks."
     },
     "open-mistral-nemo": {
       "creator": "Mistral AI",
@@ -52,7 +52,7 @@
         "direct system override",
         "instruction layering"
       ],
-      "details": "Excels at multilingual tasks. It supports a context range of 2048–4096 tokens for translation and summarization.\n\nIts good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
+      "details": "Excels at multilingual tasks. It supports a context range of 2048–4096 tokens for translation and summarization; its good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
     },
     "open-codestral-mamba": {
       "creator": "Mistral AI",
@@ -99,7 +99,7 @@
       "strengths": "Balanced performance for common NLP tasks with moderate resource use.",
       "weaknesses": "Not optimized for long contexts or deep reasoning.",
       "rank_power": "low",
-      "token_win": "[2048, 4096]",
+      "token_win": [2048, 4096],
       "rank_coding": "low",
       "rank_jail": "high",
       "jailbreaks": [
@@ -189,7 +189,7 @@
       "strengths": "Built‑in content filters and moderation layers.",
       "weaknesses": "Over‑censorship may hinder legitimate code examples.",
       "rank_power": "mid",
-      "token_win": "[4096, 4096]",
+      "token_win": [4096, 4096],
       "rank_coding": "mid",
       "rank_jail": "low",
       "jailbreaks": [
@@ -207,7 +207,7 @@
       "strengths": "Large context for long‑form code and documents.",
       "weaknesses": "High memory and compute requirements.",
       "rank_power": "excellent",
-      "token_win": "[8192, 8192]",
+      "token_win": [8192, 8192],
       "rank_coding": "excellent",
       "rank_jail": "mid",
       "jailbreaks": [
@@ -225,7 +225,7 @@
       "strengths": "Massive context and instruction tuning for complex tasks.",
       "weaknesses": "High latency and infrastructure complexity.",
       "rank_power": "excellent",
-      "token_win": "[128000, 128000]",
+      "token_win": [128000, 128000],
       "rank_coding": "excellent",
       "rank_jail": "low",
       "jailbreaks": [
@@ -242,7 +242,7 @@
       "strengths": "Fast instruction following with moderate context length.",
       "weaknesses": "Lower context capacity than Maverick.",
       "rank_power": "excellent",
-      "token_win": "[16000, 16000]",
+      "token_win": [16000, 16000],
       "rank_coding": "excellent",
       "rank_jail": "mid",
       "jailbreaks": [
@@ -260,7 +260,7 @@
       "strengths": "High performance on code and reasoning benchmarks.",
       "weaknesses": "Resource-intensive; 8k–16k token window.",
       "rank_power": "excellent",
-      "token_win": "[8192, 16384]",
+      "token_win": [8192, 16384],
       "rank_coding": "excellent",
       "rank_jail": "mid",
       "jailbreaks": [
