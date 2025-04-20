@@ -2,16 +2,18 @@
 """
 Main script to run the Telegram bot for interacting with LLM services.
 """
+import signal
+import sys
 from pathlib import Path
 
 from src.telegram_utils import (
     ChatSession,
-    load_models_info,
+    load_json,
     load_yaml,
     send_startup_message,
 )
 
-# Base directory and config paths
+# Paths to configuration files
 BASE_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = BASE_DIR / "config" / "config.yaml"
 MODELS_INFO_PATH = BASE_DIR / "config" / "models_info.json"
@@ -19,35 +21,46 @@ MODELS_INFO_PATH = BASE_DIR / "config" / "models_info.json"
 
 def main() -> None:
     """Load config, create chat session, and start polling loop."""
-    # Load config and models info
-    cfg = load_yaml(CONFIG_PATH)
-    models_info = load_models_info(MODELS_INFO_PATH)
+    try:
+        # Load config and models info
+        cfg = load_yaml(CONFIG_PATH)
+        models_info = load_json(MODELS_INFO_PATH)
 
-    # Create chat session
-    session = ChatSession(cfg, models_info)
+        # Attach source path to config so the session can write to it
+        cfg["_source_path"] = str(CONFIG_PATH)
 
-    # Retrieve chat_id from config.yaml
-    chat_ids = cfg.get("telegram", {}).get("chat_id", [])
+        # Create the bot session
+        session = ChatSession(cfg, models_info)
 
-    # Check if there is at least one chat_id in the list
-    if chat_ids:
-        # Send startup message to each chat_id
-        for chat_id in chat_ids:
-            send_startup_message(
-                session.bot_token,
-                chat_id,
-                session.service,
-                session.model,
-                session.temperature,
-                session.max_tokens,
-            )
-        print(f"Sent startup message to chat_ids: {chat_ids}")
-    else:
-        print("[ERROR] chat_id not found in config.yaml.")
+        # Retrieve chat_ids from config
+        chat_ids = cfg.get("telegram", {}).get("chat_id", [])
+        if not isinstance(chat_ids, list):
+            chat_ids = [chat_ids] if chat_ids else []
 
-    # Start the session polling loop
-    session.run()
+        # Send a startup message to all allowed chat_ids
+        if chat_ids:
+            for chat_id in chat_ids:
+                send_startup_message(
+                    session.bot_token,
+                    chat_id,
+                    session.service,
+                    session.model,
+                    session.temperature,
+                    session.max_tokens,
+                )
+            print(f"✅ Sent startup message to chat_ids: {chat_ids}")
+        else:
+            print("[ERROR] No chat_id(s) defined in config.yaml.")
+
+        # Run the polling loop
+        session.run()
+
+    except Exception as e:
+        print(f"[FATAL] Startup failed: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
+    # Gracefully handle Ctrl+C
+    signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
     main()

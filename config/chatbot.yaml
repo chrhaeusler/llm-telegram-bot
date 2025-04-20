@@ -1,0 +1,3 @@
+autosave: true
+save_dir: ../tmp
+system_prompt: You are a helpful assistant.

@@ -1,0 +1,45 @@
+# config/commands.yaml
+
+help:
+  usage: "/help"
+  description: "Show this message"
+
+showsettings:
+  usage: "/showsettings"
+  description: "Show current service, model, temperature & max tokens"
+
+services:
+  usage: "/services"
+  description: "List available services"
+
+models:
+  usage: "/models"
+  description: "List models for current service"
+
+model:
+  usage: "/model [<model_name>]"
+  description: "Show info about the current (or given) model"
+
+cservice:
+  usage: "/cservice <service_name>"
+  description: "Change service (e.g. mistral or groq)"
+
+cmodel:
+  usage: "/cmodel <model_name>"
+  description: "Change model of current service"
+
+temperature:
+  usage: "/temperature <float>"
+  description: "Change model's temperature (0.0–2.0)"
+
+maxtokens:
+  usage: "/maxtokens <int>"
+  description: "Change max tokens (positive integer)"
+
+setasdefaults:
+  usage: "/setasdefaults"
+  description: "Persist current settings as defaults"
+
+factoryreset:
+  usage: "/factoryreset"
+  description: "Reset to factory defaults"

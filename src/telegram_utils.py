@@ -8,81 +8,112 @@ from pathlib import Path
 import requests
 import yaml
 
+# --- Config paths ---
 BASE_DIR = Path(__file__).resolve().parent
-CONFIG_YAML = BASE_DIR / "../config/config.yaml"
-
-# Graceful exit on Ctrl+C
-signal.signal(signal.SIGINT, lambda sig, frame: sys.exit(0))
+CONFIG_YAML = (BASE_DIR / "../config/config.yaml").resolve()
+MODELS_JSON = (BASE_DIR / "../config/models_info.json").resolve()
+COMMANDS_YAML = (BASE_DIR / "../config/commands.yaml").resolve()
 
 
 # --- Utility functions ---
-def load_yaml(path) -> dict:
+def load_yaml(path: Path) -> dict:
+    """Load a YAML file and return its contents as a dictionary."""
     with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return yaml.safe_load(f) or {}
 
 
-def load_models_info(path) -> dict:
+def load_json(path: Path) -> dict:
+    """Load a JSON file and return its contents as a dictionary."""
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        return json.load(f) or {}
 
 
 # --- Telegram API helpers ---
 def get_updates(token: str, offset: int = None, timeout: int = 10) -> list:
+    """Retrieve updates/messages from Telegram for the given bot token."""
     url = f"https://api.telegram.org/bot{token}/getUpdates"
     params = {"timeout": timeout}
     if offset is not None:
         params["offset"] = offset
-    response = requests.get(url, params=params, timeout=timeout + 30)
-    response.raise_for_status()
-    return response.json().get("result", [])
+    resp = requests.get(url, params=params, timeout=timeout + 30)
+    resp.raise_for_status()
+    return resp.json().get("result", [])
 
 
 def send_message(
     token: str, chat_id: int, text: str, parse_mode: str = "Markdown"
 ) -> None:
+    """Send a message to a specific chat via Telegram API."""
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
     try:
-        resp = requests.post(url, json=payload, timeout=60)
-        resp.raise_for_status()
+        requests.post(url, json=payload, timeout=60).raise_for_status()
     except requests.RequestException as e:
         print(f"[ERROR] Telegram send_message failed: {e}")
 
 
 def send_startup_message(bot_token, chat_id, service, model, temperature, max_tokens):
-    startup_message = (
-        f"Bot started\n"
+    """Send a startup message to a given Telegram chat."""
+    msg = (
+        f"🤖 Bot started\n"
         f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
-        f"Service: {service}\n"
-        f"Model: {model}\n"
-        f"Temperature: {temperature}\n"
-        f"Max Tokens: {max_tokens}\n"
-        f'Send "/help" for help'
+        f"🔌 Service: {service}\n"
+        f"🧠 Model: {model}\n"
+        f"🌡️ Temperature: {temperature}\n"
+        f"🔢 Max Tokens: {max_tokens}\n"
+        f'ℹ️ Send "/help" for help'
     )
-    send_message(bot_token, chat_id, startup_message)
+    send_message(bot_token, chat_id, msg)
 
 
 # --- LLM API helpers ---
-def get_service_conf(config: dict, service_name: str) -> tuple:
+def get_service_conf(config: dict, service_name: str) -> tuple[str, str]:
+    """Return (endpoint, API key) for a given service from config."""
     svc = config.get("services", {}).get(service_name)
     if not svc or not svc.get("enabled", False):
         raise ValueError(f"Service '{service_name}' not found or not enabled.")
-    api_key = svc.get("api_key") or svc.get("apy_key")
+    api_key = svc.get("api_key") or svc.get("apy_key")  # fallback typo check
     if not api_key:
         raise ValueError(f"API key missing for service '{service_name}'.")
     return svc["endpoint"], api_key
 
 
-# --- Chat session class ---
+# --- Load command specs from YAML ---
+COMMAND_SPECS = load_yaml(COMMANDS_YAML)
+
+
+def _make_help_text() -> str:
+    """Build and return help text for all available commands."""
+    lines = ["📚 Available commands:"]
+    for name, spec in COMMAND_SPECS.items():
+        lines.append(f"{spec['usage']} – {spec['description']}")
+    return "\n".join(lines)
+
+
+# --- Command registry: cmd -> handler method name in ChatSession ---
+COMMAND_REGISTRY = {
+    "help": ("_cmd_help", None),
+    "showsettings": ("_cmd_showsettings", None),
+    "services": ("_cmd_services", None),
+    "models": ("_cmd_models", None),
+    "model": ("_cmd_model", None),
+    "cservice": ("_cmd_cservice", None),
+    "cmodel": ("_cmd_cmodel", None),
+    "temperature": ("_cmd_temperature", None),
+    "maxtokens": ("_cmd_maxtokens", None),
+    "setasdefaults": ("_cmd_setasdefaults", None),
+    "factoryreset": ("_cmd_factoryreset", None),
+}
+
+
 class ChatSession:
-    def __init__(self, cfg: dict, models_info: dict):
-        default = cfg.get("default", {})
-        tel_cfg = cfg.get("telegram", {})
+    def __init__(self, config: dict, models_info: dict):
+        default = config.get("default", {})
+        tel_cfg = config.get("telegram", {})
 
-        self.config = cfg
+        self.config = config
         self.models_info = models_info
-
-        # To do: this is hardcoded but should be drawn from CONFIG_YAML
+        # TO DO: use the defaults in CONFIG_YAML 
         self.service = default.get("service")
         self.model = default.get("model")
         self.temperature = tel_cfg.get("default_temperature", 0.7)
@@ -97,35 +128,133 @@ class ChatSession:
         self.last_active = None
         self.offset = None
 
-    def list_services(self) -> str:
-        return "Available services:\n" + "\n".join(
-            self.config.get("services", {}).keys()
+    # ——— Command handlers ———
+    def _cmd_help(self, arg: str) -> str:
+        return _make_help_text()
+
+    def _cmd_showsettings(self, arg: str) -> str:
+        return (
+            f"Current settings:\n"
+            f"- Service: {self.service}\n"
+            f"- Model: {self.model}\n"
+            f"- Temperature: {self.temperature}\n"
+            f"- Max Tokens: {self.max_tokens}"
         )
 
-    def list_models(self) -> str:
+    def _cmd_services(self, arg: str) -> str:
+        return "Available services:\n" + "\n".join(self.config.get("services", {}))
+
+    def _cmd_models(self, arg: str) -> str:
         svc_models = self.models_info.get(self.service, {})
         if not svc_models:
-            return f"No models found for service '{self.service}'."
+            return f"No models for '{self.service}'."
+        return "\n".join(svc_models)
 
-        lines = [f"*Models for {self.service}*:"]
-        for name, info in svc_models.items():
-            # release year
-            year = info.get("release_year", "N/A")
+    def _cmd_model(self, arg: str) -> str:
+        return self.model_info(arg)
 
-            # token window
-            win = info.get("token_win", [])
-            token_str = f"{win[0]}-{win[1]}" if len(win) == 2 else "N/A"
+    def _cmd_cservice(self, arg: str) -> str:
+        if not arg:
+            return f"Usage: {COMMAND_SPECS['cservice']['usage']}"
+        if arg not in self.config.get("services", {}):
+            return f"❌ Service '{arg}' not found.\n\n" + self._cmd_services("")
+        self.service = arg
+        default_model = self.config["services"][arg].get("model")
+        if default_model:
+            self.model = default_model
+        return f"Service set to '{self.service}'"
 
-            # ranks
-            p = info.get("rank_power", "N/A")
-            c = info.get("rank_coding", "N/A")
-            j = info.get("rank_jail", "N/A")
+    def _cmd_cmodel(self, arg: str) -> str:
+        if not arg:
+            return f"Usage: {COMMAND_SPECS['cmodel']['usage']}"
+        if arg not in self.models_info.get(self.service, {}):
+            return f"❌ Model '{arg}' not found in '{self.service}'."
+        self.model = arg
+        return f"Model set to '{self.model}'"
 
-            # create output
-            lines.append(f"\n*{name}* ({year})")
-            lines.append(f"*Tokens:* {token_str}")
-            lines.append(f"*Power*: {p}, *Coding*: {c}, *JB:* {j}")
-        return "\n".join(lines)
+    def _cmd_temperature(self, arg: str) -> str:
+        try:
+            t = float(arg)
+            if not (0 <= t <= 2):
+                raise ValueError
+            self.temperature = t
+            return f"Temperature set to {t}"
+        except:
+            return f"Usage: {COMMAND_SPECS['temperature']['usage']}"
+
+    def _cmd_maxtokens(self, arg: str) -> str:
+        try:
+            m = int(arg)
+            if m <= 0:
+                raise ValueError
+            self.max_tokens = m
+            return f"Max tokens set to {m}"
+        except:
+            return f"Usage: {COMMAND_SPECS['maxtokens']['usage']}"
+
+    def _cmd_setasdefaults(self, arg: str) -> str:
+        try:
+            cfg = load_yaml(Path(self.config["_source_path"]))  # store path
+            cfg.setdefault("default", {})
+            cfg["default"].update(
+                {
+                    "service": self.service,
+                    "model": self.model,
+                    "temperature": self.temperature,
+                    "max_tokens": self.max_tokens,
+                }
+            )
+            with open(self.config["_source_path"], "w", encoding="utf-8") as f:
+                yaml.safe_dump(cfg, f, sort_keys=False)
+            return "Defaults saved ✅"
+        except Exception as e:
+            return f"[ERROR] {e}"
+
+    def _cmd_factoryreset(self, arg: str) -> str:
+        try:
+            with open(CONFIG_YAML, "r", encoding="utf-8") as f:
+                config_data = yaml.safe_load(f) or {}
+
+            # Get factory defaults from config or fallback
+            factory_defaults = config_data.get(
+                "factorydefaults",
+                {
+                    "service": "groq",
+                    "model": "llama-3.3-70-versatile",
+                    "temperature": 0.7,
+                    "maxtoken": 4096,
+                },
+            )
+
+            # Apply in-session values
+            self.service = factory_defaults["service"]
+            self.model = factory_defaults["model"]
+            self.temperature = factory_defaults["temperature"]
+            self.max_tokens = factory_defaults["maxtoken"]
+
+            # Ensure config is updated with factorydefaults block
+            config_data["factorydefaults"] = factory_defaults
+
+            with open(CONFIG_YAML, "w", encoding="utf-8") as f:
+                yaml.safe_dump(config_data, f, sort_keys=False)
+
+            self.save_defaults()  # Also persist these as the new defaults
+            return "Bot and defaults set to factory settings ✅"
+
+        except Exception as e:
+            return f"[ERROR] Factory reset failed: {e}"
+
+    # ——— Dispatch & processing ———
+
+    def handle_command(self, text: str) -> str:
+        pats = text.lstrip("/").split(maxsplit=1)
+        cmd = parts[0].lower()
+        arg = parts[1] if len(parts) > 1 else ""
+        entry = COMMAND_REGISTRY.get(cmd)
+        if not entry:
+            return f"Unknown command: /{cmd}. Use /help"
+        handler_name, _ = entry
+        return getattr(self, handler_name)(arg)
 
     def model_info(self, model_name: str = "") -> str:
         svc_models = self.models_info.get(self.service, {})
@@ -165,161 +294,35 @@ class ChatSession:
 
         return "\n".join(lines)
 
-    def save_defaults(self, path: str = CONFIG_YAML) -> str:
-        """Write current service, model, temperature, and max_tokens to the default block in config.yaml."""
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                cfg = yaml.safe_load(f)
+    def list_models(self) -> str:
+        svc_models = self.models_info.get(self.service, {})
+        if not svc_models:
+            return f"No models found for service '{self.service}'."
 
-            # Update the default section
-            cfg.setdefault("default", {})
-            cfg["default"]["service"] = self.service
-            cfg["default"]["model"] = self.model
-            cfg["default"]["temperature"] = self.temperature
-            cfg["default"]["maxtoken"] = self.max_tokens
+        lines = [f"*Models for {self.service}*:"]
+        for name, info in svc_models.items():
+            year = info.get("release_year", "N/A")
+            win = info.get("token_win", [])
+            token_str = f"{win[0]}-{win[1]}" if len(win) == 2 else "N/A"
+            p = info.get("rank_power", "N/A")
+            c = info.get("rank_coding", "N/A")
+            j = info.get("rank_jail", "N/A")
 
-            with open(path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(cfg, f, sort_keys=False)
+            lines.append(f"\n*{name}* ({year})")
+            lines.append(f"*Tokens:* {token_str}")
+            lines.append(f"*Power*: {p}, *Coding*: {c}, *JB:* {j}")
 
-            return "Defaults saved to config.yaml ✅"
-        except Exception as e:
-            return f"[ERROR] Failed to write config.yaml: {e}"
-
-    def factory_reset(self):
-        """
-        Reset all values to the ones stored in the 'factorydefaults' block of config.yaml.
-        If not found, fall back to hardcoded defaults.
-        """
-        try:
-            print("before")
-            with open(CONFIG_YAML, "r", encoding="utf-8") as f:
-                config_data = yaml.safe_load(f) or {}
-                print(config_data)
-
-            # Get factory defaults from config or fallback
-            factory_defaults = config_data.get(
-                "factorydefaults",
-                {
-                    "service": "groq",
-                    "model": "llama-3.3-70-versatile",
-                    "temperature": 0.7,
-                    "maxtoken": 4096,
-                },
-            )
-
-            # Apply in-session values
-            self.service = factory_defaults["service"]
-            self.model = factory_defaults["model"]
-            self.temperature = factory_defaults["temperature"]
-            self.max_tokens = factory_defaults["maxtoken"]
-
-            # Ensure config is updated with factorydefaults block
-            config_data["factorydefaults"] = factory_defaults
-
-            with open(CONFIG_YAML, "w", encoding="utf-8") as f:
-                yaml.safe_dump(config_data, f, sort_keys=False)
-
-            self.save_defaults()  # Also persist these as the new defaults
-            return "Bot and defaults set to factory settings ✅"
-        except Exception as e:
-            return f"[ERROR] Factory reset failed: {e}"
-
-    def handle_command(self, text: str) -> str:
-        parts = text.lstrip("/").split(maxsplit=1)
-        cmd = parts[0].lower()
-        arg = parts[1].strip() if len(parts) > 1 else ""
-
-        # could this block be called from an external script to show the same help?
-        # please refactor it in a way that his is possible
-        if cmd == "help":
-            return (
-                "Available commands:\n"
-                "/help – Show this message\n"
-                "/showsettings - Show service, model, temperature & max tokens\n"
-                "/model - Show current models info"
-                "/services – List available services\n"
-                "/cservice <name> – Change service (e.g. mistral or groq)\n"
-                "/models – List models for current service\n"
-                "/cmodel <name> – Change model of current service\n"
-                "/temperature <float> - Change model's temperature\n"
-                "/maxtokens <int> - Change max token\n"
-                "/setasdefaults - Set current settings as default\n"
-                "/factoryreset - Reset to factory defaults"
-            )
-
-        elif cmd == "cservice":
-            if not arg:
-                return "Usage: /cservice <service name>"
-
-            if arg not in self.config.get("services", {}):
-                return f"❌ Service '{arg}' not found.\n\n" + self.list_services()
-
-            self.service = arg
-
-            # Optionally reset model to service's default model (if defined)
-            default_model = self.config["services"][arg].get("model")
-            if default_model:
-                self.model = default_model
-
-        elif cmd == "models":
-            return self.list_models()
-
-        elif cmd == "model":
-            return self.model_info(arg)
-
-        elif cmd == "cmodel":
-            if not arg:
-                return "Usage: /cmodel <model name>"
-            if arg not in self.models_info.get(self.service, {}):
-                return f"❌ Model '{arg}' not found in {self.service}."
-            self.model = arg
-            return f"Model switched to '{self.model}'"
-
-        elif cmd == "temperature":
-            try:
-                new_temp = float(arg)
-                if not (0 <= new_temp <= 2):
-                    return "Temperature must be between 0.0 and 2.0"
-                self.temperature = new_temp
-                return f"Temperature set to {new_temp}"
-            except ValueError:
-                return "Usage: /temperature <float> (e.g. /temperature 0.7)"
-
-        elif cmd == "maxtokens":
-            try:
-                new_max = int(arg)
-                if new_max <= 0:
-                    return "Max tokens must be a positive integer"
-                self.max_tokens = new_max
-                return f"Max tokens set to {new_max}"
-            except ValueError:
-                return "Usage: /maxtokens <int> (e.g. /maxtokens 512)"
-        # Write current service, model, temperature, and max_tokens to
-        # the default block in config.yaml.
-        elif cmd == "setasdefaults":
-            return self.save_defaults()
-
-        elif cmd == "showsettings":
-            return (
-                f"Current settings:\n"
-                f"- Service: {self.service}\n"
-                f"- Model: {self.model}\n"
-                f"- Temperature: {self.temperature}\n"
-                f"- Max Tokens: {self.max_tokens}"
-            )
-
-        elif cmd == "factoryreset":
-            return self.factory_reset()
-        else:
-            return f"Unknown command: /{cmd}. Use /help to list available commands."
+        return "\n".join(lines)
 
     def process_update(self, update: dict) -> None:
         msg = update.get("message")
         if not msg:
             return
+
         user_id = msg.get("from", {}).get("id")
         if self.allowed_users and user_id not in self.allowed_users:
             return
+
         chat_id = msg["chat"]["id"]
         text = msg.get("text", "")
 
@@ -363,4 +366,29 @@ class ChatSession:
             else:
                 if self.last_active:
                     self.interval = min(self.poll_idle, self.interval * 2)
+
             time.sleep(1)
+
+
+def main():
+    # 1) Load raw dicts
+    cfg: dict = load_yaml(CONFIG_YAML)
+    cfg["_source_path"] = str(CONFIG_YAML)  # So handlers know where to write
+    models: dict = load_json(MODELS_JSON)
+
+    # 2) Create and run session
+    session = ChatSession(cfg, models)
+    send_startup_message(
+        session.bot_token,
+        next(iter(session.allowed_users), 0),
+        session.service,
+        session.model,
+        session.temperature,
+        session.max_tokens,
+    )
+    session.run()
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
+    main()
