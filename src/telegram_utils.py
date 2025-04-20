@@ -92,32 +92,15 @@ class ChatSession:
         self.last_active = None
         self.offset = None
 
-    # def list_services(self) -> str:
-    #     return "Available services:\n" + "\n".join(
-    #         self.config.get("services", {}).keys()
-    #     )
-
-    # def list_models(self) -> str:
-    #     svc_models = self.models_info.get(self.service, {})
-    #     if not svc_models:
-    #         return f"No models found for service '{self.service}'."
-
-    #     lines = [f"*Models for {self.service}*:\n"]
-    #     for name, info in svc_models.items():
-    #         lines.append(f"*{name}*")
-    #         lines.append(info.get("short", "No short description available."))
-    #         lines.append(f"*Strengths:* {info.get('strengths', 'N/A')}")
-    #         lines.append(f"*Weaknesses:* {info.get('weaknesses', 'N/A')}")
-
-    #     return "\n".join(lines).rstrip()
+    def list_services(self) -> str:
+        return "Available services:\n" + "\n".join(
+            self.config.get("services", {}).keys()
+        )
 
     def list_models(self) -> str:
         svc_models = self.models_info.get(self.service, {})
         if not svc_models:
             return f"No models found for service '{self.service}'."
-        
-        def fmt_tokens(n):
-            return f"{n//1000}k" if n >= 1000 else str(n)
 
         lines = [f"*Models for {self.service}*:"]
         for name, info in svc_models.items():
@@ -138,7 +121,6 @@ class ChatSession:
             lines.append(f"*Tokens:* {token_str}")
             lines.append(f"*Powwer*: {p}, *Coding*: {c}, *JB:* {j}")
         return "\n".join(lines)
-
 
     def model_info(self, model_name: str = "") -> str:
         svc_models = self.models_info.get(self.service, {})
@@ -253,19 +235,19 @@ class ChatSession:
                 "/factoryreset - Reset to factory defaults"
             )
 
-        elif cmd == "services":
-            return self.list_services()
-
         elif cmd == "cservice":
             if not arg:
                 return "Usage: /cservice <service name>"
+
             if arg not in self.config.get("services", {}):
-                return f"Service '{arg}' not found."
-            if not self.config["services"][arg].get("enabled", False):
-                return f"Service '{arg}' is not enabled."
+                return f"❌ Service '{arg}' not found.\n\n" + self.list_services()
+
             self.service = arg
-            self.model = self.config["services"][arg]["model"]
-            return f"Service switched to '{self.service}', using model '{self.model}'"
+
+            # Optionally reset model to service's default model (if defined)
+            default_model = self.config["services"][arg].get("model")
+            if default_model:
+                self.model = default_model
 
         elif cmd == "models":
             return self.list_models()
@@ -277,7 +259,7 @@ class ChatSession:
             if not arg:
                 return "Usage: /cmodel <model name>"
             if arg not in self.models_info.get(self.service, {}):
-                return f"Model '{arg}' not found in service '{self.service}'."
+                return f"❌ Model '{arg}' not found in {self.service}."
             self.model = arg
             return f"Model switched to '{self.model}'"
 
@@ -369,4 +351,4 @@ class ChatSession:
             else:
                 if self.last_active:
                     self.interval = min(self.poll_idle, self.interval * 2)
-            time.sleep(0)
+            time.sleep(1)

@@ -1,6 +1,7 @@
 # Mine
 credentials
 config/config.yaml
+tmp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

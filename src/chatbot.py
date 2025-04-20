@@ -1,168 +1,273 @@
 #!/usr/bin/env python3
 """
-Chatbot Script for Interacting with LLM Services (Groq, Mistral, etc.)
+To Do: Docstrings
+To Do: implement all commands from telegram_utils.py
+To Do: bring "print_help" in line wit commands from with telegram_utils.py()
+To Do: when starting, use defaults from .config.yaml that are formatted like this:
+```yaml
+default:
+  service: groq
+  model: deepseek-r1-distill-llama-70b
+  temperature: 0.7
+  maxtoken: 4096
+```
+To Do: def prompt_filename_suggestion should parse the previous response into the next
+prompt because the model forgets the last response immedtiately
+To Do: Color scheme should follow the color scheme of VSCode's Theme "Visual Studio Dark"
+To Do: Set background to #111111
+```
 
-Usage:
-    python chatbot.py
-    python chatbot.py --service groq --model llama3-70b-8192 --temperature 0.5 --max_tokens 250
-
-Supports in-chat commands:
-    /model <model_name>
-    /service <service_name>
-    /temp <float_value>
-    /max_tokens <int_value>
-    /help
-
-Configuration is loaded from config/config.yaml
 """
 
+
 import argparse
-import os
-import sys
+import json
+import re
+import time
+from datetime import datetime
+from pathlib import Path
 
 import requests
 import yaml
+from colorama import Fore, Style
+from colorama import init as colorama_init
+from rich.console import Console
+from rich.syntax import Syntax
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "../config/config.yaml")
+from telegram_utils import (
+    ChatSession,
+    get_service_conf,
+    load_models_info,
+    load_yaml,
+)
+
+# Init formatting tools
+colorama_init(autoreset=True)
+console = Console()
+
+# Paths
+BASE_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = BASE_DIR / "../config/config.yaml"
+MODELS_PATH = BASE_DIR / "../config/models_info.json"
+TMP_DIR = BASE_DIR / "../tmp"
+TMP_DIR.mkdir(exist_ok=True)
+
+SAVE_ENABLED = False
 
 
-def load_config(path=CONFIG_PATH):
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
+def sanitize_filename(name: str) -> str:
+    name = re.sub(r"[^\w\-.]", "_", name).strip("_")
+    return name if "." in name else f"{name}.txt"
 
 
-def get_service_config(config, service_name):
-    service = config["services"].get(service_name)
-    if not service or not service.get("enabled", False):
-        raise ValueError(f"Service '{service_name}' is not enabled or not configured.")
-    api_key = service.get("api_key") or service.get("apy_key")  # handle typo fallback
-    if not api_key:
-        raise ValueError(f"API key missing for service '{service_name}'.")
-    return {
-        "api_key": api_key,
-        "model": service.get("model"),
-        "endpoint": service.get("endpoint"),
-    }
+def save_response(response: str, suggested_filename: str):
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    final_name = sanitize_filename(suggested_filename)
+    full_path = TMP_DIR / f"{timestamp}_{final_name}"
 
-
-def send_message(service_conf, messages, temperature, max_tokens):
-    headers = {
-        "Authorization": f"Bearer {service_conf['api_key']}",
-        "Content-Type": "application/json",
-    }
-
-    payload = {
-        "model": service_conf["model"],
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-
+    ext = full_path.suffix.lower()
     try:
-        response = requests.post(
-            service_conf["endpoint"], json=payload, headers=headers, timeout=20
+        if ext == ".json":
+            json.dump(
+                {"response": response}, open(full_path, "w", encoding="utf-8"), indent=2
+            )
+        elif ext in (".yaml", ".yml"):
+            yaml.dump({"response": response}, open(full_path, "w", encoding="utf-8"))
+        else:
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write(response)
+        print(
+            f"{Style.DIM}{Fore.MAGENTA}💾 Saved to: {Fore.YELLOW}{full_path}{Style.RESET_ALL}"
         )
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except requests.RequestException as e:
-        return f"❌ API error: {str(e)}"
-    except (KeyError, IndexError):
-        return "❌ Unexpected response from API."
+    except Exception as e:
+        print(f"{Style.BRIGHT}{Fore.RED}❌ Failed to save file: {e}{Style.RESET_ALL}")
+
+
+def prompt_filename_suggestion(session: ChatSession, reply: str) -> str:
+    try:
+        endpoint, api_key = get_service_conf(session.config, session.service)
+
+        messages = [
+            {
+                "role": "user",
+                "content": (
+                    "Write an a good file name for the previous response. "
+                    'ONLY return the file name + extension in quotes, like this: "my_code.py". '
+                    "Do not write anything else."
+                ),
+            },
+            {"role": "assistant", "content": reply},
+        ]
+
+        resp = requests.post(
+            endpoint,
+            json={
+                "model": session.model,
+                "messages": messages,
+                "temperature": 0.3,
+                "max_tokens": 15,
+            },
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        result = resp.json()["choices"][0]["message"]["content"].strip()
+        print(f"🤖 Filename suggestion response: {result}")
+
+        match = re.search(r'"([^\"]+\.[a-z0-9]+)"', result)
+        if match:
+            filename = sanitize_filename(match.group(1))
+            print(f"📂 Using suggested filename: {filename}")
+            return filename
+
+        if "." in result:
+            filename = sanitize_filename(result)
+            print(f"📂 Using fallback filename: {filename}")
+            return filename
+
+        print("⚠️ No valid filename found. Using fallback.")
+        return "output.txt"
+
+    except Exception as e:
+        print(f"⚠️ Failed to generate filename: {e}")
+        return "output.txt"
+
+
+def detect_language_block(text):
+    if text.strip().startswith("{"):
+        return "json"
+    elif text.strip().startswith("#") or "#!/bin/bash" in text:
+        return "bash"
+    elif text.strip().startswith("def") or "import " in text:
+        return "python"
+    elif any(x in text for x in [":\n", "- ", "yaml"]):
+        return "yaml"
+    elif "# " in text or "**" in text:
+        return "markdown"
+    return None
+
+
+def print_response_styled(reply: str):
+    language = detect_language_block(reply)
+    if language:
+        syntax = Syntax(reply, language, theme="monokai", line_numbers=False)
+        console.print(syntax)
+    else:
+        print(f"{Style.BRIGHT}{Fore.GREEN}Bot:{Style.RESET_ALL} {reply}")
 
 
 def print_help():
     return (
         "🛠️ Available commands:\n"
-        "/service <service_name>  - Switch service (e.g. groq, mistral)\n"
-        "/model <model_name>      - Change model (must be valid for current service)\n"
-        "/temp <float>            - Change temperature (e.g. 0.7)\n"
-        "/max_tokens <int>        - Change max tokens (e.g. 200)\n"
-        "/help                    - Show this help message"
+        "/help                - Show this help message\n"
+        "/showsettings        - Show current session parameters\n"
+        "/modelinfo <name>    - Show info for current or named model\n"
+        "/maxtokens <int>     - Set max tokens (e.g. 256)\n"
+        "/temperature <float> - Set temperature\n"
+        "/models              - chow models available for current service"
+        "/cmodel <name>       - change to another model"
+        "/services <name>     - Change service\n"
+        "/cservice <name>     - Change service\n"
+        "/setasdefaults       - Save current settings to config.yaml\n"
+        "/factoryresets       - Reset to factory defaults"
+        "/save on             - Enable saving responses to ../tmp/\n"
+        "/save off            - Disable saving responses\n"
+        "\n💡 You can also enable saving from the start using `--save`"
     )
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Chat with a configured LLM service.")
-    parser.add_argument(
-        "--service", default=None, help="LLM service to use (e.g., groq, mistral)"
+    global SAVE_ENABLED
+
+    parser = argparse.ArgumentParser(
+        description="Chat with your configured LLM via CLI."
     )
-    parser.add_argument("--model", default=None, help="Model to use")
+    parser.add_argument("--service", help="Override the default service")
+    parser.add_argument("--model", help="Override the default model")
+    parser.add_argument("--temperature", type=float, help="Override temperature")
+    parser.add_argument("--max_tokens", type=int, help="Override max tokens")
     parser.add_argument(
-        "--temperature", type=float, default=0.7, help="Sampling temperature"
-    )
-    parser.add_argument(
-        "--max_tokens", type=int, default=100, help="Max tokens in response"
+        "--save", action="store_true", help="Enable autosaving to ../tmp"
     )
 
     args = parser.parse_args()
+    SAVE_ENABLED = args.save
 
-    config = load_config()
-    current_service = args.service or config["default"]["service"]
-    temperature = args.temperature
-    max_tokens = args.max_tokens
+    config = load_yaml(CONFIG_PATH)
+    models_info = load_models_info(MODELS_PATH)
+    session = ChatSession(config, models_info)
 
-    try:
-        service_conf = get_service_config(config, current_service)
-    except ValueError as e:
-        print(f"❌ {e}")
-        sys.exit(1)
-
+    if args.service:
+        session.service = args.service
     if args.model:
-        service_conf["model"] = args.model
+        session.model = args.model
+    if args.temperature is not None:
+        session.temperature = args.temperature
+    if args.max_tokens is not None:
+        session.max_tokens = args.max_tokens
 
-    print(f"\nUsing service: {current_service}")
-    print(f"Using model: {service_conf['model']}")
-    print(f"Temperature: {temperature}")
-    print(f"Max tokens: {max_tokens}")
-    print("\nChat mode: Type your messages (Ctrl+C to exit)...\n")
-
-    messages = [{"role": "system", "content": "You are a helpful assistant."}]
+    print(
+        f"\n{Style.BRIGHT}{Fore.CYAN}💬 CLI Chat Mode (type /help for commands, Ctrl+C to quit){Style.RESET_ALL}\n"
+    )
+    print(f"{Fore.CYAN}Service: {session.service}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Model: {session.model}")
+    print(f"{Fore.CYAN}Max tokens: {session.max_tokens}")
+    print(f"{Fore.CYAN}Temperature: {session.temperature}")
+    print(f"{Fore.CYAN}Autosave: {SAVE_ENABLED} → ../tmp\n")
 
     try:
         while True:
-            user_input = input("You: ").strip()
-
+            user_input = input(
+                f"{Style.BRIGHT}{Fore.CYAN}You:{Style.RESET_ALL} "
+            ).strip()
             if not user_input:
                 continue
 
-            # Handle commands
             if user_input.startswith("/"):
-                try:
-                    cmd, *params = user_input[1:].split()
-                    if cmd == "help":
-                        print(print_help())
-                    elif cmd == "service":
-                        new_service = params[0]
-                        try:
-                            new_conf = get_service_config(config, new_service)
-                            current_service = new_service
-                            service_conf = new_conf
-                            print(f"✅ Switched to service: {new_service}")
-                        except ValueError as e:
-                            print(f"❌ {e}")
-                    elif cmd == "model":
-                        new_model = params[0]
-                        service_conf["model"] = new_model
-                        print(f"✅ Model set to: {new_model}")
-                    elif cmd == "temp":
-                        temperature = float(params[0])
-                        print(f"✅ Temperature set to: {temperature}")
-                    elif cmd == "max_tokens":
-                        max_tokens = int(params[0])
-                        print(f"✅ Max tokens set to: {max_tokens}")
-                    else:
-                        print("❌ Unknown command. Use /help")
-                except (IndexError, ValueError):
-                    print("❌ Invalid command format. Use /help")
+                if user_input == "/save on":
+                    SAVE_ENABLED = True
+                    print("✅ Autosave is now ON")
+                    continue
+                elif user_input == "/save off":
+                    SAVE_ENABLED = False
+                    print("✅ Autosave is now OFF")
+                    continue
+                elif user_input == "/help":
+                    print(print_help())
+                    continue
+
+                reply = session.handle_command(user_input)
+                print(f"🛠️ {reply}" if reply else "❌ Unknown command")
                 continue
 
-            messages.append({"role": "user", "content": user_input})
-            reply = send_message(service_conf, messages, temperature, max_tokens)
-            messages.append({"role": "assistant", "content": reply})
-            print(f"Bot: {reply}")
+            try:
+                endpoint, api_key = get_service_conf(session.config, session.service)
+                payload = {
+                    "model": session.model,
+                    "messages": [{"role": "user", "content": user_input}],
+                    "temperature": session.temperature,
+                    "max_tokens": session.max_tokens,
+                }
+                resp = requests.post(
+                    endpoint,
+                    json=payload,
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                reply = resp.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                reply = f"❌ API error: {e}"
+
+            print_response_styled(reply)
+
+            if SAVE_ENABLED:
+                time.sleep(1)
+                filename = prompt_filename_suggestion(session, reply)
+                save_response(reply, filename)
 
     except KeyboardInterrupt:
-        print("\n👋 Chat ended. Goodbye!")
+        print(f"\n{Fore.MAGENTA}👋 Chat ended. Goodbye!")
 
 
 if __name__ == "__main__":
