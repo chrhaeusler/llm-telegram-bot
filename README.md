@@ -76,10 +76,12 @@ python main.py
 
 ## To Do
 
-- Add more LLM services (e.g. [Free LLM Ressources ](https://github.com/cheahjs/free-llm-api-resources))
-- Code Cleanup & Refactoring
-- Async I/O: Switch from blocking requests + time.sleep loops to aiohttp and asyncio with long‑polling or webhooks.
+- Code Cleanup & Refactoring (esp. modularize `telegram_utils.py` into, e.g., (e.g., `config_utils.py`, `telegram_api.py`, `chat_utils.py`, etc.))
+- Async I/O: Switch from blocking requests + time.sleep loops to aiohttp and asyncio with long‑polling
+- Restructure CLI interface to handle async inputs gracefull
+- Adding LLM memory or context chaining
 - Logging & Metrics: Add structured logging (e.g. Python’s logging module) to trace errors.
 - Automated Testing
 - Add a setup.py or pyproject.toml
 - CI pipeline: lint (ruff), type‑check (mypy), format (black), run tests.
+- Add more LLM services (e.g. [Free LLM Ressources ](https://github.com/cheahjs/free-llm-api-resources))
