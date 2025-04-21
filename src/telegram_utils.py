@@ -28,7 +28,7 @@ def load_json(path: Path) -> dict:
 
 
 # --- Telegram API helpers ---
-def get_updates(token: str, offset: int = None, timeout: int = 10) -> list:
+def get_updates(token: str, offset: int, timeout: int = 10) -> list:
     """Retrieve updates/messages from Telegram for the given bot token."""
     url = f"https://api.telegram.org/bot{token}/getUpdates"
     params = {"timeout": timeout}
@@ -172,8 +172,8 @@ class ChatSession:
         self.poll_idle = tel_cfg.get("polling_interval_idle", 120)
 
         self.interval = self.poll_active  # Start in active mode
-        self.last_active = None
-        self.offset = None
+        self.last_active = datetime.now()
+        self.offset = int
 
     # ——— Command handlers ———
     def _cmd_help(self, arg: str) -> str:
@@ -313,6 +313,7 @@ class ChatSession:
 
         # Extract fields with defaults
         release_year = info.get("release_year", "N/A")
+        creator = info.get("creator", "N/A")
         token_win = info.get("token_win", [])
         token_str = f"{token_win[0]}-{token_win[1]}" if len(token_win) == 2 else "N/A"
         rank_power = info.get("rank_power", "N/A")
@@ -327,7 +328,7 @@ class ChatSession:
         # Build output
         lines = [
             f"*{target_model}*",
-            f"by {self.service} ({release_year})\n",
+            f"by {creator} ({release_year})\n",
             f"*{token_str}k* tokens for: {purpose}\n",
             f"*Power:* {rank_power}",
             f"*Coding:* {rank_coding}",
