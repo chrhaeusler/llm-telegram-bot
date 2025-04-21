@@ -1,8 +1,7 @@
 import json
 import signal
 import sys
-import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
@@ -52,9 +51,10 @@ def send_message(
         print(f"[ERROR] Telegram send_message failed: {e}")
 
 
-def send_startup_message(bot_token, chat_id, service, model, temperature, max_tokens):
-    """Send a startup message to a given Telegram chat."""
-    msg = (
+def build_startup_message(
+    service: str, model: str, temperature: float, max_tokens: int
+) -> str:
+    return (
         f"🤖 Bot started\n"
         f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
         f"🔌 Service: {service}\n"
@@ -63,7 +63,18 @@ def send_startup_message(bot_token, chat_id, service, model, temperature, max_to
         f"🔢 Max Tokens: {max_tokens}\n"
         f'ℹ️ Send "/help" for help'
     )
-    send_message(bot_token, chat_id, msg)
+
+
+def send_startup_message(
+    token: str,
+    chat_id: int,
+    service: str,
+    model: str,
+    temperature: float,
+    max_tokens: int,
+):
+    msg = build_startup_message(service, model, temperature, max_tokens)
+    send_message(token, chat_id, msg)
 
 
 # --- LLM API helpers ---
@@ -76,6 +87,36 @@ def get_service_conf(config: dict, service_name: str) -> tuple[str, str]:
     if not api_key:
         raise ValueError(f"API key missing for service '{service_name}'.")
     return svc["endpoint"], api_key
+
+
+def call_llm(
+    prompt: str,
+    service: str,
+    model: str,
+    temperature: float,
+    max_tokens: int,
+    config: dict,
+) -> str:
+    """Send a prompt to the selected LLM service and return its response."""
+    try:
+        endpoint, api_key = get_service_conf(config, service)
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        resp = requests.post(
+            endpoint,
+            json=payload,
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+
+    except Exception as e:
+        return f"⚠️ API Error: {e}"
 
 
 # --- Load command specs from YAML ---
@@ -93,15 +134,15 @@ def _make_help_text() -> str:
 # --- Command registry: cmd -> handler method name in ChatSession ---
 COMMAND_REGISTRY = {
     "help": ("_cmd_help", None),
-    "showsettings": ("_cmd_showsettings", None),
+    "showset": ("_cmd_showsettings", None),
+    "model": ("_cmd_model", None),
     "services": ("_cmd_services", None),
     "models": ("_cmd_models", None),
-    "model": ("_cmd_model", None),
     "cservice": ("_cmd_cservice", None),
     "cmodel": ("_cmd_cmodel", None),
-    "temperature": ("_cmd_temperature", None),
+    "temp": ("_cmd_temperature", None),
     "maxtokens": ("_cmd_maxtokens", None),
-    "setasdefaults": ("_cmd_setasdefaults", None),
+    "setdefault": ("_cmd_setasdefaults", None),
     "factoryreset": ("_cmd_factoryreset", None),
 }
 
@@ -111,20 +152,26 @@ class ChatSession:
         default = config.get("default", {})
         tel_cfg = config.get("telegram", {})
 
+        default = config.get("default", {})
+        tel_cfg = config.get("telegram", {})
+
         self.config = config
         self.models_info = models_info
-        # TO DO: use the defaults in CONFIG_YAML 
+
+        # Use defaults from 'default' section in config.yaml
         self.service = default.get("service")
         self.model = default.get("model")
-        self.temperature = tel_cfg.get("default_temperature", 0.7)
-        self.max_tokens = tel_cfg.get("default_max_tokens", 100)
+        self.temperature = default.get("temperature")
+        self.max_tokens = default.get("maxtoken")
 
+        # Telegram-related settings
         self.bot_token = tel_cfg.get("bot_token")
         self.allowed_users = set(tel_cfg.get("chat_id", []))
 
-        self.poll_idle = tel_cfg.get("polling_interval_idle", 60)
-        self.poll_active = tel_cfg.get("polling_interval_active", 5)
-        self.interval = self.poll_idle
+        self.poll_active = tel_cfg.get("polling_interval_active", 10)
+        self.poll_idle = tel_cfg.get("polling_interval_idle", 120)
+
+        self.interval = self.poll_active  # Start in active mode
         self.last_active = None
         self.offset = None
 
@@ -247,7 +294,7 @@ class ChatSession:
     # ——— Dispatch & processing ———
 
     def handle_command(self, text: str) -> str:
-        pats = text.lstrip("/").split(maxsplit=1)
+        parts = text.lstrip("/").split(maxsplit=1)
         cmd = parts[0].lower()
         arg = parts[1] if len(parts) > 1 else ""
         entry = COMMAND_REGISTRY.get(cmd)
@@ -281,7 +328,7 @@ class ChatSession:
         lines = [
             f"*{target_model}*",
             f"by {self.service} ({release_year})\n",
-            f"*{token_str}k tokens for*: {purpose}\n",
+            f"*{token_str}k* tokens for: {purpose}\n",
             f"*Power:* {rank_power}",
             f"*Coding:* {rank_coding}",
             f"*Jailbreak:* {rank_jail}\n",
@@ -314,6 +361,17 @@ class ChatSession:
 
         return "\n".join(lines)
 
+    def query(self, prompt: str) -> str:
+        """Query the LLM and return the response as a string."""
+        return call_llm(
+            prompt=prompt,
+            service=self.service,
+            model=self.model,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            config=self.config,
+        )
+
     def process_update(self, update: dict) -> None:
         msg = update.get("message")
         if not msg:
@@ -332,33 +390,25 @@ class ChatSession:
         if text.startswith("/"):
             reply = self.handle_command(text)
         else:
-            try:
-                endpoint, api_key = get_service_conf(self.config, self.service)
-                payload = {
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": text}],
-                    "temperature": self.temperature,
-                    "max_tokens": self.max_tokens,
-                }
-                resp = requests.post(
-                    endpoint,
-                    json=payload,
-                    headers={"Authorization": f"Bearer {api_key}"},
-                    timeout=60,
-                )
-                resp.raise_for_status()
-                reply = resp.json()["choices"][0]["message"]["content"]
-
-            except Exception as e:
-                reply = f"API Error: {e}"
+            reply = call_llm(
+                prompt=text,
+                service=self.service,
+                model=self.model,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                config=self.config,
+            )
 
         send_message(self.bot_token, chat_id, reply)
 
     def run(self) -> None:
         while True:
             updates = get_updates(
-                self.bot_token, offset=self.offset, timeout=self.interval
+                self.bot_token,
+                offset=self.offset,
+                timeout=self.interval,  # blocks until message arrives or timeout
             )
+
             if updates:
                 for upd in updates:
                     self.process_update(upd)
@@ -367,7 +417,34 @@ class ChatSession:
                 if self.last_active:
                     self.interval = min(self.poll_idle, self.interval * 2)
 
-            time.sleep(1)
+            time.sleep(self.interval)
+
+    def run(self) -> None:
+        """Main loop to continuously check for updates and process them."""
+        print("[INFO] Bot polling started.")
+
+        while True:
+            updates = get_updates(
+                self.bot_token,
+                offset=self.offset,
+                timeout=self.interval,  # blocks until message arrives or timeout
+            )
+
+            if updates:
+                for upd in updates:
+                    self.process_update(upd)
+                    self.offset = upd["update_id"] + 1
+
+                # User is active — reset interval to be more responsive
+                self.interval = self.poll_active
+
+            else:
+                now = datetime.now()
+                if self.last_active and now - self.last_active > timedelta(minutes=1):
+                    # If idle for over a minute, increase the interval (up to max idle)
+                    self.interval = min(self.poll_idle, self.interval * 2)
+
+            print(f"[DEBUG] Sleeping for {self.interval} seconds...")
 
 
 def main():
