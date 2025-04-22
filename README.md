@@ -76,7 +76,9 @@ python main.py
 
 ## To Do
 
-- add the new commands from updated commands.yaml
+- keep original file name for downloads
+- use polling_active_for instead of hard coded 5 minutes
+  add the new commands from updated commands.yaml
 - Adding LLM memory or context chaining
 - requirements.txt vs requirements-dev.txt
 - Add a setup.py or pyproject.toml
@@ -102,7 +104,7 @@ Long-term plan
 │   ├── config_loader.py            # Handles loading and validating config files
 │   ├── telegram/
 │   │   ├── __init__.py
-│   │   ├── polling.py              # Polling logic (long/short, backoff)
+│   │   ├── poller.py              # Polling logic (long/short, backoff)
 │   │   ├── routing.py              # Parses Telegram messages and routes actions
 │   │   └── client.py               # Telegram API interface
 │   ├── llm/

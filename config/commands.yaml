@@ -11,7 +11,11 @@ showsettings:
 
 services:
   usage: "/services"
-  description: "List available services"
+  description: "List available services: [draw services from yamle]"
+
+bots:
+	usage: "/bots"
+    description: "List available bots: [draw them from yaml file]"
 
 cservice:
   usage: "/cservice <service_name>"

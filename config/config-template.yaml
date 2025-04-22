@@ -2,30 +2,62 @@
 # Make sure to save as "config.yaml" so it will be ignore by git
 # ANY comments will be overwritten by the script if you set your current bot
 # (service, model, temperature, maximum tokens) as defaults!
-factorydefault:
-  service: groq
-  model: compound-beta
-  temperature: 0.7
-  maxtoken: 1000
-default:
-  service: llama-3.1-8b-instant
-  model: mistral-small-latest
-  temperature: 0.7
-  maxtoken: 1000
+telegram:
+  polling_interval_active: 10 # Global default if not set per bot
+  polling_interval_idle: 120 # Global default if not set per bot
+  download_path: "./tmp" # Files stored under <download_path>/<bot>/<chat_id>
+  chat_history_path: "./tmp" # History stored under <chat_history_path>/<bot>/<chat_id>
+
+  bot_1:
+    name: "General Purpose Bot1"
+    token: "12345678:AAFoxxxxn0hwA-2TVSxxxNf4c"
+    chat_id: 123456789
+
+    # LLM default config for this bot
+    default:
+      service: groq
+      model: meta-llama/llama-4-maverick-17b-128e-instruct
+      temperature: 0.7
+      maxtoken: 4096
+
+    # Chatbot-specific behavior
+    logging_enabled: true # Whether to log messages to console
+    history_enabled: true # Whether to save conversation to file
+    history_file: "chat_history.log"
+    command_prefix: "/" # Slash command prefix (e.g. /help)
+    polling_interval_active: 10 # Optional override
+    polling_interval_idle: 120 # Optional override
+
+  # Add additional bots here using the same structure
+  # bot_2:
+  #   name: ...
+  #   token: ...
+  #   chat_id: ...
+  #   default:
+  #     service: ...
+  #     model: ...
+  #     ...
+  #   logging_enabled: true
+  #   ...
+
+# Hard reset values for restoring factory defaults (e.g. via /reset)
+factorydefaults:
+  factorydefault:
+    service: groq
+    model: compound-beta
+    temperature: 0.7
+    maxtoken: 4096
+    polling_interval_active: 10
+    polling_interval_idle: 120
+
+# Supported LLM services and credentials
 services:
   groq:
     enabled: true
-    model: compound-beta
     endpoint: https://api.groq.com/openai/v1/chat/completions
-    token_ref: <your_token>
+    api_key: <your_token>
+
   mistral:
     enabled: true
-    model: mistral-small-latest
     endpoint: https://api.mistral.ai/v1/chat/completions
-    token_ref: <your_token>
-telegram:
-  bot_token: 12345678:AAFoxxxxn0hwA-2TVSxxxNf4c
-  chat_id:
-    - 123456789 # Your Telegram user ID, for security
-  polling_interval_idle: 120 # seconds
-  polling_interval_active: 1 # seconds
+    api_key: <your_token>

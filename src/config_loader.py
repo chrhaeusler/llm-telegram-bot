@@ -1,11 +1,10 @@
-# src/config_loader.py
-
 import logging
 import os
 from typing import Any, Dict
 
 import yaml
 
+# Setup logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -15,42 +14,61 @@ console_handler.setLevel(logging.DEBUG)
 logger.addHandler(console_handler)
 
 
-def load_yaml_file(path: str) -> Dict[str, Any]:
-    """Loads a YAML file and returns its contents as a dictionary."""
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Config file not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    logger.debug(f"Loaded config from {path}: {data}")
-    return data
+def load_config(config_path: str = "config/config.yaml") -> Dict[str, Any]:
+    """
+    Loads and validates the unified configuration from a YAML file.
 
+    Args:
+        config_path: Path to the config YAML file.
 
-def merge_configs(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    """Recursively merges two dictionaries, with override taking precedence."""
-    for k, v in override.items():
-        if isinstance(v, dict) and isinstance(base.get(k), dict):
-            base[k] = merge_configs(base[k], v)
-        else:
-            base[k] = v
-    return base
+    Returns:
+        A dictionary containing the parsed config.
 
+    Raises:
+        FileNotFoundError: If the config file doesn't exist.
+        ValueError: If required fields are missing.
+    """
+    if not os.path.exists(config_path):
+        logger.error(f"Config file not found: {config_path}")
+        raise FileNotFoundError(f"Config file not found: {config_path}")
 
-def load_combined_config(
-    main_path="config/config.yaml",
-    cli_path="config/chatbot.yaml",
-) -> Dict[str, Any]:
-    """Loads and combines main, CLI-specific, and credentials config files."""
-    logger.info("Loading configuration...")
-    main_config = load_yaml_file(main_path)
-    cli_config = load_yaml_file(cli_path)
+    logger.debug(f"Loading config from: {config_path}")
 
-    final_config = merge_configs(main_config, cli_config)
+    with open(config_path, "r", encoding="utf-8") as f:
+        config: Dict[str, Any] = yaml.safe_load(f)
 
-    logger.info("Final merged config:")
-    logger.debug(final_config)
-    return final_config
+    # Validate top-level keys
+    required_top_keys = ["telegram", "services"]
+    for key in required_top_keys:
+        if key not in config:
+            logger.error(f"Missing required config section: '{key}'")
+            raise ValueError(f"Missing required config section: '{key}'")
 
+    # Validate Telegram bot configs
+    telegram_config = config["telegram"]
+    bots = {k: v for k, v in telegram_config.items() if k.startswith("bot_")}
+    if not bots:
+        logger.error("No bot configuration found under 'telegram'")
+        raise ValueError("No bot configuration found under 'telegram'")
 
-if __name__ == "__main__":
-    cfg = load_combined_config()
-    print("Loaded config:\n", cfg)
+    for bot_name, bot_conf in bots.items():
+        logger.debug(f"Validating bot: {bot_name}")
+        for required_field in ["token", "chat_id", "default"]:
+            if required_field not in bot_conf:
+                logger.error(f"Missing '{required_field}' for {bot_name}")
+                raise ValueError(f"Missing '{required_field}' for {bot_name}")
+        for field in ["service", "model", "temperature", "maxtoken"]:
+            if field not in bot_conf["default"]:
+                logger.error(f"Missing default.{field} in {bot_name}")
+                raise ValueError(f"Missing default.{field} in {bot_name}")
+
+    # Validate global polling settings
+    if "polling_interval_active" not in telegram_config:
+        logger.error("Missing 'polling_interval_active' in telegram config")
+        raise ValueError("Missing 'polling_interval_active' in telegram config")
+    if "polling_interval_idle" not in telegram_config:
+        logger.error("Missing 'polling_interval_idle' in telegram config")
+        raise ValueError("Missing 'polling_interval_idle' in telegram config")
+
+    logger.debug("Configuration loaded and validated successfully.")
+    return config

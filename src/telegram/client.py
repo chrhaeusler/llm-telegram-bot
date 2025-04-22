@@ -1,65 +1,95 @@
 import logging
 import os
 from pathlib import Path
+from typing import Any, Dict, List
 
 import aiohttp
 
 logger = logging.getLogger(__name__)
 
 
-def setup_logging():
+def setup_logging() -> None:
     log_directory = "logs"
     os.makedirs(log_directory, exist_ok=True)
 
     log_filename = os.path.join(log_directory, "bot_log.log")
 
-    # Create a logger
-    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
-    # Prevent adding multiple handlers in environments like Jupyter
     if not logger.handlers:
-        # Console handler
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.DEBUG)
 
-        # File handler
         file_handler = logging.FileHandler(log_filename)
         file_handler.setLevel(logging.DEBUG)
 
-        # Create a formatter and set it for the handlers
         formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         console_handler.setFormatter(formatter)
         file_handler.setFormatter(formatter)
 
-        # Add the handlers to the logger
         logger.addHandler(console_handler)
         logger.addHandler(file_handler)
 
-    return logger
-
 
 class TelegramClient:
-    def __init__(self, token, chat_id, download_path="downloads"):
+    allowed_extensions: List[str] = [
+        ".txt",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".pdf",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".webp",
+        ".mp3",
+        ".wav",
+        ".ogg",
+        ".m4a",
+        ".mp4",
+        ".mov",
+        ".avi",
+        ".mkv",
+        ".webm",
+        ".zip",
+        ".tar.gz",
+        ".tar",
+        ".gz",
+    ]
+
+    def __init__(
+        self,
+        token: str,
+        chat_id: int,
+        bot_name: str = "bot",
+        download_path: str = "tmp",
+        chat_history_path: str = "tmp",
+    ):
         self.token = token
+        self.bot_name = bot_name
         self.chat_id = chat_id
         self.api_url = f"https://api.telegram.org/bot{token}"
         self.download_base_url = f"https://api.telegram.org/file/bot{token}"
-        self.session = None
-        self.download_path = Path(download_path) / str(chat_id)
+        self.session: aiohttp.ClientSession | None = None
+
+        # download path
+        self.download_path = Path(download_path) / bot_name / str(chat_id)
         self.download_path.mkdir(parents=True, exist_ok=True)
 
-    async def init_session(self):
-        """Initialize the aiohttp session."""
+        # To Do: history path
+        self.chat_history_path = Path(chat_history_path) / bot_name / str(chat_id)
+        self.chat_history_path.mkdir(parents=True, exist_ok=True)
+
+    async def init_session(self) -> None:
         self.session = aiohttp.ClientSession()
 
-    async def close_session(self):
-        """Close the aiohttp session."""
+    async def close_session(self) -> None:
         if self.session:
             await self.session.close()
 
-    async def send_message(self, text):
-        """Send a message to the specified chat_id."""
+    async def send_message(self, text: str) -> Dict[str, Any]:
         payload = {"chat_id": self.chat_id, "text": text}
         try:
             async with self.session.post(
@@ -70,22 +100,23 @@ class TelegramClient:
                     logger.debug(f"Message sent to {self.chat_id}: {text}")
                     return result
                 else:
-                    logger.error(
-                        f"Failed to send message: {result.get('description', 'Unknown error')}"
-                    )
+                    error_msg = result.get("description", "Unknown error")
+                    logger.error(f"Failed to send message: {error_msg}")
                     return {
                         "ok": False,
                         "error_code": response.status,
-                        "description": result.get("description", "Unknown error"),
+                        "description": error_msg,
                     }
         except Exception as e:
             logger.error(f"Error sending message: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
-    async def get_updates(self):
-        """Retrieve the latest updates for the bot."""
+    async def get_updates(self, offset=None):
         try:
-            async with self.session.get(f"{self.api_url}/getUpdates") as response:
+            params = {"offset": offset} if offset else {}
+            async with self.session.get(
+                f"{self.api_url}/getUpdates", params=params
+            ) as response:
                 result = await response.json()
                 if response.status == 200:
                     logger.debug("Updates retrieved successfully.")
@@ -103,53 +134,119 @@ class TelegramClient:
             logger.error(f"Error getting updates: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
-    async def get_file(self, file_id):
-        """Retrieve file details using the file_id."""
+    # Function to retrieve file details from Telegram API
+    async def get_file(self, file_id: str) -> Dict[str, Any]:
         try:
+            logger.info(f"[get_file] Requesting file details for file_id: {file_id}")
+
+            # Request file details from Telegram API
             async with self.session.post(
                 f"{self.api_url}/getFile", data={"file_id": file_id}
             ) as response:
                 result = await response.json()
+
+                # Check if the response is successful
                 if response.status == 200:
-                    logger.debug(f"File details retrieved: {result}")
+                    logger.debug(f"[get_file] File details retrieved: {result}")
                     return result
                 else:
-                    logger.error(
-                        f"Failed to get file details: {result.get('description', 'Unknown error')}"
+                    # Log error details
+                    error_msg = result.get("description", "Unknown error")
+                    logger.error(f"[get_file] Failed to get file details: {error_msg}")
+                    await self.send_message(
+                        f"Error: Could not retrieve file details.\nReason: {error_msg}"
                     )
                     return {
                         "ok": False,
                         "error_code": response.status,
-                        "description": result.get("description", "Unknown error"),
+                        "description": error_msg,
                     }
+
         except Exception as e:
-            logger.error(f"Error getting file details: {e}")
+            logger.error(f"[get_file] Error getting file details: {e}")
+            await self.send_message(f"Exception: Failed to retrieve file info: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
-    async def download_file(self, file_path):
-        """Download a file using its file_path."""
+    # Function to download the file
+    async def download_file(self, file_path: str) -> Dict[str, Any]:
         try:
+            # Build download URL and destination path
             url = f"{self.download_base_url}/{file_path}"
+            file_name = os.path.basename(file_path)
+            destination = self.download_path / file_name
+
+            logger.info(f"[download_file] Starting download from: {url}")
+            logger.info(f"[download_file] Target download path: {destination}")
+
+            # Print output for debugging
+            print(f"📥 Starting download: {url}")
+            print(f"📁 Target path: {destination}")
+
+            # Ensure destination directory exists
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"[download_file] Directory ensured: {destination.parent}")
+
+            # Check if the file extension is allowed
+            if not self.is_allowed_extension(file_name):
+                msg = f"Rejected file: {file_name}. Unsupported file type."
+                logger.warning(f"[download_file] {msg}")
+                await self.send_message(f"⚠️ {msg}")
+                return {
+                    "ok": False,
+                    "error_code": 400,
+                    "description": "Unsupported file type",
+                }
+
+            # Perform file download
             async with self.session.get(url) as response:
+                logger.debug(f"[download_file] Response status: {response.status}")
+                logger.debug(f"[download_file] Response headers: {response.headers}")
+
                 if response.status == 200:
                     content = await response.read()
-                    file_name = os.path.basename(file_path)
-                    destination = self.download_path / file_name
-                    with open(destination, "wb") as file:
-                        file.write(content)
-                    logger.info(f"File downloaded: {destination}")
-                    return {"ok": True, "file_name": str(destination)}
+                    logger.debug(
+                        f"[download_file] File content length: {len(content)} bytes"
+                    )
+
+                    # Save the content to file
+                    with open(destination, "wb") as f:
+                        f.write(content)
+
+                    # Verify that the file was saved successfully
+                    if destination.exists() and destination.stat().st_size > 0:
+                        msg = f"✅ File downloaded successfully: {file_name}"
+                        logger.info(f"[download_file] {msg}")
+                        print(msg)
+                        await self.send_message(msg)
+                        return {"ok": True, "file_name": str(destination)}
+                    else:
+                        # If file is not correctly written
+                        msg = f"❌ File write failed or empty: {destination}"
+                        logger.error(f"[download_file] {msg}")
+                        print(msg)
+                        await self.send_message(f"❌ {msg}")
+                        return {
+                            "ok": False,
+                            "error_code": 500,
+                            "description": msg,
+                        }
                 else:
-                    logger.error(f"Failed to download file: HTTP {response.status}")
+                    # Handle non-200 HTTP response
+                    msg = f"❌ Failed to download file. HTTP {response.status}"
+                    logger.error(f"[download_file] {msg}")
+                    await self.send_message(f"❌ {msg}")
                     return {
                         "ok": False,
                         "error_code": response.status,
-                        "description": "Failed to download",
+                        "description": msg,
                     }
+
         except Exception as e:
-            logger.error(f"Error downloading file: {e}")
+            # Catch any other errors during file download
+            logger.exception(f"[download_file] Exception: {e}")
+            await self.send_message(f"❌ Exception during download: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
 
-# Initialize logging when module is loaded
+# Setup logging when module loads
 setup_logging()

@@ -1,48 +1,71 @@
 import asyncio
-from pathlib import Path
 
-from src.config_loader import load_combined_config
+from src.config_loader import load_config
 from src.telegram.client import TelegramClient
 
-CONFIG_PATH = Path("config/config.yaml")
 
-
-async def test_client_and_file():
-    # Read from config
-    config = load_combined_config()
+async def main():
+    config = load_config()
+    download_path = config["telegram"]["download_path"]
     bot_config = config["telegram"]["bot_1"]
+    bot_name = bot_config["name"]
     token = bot_config["token"]
     chat_id = bot_config["chat_id"]
+    chat_history_path = config["telegram"]["chat_history_path"]  # Add this line
 
-    # Initialize Telegram client
-    bot = TelegramClient(token=token, chat_id=chat_id)
-    await bot.init_session()
+    client = TelegramClient(
+        token=token,
+        chat_id=chat_id,
+        bot_name=bot_name,
+        download_path=download_path,
+        chat_history_path=chat_history_path,  # And pass it in
+    )
+    await client.init_session()
 
-    # Test send message
-    response = await bot.send_message("Hello, this is a test!")
-    print("Send message response:", response)
+    # 1. Send test message
+    print("Sending test message...")
+    await client.send_message("🤖 Test message from client.py!")
 
-    # Test get updates
-    updates = await bot.get_updates()
-    print("Updates:", updates)
+    # 2. Poll updates to find a file (if user sends one)
+    print("Waiting for file... please upload a file to the bot chat!")
 
-    # File handling (optional, will only attempt if a document is found)
-    if updates.get("ok") and "result" in updates:
-        for message in updates["result"]:
-            if "document" in message:
-                file_id = message["document"]["file_id"]
-                print(f"Found file ID: {file_id}")
+    try:
+        updates = await client.get_updates()
 
-                file_details = await bot.get_file(file_id)
-                print("File details:", file_details)
+        if updates["ok"] and updates["result"]:
+            for update in updates["result"]:
+                message = update.get("message", {})
+                document = message.get("document")
+                audio = message.get("audio")
+                video = message.get("video")
+                photo = message.get("photo")
 
-                if file_details.get("ok"):
-                    file_path = file_details["result"]["file_path"]
-                    print(f"File path: {file_path}")
-                    await bot.download_file(file_path)
+                file_id = None
+                if document:
+                    file_id = document["file_id"]
+                elif audio:
+                    file_id = audio["file_id"]
+                elif video:
+                    file_id = video["file_id"]
+                elif photo:
+                    file_id = photo[-1]["file_id"]  # highest resolution photo
 
-    await bot.close_session()
+                if file_id:
+                    file_info = await client.get_file(file_id)
+                    if file_info["ok"]:
+                        file_path = file_info["result"]["file_path"]
+                        await client.download_file(file_path)
+
+            # ✅ Acknowledge all updates so they aren't fetched again
+            last_update_id = updates["result"][-1]["update_id"]
+            await client.get_updates(offset=last_update_id + 1)
+
+        else:
+            print("No new updates.")
+
+    finally:
+        await client.close_session()
 
 
 if __name__ == "__main__":
-    asyncio.run(test_client_and_file())
+    asyncio.run(main())
