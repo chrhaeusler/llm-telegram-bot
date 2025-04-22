@@ -1,4 +1,4 @@
-# PYTHONPATH=. python3 -m src.telegram.poller bot_1
+# test with "python -m src.telegram.poller bot_1"
 
 import asyncio
 import datetime

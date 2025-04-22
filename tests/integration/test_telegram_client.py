@@ -1,3 +1,4 @@
+# run with "PYTHONPATH=. python3 tests/test_telegram_client.py"
 import asyncio
 
 from src.config_loader import load_config

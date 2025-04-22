@@ -76,40 +76,45 @@ python main.py
 
 ## To Do
 
-- keep original file name for downloads
-- use polling_active_for instead of hard coded 5 minutes
-  add the new commands from updated commands.yaml
+add the new commands from updated commands.yaml
+
 - Adding LLM memory or context chaining
-- requirements.txt vs requirements-dev.txt
+- use polling_active_for instead of hard coded 5 minutes
+- create a ChatCompletionService(BaseLLMService) in services_chat_completions.py to handle all shared logic (headers, timeouts, call(), etc.), supposed to take in a provider-specific endpoint and possibly a request adapter function; Groq and Mistral can then be thin subclasses or even configs
+- (more) unittests
 - Add a setup.py or pyproject.toml
+- requirements.txt vs requirements-dev.txt
 - CI pipeline: lint (ruff), type‑check (mypy), format (black), run tests.
 - Add more LLM services (e.g. [Free LLM Ressources ](https://github.com/cheahjs/free-llm-api-resources))
 
 Long-term plan
+I think we are good for now. I went through what we did and updated our road map. This is the new layout of our project. Please remember that it is not "provider" but "service(s)" in the file names. We agreed on the focusing doing the to do's with number in front of them. Just "To Do" is, imo, postponed. What to you think should we do next? Numbers representing the priority are my suggestions:
 
 ```bash
 ├── bin/
 │   └── cli-chatbot.py              # To Do: Entry point for CLI interaction
 ├── config/
 │   ├── commands.yaml               # To Do: Supported commands and metadata (later implementation)
-│   ├── config.yaml                 # 0. Main app config (providers, polling, etc.)
-│   └── models_info.json            # 0. Existing (revise): Model descriptions/details
+│   ├── config.yaml                 # 1. Done
+│   └── models_info.json            # 2. Done
 ├── logs/
-├── main.py                         # To Do: Optional: unified app launcher (later, if needed)
-├── README.md
+├── main.py                         # ?? To Do: Optional: unified app launcher (later, if needed),
+├── .pre-commit-config.yaml         # To Do
+├── pyproject.toml                  # To Do
+├── README.md                       # ...finalize at the end
 ├── src/
 │   ├── __init__.py
-│   ├── config_loader.py            # 1. Existing (revise): Handles loading and validating config files
+│   ├── config_loader.py            # 3. Done
 │   ├── telegram/
 │   │   ├── __init__.py
-│   │   ├── poller.py
-│   │   ├── routing.py              # 6. To Do: Parses Telegram messages and routes actions
-│   │   └── client.py               # 5 Existing (revise): Telegram API interface (message handling)
-│   ├── llm/
+│   │   ├── poller.py               # Works
+│   │   ├── routing.py              # 6. To Do: will handle parsing incoming messages from Telegram and routing them to the right service (LLM, commands, etc.)
+│   │   └── client.py               # 5. To Do: update this file to handle both Telegram messages and LLM interactions
+│   ├── services/
 │   │   ├── __init__.py
-│   │   ├── provider_base.py        # 2. To Do: Interface/base class for LLM providers
-│   │   ├── groq_api.py             # 3. To Do: for groq.com API (LLM provider)
-│   │   └── mistral_api.py          # 4. To Do: for mistral.ai API (LLM provider)
+│   │   ├── services_base.py        # 4. Done: Interface/base class for LLM providers
+│   │   ├── service_groq.py         # 5. Done: for groq.com API (LLM provider)
+│   │   └── service_mistral.py      # 6. Done: for mistral.ai API (LLM provider)
 │   ├── commands/                   # To Do: Command handling directory
 │   │   ├── __init__.py             # To Do: Initialization for commands module
 │   │   ├── parser.py               # To Do: Recognizes commands and handles execution
@@ -118,25 +123,20 @@ Long-term plan
 │   │   ├── change.py               # To Do: Commands to change service, model, parameters, etc.
 │   │   ├── saverestore.py          # To Do: Commands for saving/restoring chat history
 │   │   └── jailbreaks.py           # To Do: Standard jailbreak prompt logic
-│   ├── storage/                    # To Do: File saving and history logging
-│   │   ├── __init__.py             # To Do: Initialization for storage module
 │   │   ├── saver.py                # To Do: File saving utilities (/s, /s0, etc.)
 │   │   └── history_logger.py       # To Do: Logs ongoing chat to file (if enabled)
 │   └── utils/
 │       ├── __init__.py
 │       └── helpers.py              # To Do: Common utilities (timestamps, formatting, etc.)
-├── tests/
-│   └── test_main.py                # To Do: Tests for the integrated functionality (full flow)
+├── tests
+│   ├── functional
+│   ├── integration
+│   │   ├── test_llm_services.py
+│   │   ├── test_main.py            # To Do: Tests for the integrated functionality (full flow)
+│   │   └── test_telegram_client.py # Done
+│   ├── mocks
+│   └── unit
+│       ├── test_service_groq.py    # To Do
+│   │   └── test_service_mistral.py # To Do
 └──  tmp/
-
-```
-
-```
-config.py   src/config_loader.py
-client.py	src/telegram/client.py
-commands.py	src/commands/parser.py and jailbreaks.py
-dispatcher.py	src/telegram/routing.py
-memory.py	src/storage/history_logger.py
-llm_interface.py	src/llm/*_api.py + provider_base.py
-utils.py	src/utils/helpers.py
 ```
