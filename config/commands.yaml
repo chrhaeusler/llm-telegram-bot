@@ -1,12 +1,9 @@
 # config/commands.yaml
+# To Do: line breaks in CLI
 
 help:
   usage: "/help"
   description: "Show this message"
-
-model:
-  usage: "/model [<model_name>]"
-  description: "Show info about the current (or given) model"
 
 showsettings:
   usage: "/showset"
@@ -16,13 +13,17 @@ services:
   usage: "/services"
   description: "List available services"
 
+cservice:
+  usage: "/cservice <service_name>"
+  description: "Change service (e.g. mistral or groq)" # and show settings
+
+model:
+  usage: "/model [<model_name>]"
+  description: "Show info about the current (or given) model"
+
 models:
   usage: "/models"
   description: "List models for current service"
-
-cservice:
-  usage: "/cservice <service_name>"
-  description: "Change service (e.g. mistral or groq)"
 
 cmodel:
   usage: "/cmodel <model_name>"
@@ -37,9 +38,39 @@ temperature:
   description: "Change model's temperature (0.0–2.0)"
 
 setasdefaults:
-  usage: "/setdefault"
+  usage: "/setdefaults"
   description: "Persist current settings as defaults"
 
 factoryreset:
   usage: "/factoryreset"
   description: "Reset to factory defaults"
+
+## implement
+defaults:
+  usage: "/resdefault"
+  description: "restore your defaults (and show list model + settings)"
+
+saveresponse:
+  usage: "/s [<filename>]"
+  description: "save last reponse)"
+
+saveresponsenamed:
+  usage: "/sn"
+  description: "save last response & ask for filename" # do not update history with that
+
+saveeuser:
+  usage: "/su [<filename>]"
+  description: "save previous user input"
+
+restoredefaults:
+  usage: "/resdefault"
+  description: "restore your defaults (and show list model + settings)"
+
+  # Telegram exclusive
+savestring:
+  usage: "/savethis [<filename>]"
+  description: save a string to file (without sending it to LLM)"
+
+savefile:
+  usage: "f/sf [filename]"
+  description: save attached file (without sending it to LLM)"

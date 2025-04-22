@@ -3,19 +3,19 @@
 # ANY comments will be overwritten by the script if you set your current bot
 # (service, model, temperature, maximum tokens) as defaults!
 factorydefault:
-  service: mistral
-  model: mistral-small-latest
+  service: groq
+  model: compound-beta
   temperature: 0.7
-  maxtoken: 100
+  maxtoken: 1000
 default:
-  service: mistral
+  service: llama-3.1-8b-instant
   model: mistral-small-latest
   temperature: 0.7
-  maxtoken: 100
+  maxtoken: 1000
 services:
   groq:
     enabled: true
-    model: mixtral-8x7b-32768 # Can also be e.g. llama3-70b-8192
+    model: compound-beta
     endpoint: https://api.groq.com/openai/v1/chat/completions
     token_ref: <your_token>
   mistral:
@@ -24,8 +24,8 @@ services:
     endpoint: https://api.mistral.ai/v1/chat/completions
     token_ref: <your_token>
 telegram:
-  bot_token_ref: telegram_bot_token # Refers to credentials.json
-  allowed_user_ids:
+  bot_token: 12345678:AAFoxxxxn0hwA-2TVSxxxNf4c
+  chat_id:
     - 123456789 # Your Telegram user ID, for security
   polling_interval_idle: 120 # seconds
   polling_interval_active: 1 # seconds

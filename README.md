@@ -83,5 +83,6 @@ python main.py
 - Logging & Metrics: Add structured logging (e.g. Python’s logging module) to trace errors.
 - Automated Testing
 - Add a setup.py or pyproject.toml
+- requirements.txt vs requirements-dev.txt
 - CI pipeline: lint (ruff), type‑check (mypy), format (black), run tests.
 - Add more LLM services (e.g. [Free LLM Ressources ](https://github.com/cheahjs/free-llm-api-resources))
