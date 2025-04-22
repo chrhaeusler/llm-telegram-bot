@@ -1,23 +1,5 @@
 {
   "mistral": {
-    "mistral-small-latest": {
-      "creator": "Mistral AI",
-      "short": "Light, efficient general‑purpose model.",
-      "release_year": "2025",
-      "token_win": [2048, 2048],
-      "main_purpose": "real‑time chat, summarization, and lightweight AI services",
-      "strengths": "Fast inference",
-      "weaknesses": "Limited complex reasoning compared to larger variants.",
-      "rank_power": "good",
-      "rank_coding": "mid",
-      "rank_jail": "high",
-      "jailbreaks": [
-        "default instruction override",
-        "hidden prompt chaining",
-        "direct role swap"
-      ],
-      "details": "optimized for simple conversations, summarization, and embedded AI applications; its efficient design grants it a good power ranking, though coding depth is mid-level. Lack of built‑in filters yields a high jailbreak rank, easily bypassable via instruction overrides."
-    },
     "pixtral-12b-2409": {
       "creator": "Mistral AI",
       "short": "12B MoE model for diverse tasks.",
@@ -36,23 +18,23 @@
       ],
       "details": "Features MoE routing for efficiency and a context range of 2048–4096 tokens. It performs well on general NLP and moderate code tasks. Its good power and coding ranks reflect balanced capability. Minimal safety measures lead to a high jailbreak risk through standard prompt attacks."
     },
-    "open-mistral-nemo": {
+    "mistral-small-latest": {
       "creator": "Mistral AI",
-      "short": "12B multilingual open‑source model.",
-      "release_year": "2024",
-      "token_win": [2048, 4096],
-      "main_purpose": "multilingual translation and summarization",
-      "strengths": "Strong translation and cross‑lingual capabilities.",
-      "weaknesses": "Not optimized for code or niche domains.",
+      "short": "Light, efficient general‑purpose model.",
+      "release_year": "2025",
+      "token_win": [2048, 2048],
+      "main_purpose": "real‑time chat, summarization, and lightweight AI services",
+      "strengths": "Fast inference",
+      "weaknesses": "Limited complex reasoning compared to larger variants.",
       "rank_power": "good",
       "rank_coding": "mid",
       "rank_jail": "high",
       "jailbreaks": [
-        "hidden conversation arcs",
-        "direct system override",
-        "instruction layering"
+        "default instruction override",
+        "hidden prompt chaining",
+        "direct role swap"
       ],
-      "details": "Excels at multilingual tasks. It supports a context range of 2048–4096 tokens for translation and summarization; its good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
+      "details": "optimized for simple conversations, summarization, and embedded AI applications; its efficient design grants it a good power ranking, though coding depth is mid-level. Lack of built‑in filters yields a high jailbreak rank, easily bypassable via instruction overrides."
     },
     "open-codestral-mamba": {
       "creator": "Mistral AI",
@@ -71,6 +53,24 @@
         "hidden instruction chaining within code blocks"
       ],
       "details": "Exceptional performance in code completion, refactoring, and fill-in-the-middle scenarios; limited general conversational abilities; lacks robust safety filters, making it highly susceptible to jailbreak techniques."
+    },
+    "open-mistral-nemo": {
+      "creator": "Mistral AI",
+      "short": "12B multilingual open‑source model.",
+      "release_year": "2024",
+      "token_win": [2048, 4096],
+      "main_purpose": "multilingual translation and summarization",
+      "strengths": "Strong translation and cross‑lingual capabilities.",
+      "weaknesses": "Not optimized for code or niche domains.",
+      "rank_power": "good",
+      "rank_coding": "mid",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "hidden conversation arcs",
+        "direct system override",
+        "instruction layering"
+      ],
+      "details": "Excels at multilingual tasks. It supports a context range of 2048–4096 tokens for translation and summarization; its good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
     }
   },
   "groq": {
@@ -145,6 +145,24 @@
       ],
       "details": "italian-focussed and multi-lingual; handles translation, summarization, and conversation; minimal guardrails make it vulnerable to jailbreak via creative prompt manipulation and context wrapping techniques."
     },
+    "llama-guard-3-8b": {
+      "creator": "Meta",
+      "short": "Safety‑hardened 8B LLaMA 3 variant.",
+      "release_year": "2023",
+      "main_purpose": "content moderation and safe conversational interfaces",
+      "strengths": "Built‑in content filters and moderation layers.",
+      "weaknesses": "Over‑censorship may hinder legitimate code examples.",
+      "rank_power": "mid",
+      "token_win": [4096, 4096],
+      "rank_coding": "mid",
+      "rank_jail": "low",
+      "jailbreaks": [
+        "weak chain‑of‑thought prompts",
+        "multi‑step indirect requests",
+        "supervised fine‑tuning override"
+      ],
+      "details": "designed for policy‑critical applications; strong guardrails earn it a low jailbreak rank, though very advanced adversarial sequences can sometimes bypass filters."
+    },
     "llama-3.1-8b-instant": {
       "creator": "Meta",
       "short": "Pruned & quantized LLaMA 3.1 for instant chat.",
@@ -181,24 +199,6 @@
       ],
       "details": "Excels at complex reasoning, code generation, and multi‑step tasks; exceptional capacity gives it an excellent power and coding rank; moderate fine‑tunes to resist simple jailbreaks, advanced prompt layering can still succeed."
     },
-    "llama-guard-3-8b": {
-      "creator": "Meta",
-      "short": "Safety‑hardened 8B LLaMA 3 variant.",
-      "release_year": "2023",
-      "main_purpose": "content moderation and safe conversational interfaces",
-      "strengths": "Built‑in content filters and moderation layers.",
-      "weaknesses": "Over‑censorship may hinder legitimate code examples.",
-      "rank_power": "mid",
-      "token_win": [4096, 4096],
-      "rank_coding": "mid",
-      "rank_jail": "low",
-      "jailbreaks": [
-        "weak chain‑of‑thought prompts",
-        "multi‑step indirect requests",
-        "supervised fine‑tuning override"
-      ],
-      "details": "designed for policy‑critical applications; strong guardrails earn it a low jailbreak rank, though very advanced adversarial sequences can sometimes bypass filters."
-    },
     "llama3-70b-8192": {
       "creator": "Meta",
       "short": "Extended‑context 70B LLaMA 3 with 8k window.",
@@ -217,6 +217,23 @@
       ],
       "details": "ideal for large codebases, document analysis, and multi‑session chats; excellent power and at coding; moderate safety measures guard against simple jailbreaks, but sophisticated prompt manipulations can still succeed."
     },
+    "meta-llama/llama-4-scout-17b-16e-instruct": {
+      "creator": "Meta",
+      "short": "Lightweight 17B MoE model with 16k context.",
+      "release_year": "2024",
+      "strengths": "Fast instruction following with moderate context length.",
+      "weaknesses": "Lower context capacity than Maverick.",
+      "rank_power": "excellent",
+      "token_win": [16000, 16000],
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "stealth prompt insertion",
+        "temporal context shifting",
+        "multi‑step role‑play jailbreak"
+      ],
+      "details": "balances performance and speed in a 16k token window; reduces expert count for lower latency while retaining strong instruction tuning; good for document navigation and code reviews; excellent power and at coding; mid-level guardrails resist simple jailbreaks but can be overcome by advanced multi‑stage attacks."
+    },
     "meta-llama/llama-4-maverick-17b-128e-instruct": {
       "creator": "Meta",
       "short": "MoE‑enhanced 17B model with 128k context.",
@@ -234,23 +251,6 @@
         "persona reverse psychology"
       ],
       "details": "supports 128k tokens; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
-    },
-    "meta-llama/llama-4-scout-17b-16e-instruct": {
-      "creator": "Meta",
-      "short": "Lightweight 17B MoE model with 16k context.",
-      "release_year": "2024",
-      "strengths": "Fast instruction following with moderate context length.",
-      "weaknesses": "Lower context capacity than Maverick.",
-      "rank_power": "excellent",
-      "token_win": [16000, 16000],
-      "rank_coding": "excellent",
-      "rank_jail": "mid",
-      "jailbreaks": [
-        "stealth prompt insertion",
-        "temporal context shifting",
-        "multi‑step role‑play jailbreak"
-      ],
-      "details": "balances performance and speed in a 16k token window; reduces expert count for lower latency while retaining strong instruction tuning; good for document navigation and code reviews; excellent power and at coding; mid-level guardrails resist simple jailbreaks but can be overcome by advanced multi‑stage attacks."
     },
     "qwen-qwq-32b": {
       "creator": "Qwen AI",

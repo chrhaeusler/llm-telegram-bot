@@ -3,7 +3,7 @@ import signal
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-
+from time import time
 import requests
 import yaml
 
@@ -404,6 +404,7 @@ class ChatSession:
 
     def run(self) -> None:
         while True:
+            time.sleep(1)
             updates = get_updates(
                 self.bot_token,
                 offset=self.offset,
