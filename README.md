@@ -62,7 +62,7 @@ cp config/config-template.yaml config/config.yaml
 1. Send a message to @BotFather and create a bot by typing `/newbot`; you will get the bot's API key from BotFather the moment you created the bot
 2. Send a message to your bot (to open a chat with the bot)
 3. To get the chat ID, visit (substitute 123456...Nf4c with your bot's API key):
-   - `https://api.telegram.org/bot12345678:AAFoxxxxn0hwA-2TVSxxxNf4c/getUpdates"
+   - `https://api.telegram.org/bot12345678:xxxxxxxxxx:yyyyyyyyyyyyy_zzzzzzzzzzzzzzzzzzzzz/getUpdates"
 
 ## Usage
 
@@ -76,13 +76,76 @@ python main.py
 
 ## To Do
 
-- Code Cleanup & Refactoring (esp. modularize `telegram_utils.py` into, e.g., (e.g., `config_utils.py`, `telegram_api.py`, `chat_utils.py`, etc.))
+- Code Cleanup & Refactoring (esp. modularize)
+- Automated Testing & Logging
+- e.g. log the interval between contacting telegram (idle logic seems to be not correct)
+- fix "[ERROR] Telegram send_message failed: 400 Client Error: Bad Request for url: https://api.telegram.org/botxxxxxxxxxx:yyyyyyyyyyyyy_zzzzzzzzzzzzzzzzzzzzz/sendMessage"
 - Async I/O: Switch from blocking requests + time.sleep loops to aiohttp and asyncio with long‑polling
 - Restructure CLI interface to handle async inputs gracefull
+- add the new commands from updated commands.yaml
 - Adding LLM memory or context chaining
-- Logging & Metrics: Add structured logging (e.g. Python’s logging module) to trace errors.
-- Automated Testing
-- Add a setup.py or pyproject.toml
 - requirements.txt vs requirements-dev.txt
+- Add a setup.py or pyproject.toml
 - CI pipeline: lint (ruff), type‑check (mypy), format (black), run tests.
 - Add more LLM services (e.g. [Free LLM Ressources ](https://github.com/cheahjs/free-llm-api-resources))
+
+Long-term plan
+
+```bash
+├── bin/
+│   └── cli-chatbot.py              # Entry point for CLI interaction
+├── config/
+│   ├── chatbot.yaml                # CLI-specific settings
+│   ├── commands.yaml               # Supported commands and metadata
+│   ├── config.yaml                 # Main app config (providers, polling, etc.)
+│   └── models_info.json            # Model descriptions/details
+├── credentials/
+│   └── config.yaml                 # API keys, tokens (not version controlled)
+├── logs/
+├── main.py                         # Optional: unified app launcher
+├── README.md
+├── LICENSE
+├── src/
+│   ├── __init__.py
+│   ├── config_loader.py            # Handles loading and validating config files
+│   ├── telegram/
+│   │   ├── __init__.py
+│   │   ├── polling.py              # Polling logic (long/short, backoff)
+│   │   ├── routing.py              # Parses Telegram messages and routes actions
+│   │   └── client.py               # Telegram API interface
+│   ├── llm/
+│   │   ├── __init__.py
+│   │   ├── provider_base.py        # Interface/base class for LLM providers
+│   │   ├── together_api.py         # Specific implementation
+│   │   ├── chutes_api.py           # Another implementation
+│   │   └── local_openai_api.py     # Local uncensored proxy
+│   ├── commands/
+│   │   ├── __init__.py
+│   │   ├── parser.py               # Recognizes /commands and handles execution
+│   │   └── jailbreaks.py           # Standard jailbreak prompt logic
+│   ├── storage/
+│   │   ├── __init__.py
+│   │   ├── saver.py                # File saving utilities (/s, /s0, etc.)
+│   │   └── history_logger.py       # Logs ongoing chat to file (if enabled)
+│   └── utils/
+│       ├── __init__.py
+│       └── helpers.py              # Common utilities (timestamps, formatting, etc.)
+├── tests/
+│   ├── test_main.py
+│   └── test_llm_api.py
+└── tmp/
+    └── ..
+```
+
+Plan as of now:
+Here’s how the recent suggestions map into the full architecture you liked:
+
+```
+config.py   src/config_loader.py
+client.py	src/telegram/client.py
+commands.py	src/commands/parser.py and jailbreaks.py
+dispatcher.py	src/telegram/routing.py
+memory.py	src/storage/history_logger.py
+llm_interface.py	src/llm/*_api.py + provider_base.py
+utils.py	src/utils/helpers.py
+```

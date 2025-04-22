@@ -45,11 +45,16 @@ factoryreset:
   usage: "/factoryreset"
   description: "Reset to factory defaults"
 
-## implement
+## Todo: From here on to be implemented
 defaults:
   usage: "/resdefault"
   description: "restore your defaults (and show list model + settings)"
 
+restoredefaults:
+  usage: "/resdefault"
+  description: "restore your defaults (and show list model + settings)"
+
+# Save responses or inputs
 saveresponse:
   usage: "/s [<filename>]"
   description: "save last reponse)"
@@ -62,11 +67,49 @@ saveeuser:
   usage: "/su [<filename>]"
   description: "save previous user input"
 
-restoredefaults:
-  usage: "/resdefault"
-  description: "restore your defaults (and show list model + settings)"
+# Summarize
+summarize:
+  usage: "/summarize"
+  description: "summarize history and ask if supposed to use as history or provided as message to adjust"
+sumthis:
+  usage: "/sumthis [<text>]"
+  description: "use this text as summary"
 
-  # Telegram exclusive
+# History
+histtoggle:
+  usage: "f/sf [filename]"
+  description: save attached file (without sending it to LLM)"
+
+histsave:
+  usage: "f/sf [filename]"
+  description: save attached file (without sending it to LLM)"
+
+histload:
+  usage: "f/sf [filename]"
+  description: save attached file (without sending it to LLM)"
+
+histories:
+  usage: "/sn"
+  description: "show stored histories"
+
+histshow:
+  usage: "f/hshow [filename]"
+  description: list plus 1 (in reverse -1, -2,)"
+
+histdelete:
+  usage: "f/hdel [<entry>]"
+  description: save attached file (without sending it to LLM); ask for confirmation"
+
+# Jailbreaks
+jailbreaks:
+  usage: "f/jbshow"
+  description: "show list of jailbreaks"
+
+sendjailbreak:
+  usage: "f/jbs <int>"
+  description: "show list of jailbreaks"
+
+# Telegram exclusive
 savestring:
   usage: "/savethis [<filename>]"
   description: save a string to file (without sending it to LLM)"
