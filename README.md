@@ -89,46 +89,46 @@ Long-term plan
 
 ```bash
 ├── bin/
-│   └── cli-chatbot.py              # Entry point for CLI interaction
+│   └── cli-chatbot.py              # To Do: Entry point for CLI interaction
 ├── config/
-│   ├── chatbot.yaml                # CLI-specific settings
-│   ├── commands.yaml               # Supported commands and metadata
-│   ├── config.yaml                 # Main app config (providers, polling, etc.)
-│   └── models_info.json            # Model descriptions/details
+│   ├── commands.yaml               # To Do: Supported commands and metadata (later implementation)
+│   ├── config.yaml                 # 0. Main app config (providers, polling, etc.)
+│   └── models_info.json            # 0. Existing (revise): Model descriptions/details
 ├── logs/
-├── main.py                         # Optional: unified app launcher
+├── main.py                         # To Do: Optional: unified app launcher (later, if needed)
 ├── README.md
-├── LICENSE
 ├── src/
 │   ├── __init__.py
-│   ├── config_loader.py            # Handles loading and validating config files
+│   ├── config_loader.py            # 1. Existing (revise): Handles loading and validating config files
 │   ├── telegram/
 │   │   ├── __init__.py
-│   │   ├── poller.py              # Polling logic (long/short, backoff)
-│   │   ├── routing.py              # Parses Telegram messages and routes actions
-│   │   └── client.py               # Telegram API interface
+│   │   ├── poller.py
+│   │   ├── routing.py              # 6. To Do: Parses Telegram messages and routes actions
+│   │   └── client.py               # 5 Existing (revise): Telegram API interface (message handling)
 │   ├── llm/
 │   │   ├── __init__.py
-│   │   ├── provider_base.py        # Interface/base class for LLM providers
-│   │   ├── together_api.py         # Specific implementation
-│   │   ├── chutes_api.py           # Another implementation
-│   │   └── local_openai_api.py     # Local uncensored proxy
-│   ├── commands/
-│   │   ├── __init__.py
-│   │   ├── parser.py               # Recognizes /commands and handles execution
-│   │   └── jailbreaks.py           # Standard jailbreak prompt logic
-│   ├── storage/
-│   │   ├── __init__.py
-│   │   ├── saver.py                # File saving utilities (/s, /s0, etc.)
-│   │   └── history_logger.py       # Logs ongoing chat to file (if enabled)
+│   │   ├── provider_base.py        # 2. To Do: Interface/base class for LLM providers
+│   │   ├── groq_api.py             # 3. To Do: for groq.com API (LLM provider)
+│   │   └── mistral_api.py          # 4. To Do: for mistral.ai API (LLM provider)
+│   ├── commands/                   # To Do: Command handling directory
+│   │   ├── __init__.py             # To Do: Initialization for commands module
+│   │   ├── parser.py               # To Do: Recognizes commands and handles execution
+│   │   ├── show.py                 # To Do: Commands to show info about the current model, services, etc.
+│   │   ├── send.py                 # To Do: Commands to send LLM replies or input to file
+│   │   ├── change.py               # To Do: Commands to change service, model, parameters, etc.
+│   │   ├── saverestore.py          # To Do: Commands for saving/restoring chat history
+│   │   └── jailbreaks.py           # To Do: Standard jailbreak prompt logic
+│   ├── storage/                    # To Do: File saving and history logging
+│   │   ├── __init__.py             # To Do: Initialization for storage module
+│   │   ├── saver.py                # To Do: File saving utilities (/s, /s0, etc.)
+│   │   └── history_logger.py       # To Do: Logs ongoing chat to file (if enabled)
 │   └── utils/
 │       ├── __init__.py
-│       └── helpers.py              # Common utilities (timestamps, formatting, etc.)
+│       └── helpers.py              # To Do: Common utilities (timestamps, formatting, etc.)
 ├── tests/
-│   ├── test_main.py
-│   └── test_llm_api.py
-└── tmp/
-    └── ..                          # e.g. for files downloaded during testing
+│   └── test_main.py                # To Do: Tests for the integrated functionality (full flow)
+└──  tmp/
+
 ```
 
 ```

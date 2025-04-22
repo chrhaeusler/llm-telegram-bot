@@ -61,7 +61,7 @@ restoredefaults:
 # Save responses or inputs
 saveresponse:
   usage: "/s [<filename>]"
-  description: "save last reponse)"
+  description: "save last reponse"
 
 saveresponsenamed:
   usage: "/sn"
