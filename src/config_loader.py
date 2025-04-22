@@ -38,16 +38,13 @@ def merge_configs(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, A
 def load_combined_config(
     main_path="config/config.yaml",
     cli_path="config/chatbot.yaml",
-    credentials_path="credentials/config.yaml",
 ) -> Dict[str, Any]:
     """Loads and combines main, CLI-specific, and credentials config files."""
     logger.info("Loading configuration...")
     main_config = load_yaml_file(main_path)
     cli_config = load_yaml_file(cli_path)
-    credentials_config = load_yaml_file(credentials_path)
 
-    merged = merge_configs(main_config, cli_config)
-    final_config = merge_configs(merged, credentials_config)
+    final_config = merge_configs(main_config, cli_config)
 
     logger.info("Final merged config:")
     logger.debug(final_config)

@@ -1,3 +1,8 @@
-autosave: true
-save_dir: ../tmp
-system_prompt: You are a helpful assistant.
+# Settings specific to the chatbot's behavior.
+# This will help manage bot-specific configurations.
+
+bot_settings:
+  logging_enabled: true
+  command_prefix: "/"
+  history_enabled: true
+  history_file: "chat_history.log"

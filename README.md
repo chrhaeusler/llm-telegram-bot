@@ -76,12 +76,6 @@ python main.py
 
 ## To Do
 
-- Code Cleanup & Refactoring (esp. modularize)
-- Automated Testing & Logging
-- e.g. log the interval between contacting telegram (idle logic seems to be not correct)
-- fix "[ERROR] Telegram send_message failed: 400 Client Error: Bad Request for url: https://api.telegram.org/botxxxxxxxxxx:yyyyyyyyyyyyy_zzzzzzzzzzzzzzzzzzzzz/sendMessage"
-- Async I/O: Switch from blocking requests + time.sleep loops to aiohttp and asyncio with long‑polling
-- Restructure CLI interface to handle async inputs gracefull
 - add the new commands from updated commands.yaml
 - Adding LLM memory or context chaining
 - requirements.txt vs requirements-dev.txt
@@ -99,8 +93,6 @@ Long-term plan
 │   ├── commands.yaml               # Supported commands and metadata
 │   ├── config.yaml                 # Main app config (providers, polling, etc.)
 │   └── models_info.json            # Model descriptions/details
-├── credentials/
-│   └── config.yaml                 # API keys, tokens (not version controlled)
 ├── logs/
 ├── main.py                         # Optional: unified app launcher
 ├── README.md
@@ -134,11 +126,8 @@ Long-term plan
 │   ├── test_main.py
 │   └── test_llm_api.py
 └── tmp/
-    └── ..
+    └── ..                          # e.g. for files downloaded during testing
 ```
-
-Plan as of now:
-Here’s how the recent suggestions map into the full architecture you liked:
 
 ```
 config.py   src/config_loader.py
