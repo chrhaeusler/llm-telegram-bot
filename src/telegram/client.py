@@ -1,9 +1,8 @@
 # To Do:
-# Sending messages to the chat seems broken
 # I added comments above lines or block that raise an error
-# is temperature implemented at all?
+# is temperature implemented at all as variable? don't we need it here, too?
 # implement startup message with, date time, bot, service, model, (max) token
-# e.g. like this
+# e.g. like this; but probably better located in main.py?
 # f"Bot started\n"
 # f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
 # f"🤖 {bot_name} in {chat_id}
@@ -12,6 +11,27 @@
 # f"🌡️ Temperature: {temperature}\n"
 # f"🔢 Max Tokens: {token}\n"
 # f'ℹ️ Send "/help" for help'
+
+"""
+Telegram API Interface Layer
+
+What It Does:
+This file handles all communication with the Telegram API, making it a low-level
+utility that:
+    - Manages sessions with the Telegram server.
+    - Handles incoming messages and file uploads (get_updates, get_file, download_file).
+    - Sends text messages and error logs back to the user (send_message).
+    - Manages a per-chat download folder and will also support saving chat history.
+
+Integration Model:
+This module does not interpret commands or respond to specific user intent 
+- it's strictly about I/O between Telegram and your application.
+Other modules (like poller.py, routing.py, and parser.py) will import and use this client like so:
+
+client = TelegramClient(...)
+await client.send_message("Hi there!")
+
+"""
 
 import logging
 import os
@@ -127,6 +147,7 @@ class TelegramClient:
             logger.error(f"Error sending message: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
+
     async def get_updates(self, offset=None):
         try:
             params = {"offset": offset} if offset else {}
@@ -231,7 +252,7 @@ class TelegramClient:
                     with open(destination, "wb") as f:
                         f.write(content)
 
-                    # Verify that the file was saved successfully#
+                    # Verify that the file was saved successfully
                     # I do not receive the following message in the chat anymore?
                     # the file is stored but no feedback at the moment
                     if destination.exists() and destination.stat().st_size > 0:

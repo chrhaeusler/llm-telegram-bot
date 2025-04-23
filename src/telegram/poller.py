@@ -3,8 +3,11 @@
 import asyncio
 import datetime
 import logging
+import os
 import time
 from typing import Any
+
+import aiohttp
 
 from src.config_loader import load_config
 from src.telegram.client import TelegramClient
@@ -13,16 +16,11 @@ from src.telegram.client import TelegramClient
 logger = logging.getLogger(__name__)
 
 
-import logging
-import os
-
-import aiohttp
-
-
 class PollingLoop:
     def __init__(self, bot_name: str, client: TelegramClient, config: dict[str, Any]):
         self.bot_name = bot_name
-        self.client = client  # Assuming this client has methods like get_updates, get_file, send_message
+        # assuming client has methods like get_updates, get_file, send_message
+        self.client = client
         self.config = config
         self.bot_config = config["telegram"].get(bot_name, {})
 
@@ -51,9 +49,14 @@ class PollingLoop:
             self.download_dir, exist_ok=True
         )  # Create the directory if it doesn't exist
 
+        self._running = True
+
+    def stop(self):
+        self._running = False
+
     async def run(self):
         logging.info(f"[PollingLoop] Started polling for bot '{self.bot_name}'")
-        while True:
+        while self._running:
             try:
                 updates = await self.client.get_updates(offset=self.last_update_id)
 
@@ -89,6 +92,9 @@ class PollingLoop:
 
                 await asyncio.sleep(self.current_interval)
 
+            except asyncio.CancelledError:
+                logging.info("[PollingLoop] Cancelled by shutdown signal.")
+                break
             except Exception as e:
                 logging.exception(f"[PollingLoop] Error during polling: {e}")
                 await asyncio.sleep(self.idle_interval)
@@ -117,15 +123,6 @@ class PollingLoop:
                     await self.send_message(
                         f"❌ Error retrieving file details for {file_name}"
                     )
-            # else:
-            #     logging.warning(f"Update does not contain a document: {update}")
-            #     if "message" in update and "chat" in update["message"]:
-            #         chat_id = update["message"]["chat"]["id"]
-            #         await self.send_message("⚠️ No document found in the message.")
-            #     else:
-            #         logging.error(
-            #             "Error: No valid message or chat_id found in the update."
-            #         )
 
         except Exception as e:
             logging.error(f"Error processing update: {e}")
@@ -196,6 +193,7 @@ class PollingLoop:
 
 
 if __name__ == "__main__":
+    import signal
     import sys
 
     async def main():
@@ -213,7 +211,41 @@ if __name__ == "__main__":
         await client.init_session()
 
         poller = PollingLoop(bot_name, client, config)
-        await poller.run()
+
+        loop = asyncio.get_running_loop()
+        stop_event = asyncio.Event()
+
+        def shutdown():
+            print("\n👋 Shutting down...")
+            poller.stop()  # 🔹 Stop polling loop
+            stop_event.set()
+
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, shutdown)
+
+        await asyncio.gather(poller.run(), stop_event.wait())
+
+        await client.close_session()
 
     logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
+
+    # async def main():
+    #     bot_name = sys.argv[1] if len(sys.argv) > 1 else "bot_1"
+    #     config = load_config()
+    #     bot_config = config["telegram"][bot_name]
+
+    #     client = TelegramClient(
+    #         token=bot_config["token"],
+    #         chat_id=bot_config["chat_id"],
+    #         bot_name=bot_name,
+    #         download_path=config["telegram"]["download_path"],
+    #         chat_history_path=config["telegram"]["chat_history_path"],
+    #     )
+    #     await client.init_session()
+
+    #     poller = PollingLoop(bot_name, client, config)
+    #     await poller.run()
+
+    # logging.basicConfig(level=logging.INFO)
+    # asyncio.run(main())

@@ -98,7 +98,7 @@ I think we are good for now. I went through what we did and updated our road map
 │   ├── config.yaml                 # 1. Done
 │   └── models_info.json            # 2. Done
 ├── logs/
-├── main.py                         # ?? To Do: Optional: unified app launcher (later, if needed),
+├── main.py                         # ?. To Do: Optional: unified app launcher (later, if needed),
 ├── .pre-commit-config.yaml         # To Do
 ├── pyproject.toml                  # To Do
 ├── README.md                       # ...finalize at the end
