@@ -1,123 +1,103 @@
 # config/commands.yaml
 # To Do: line breaks in CLI
 
+# config/commands.yaml
+# This file defines all user-facing slash commands for the Telegram chatbot.
+# Each command includes a usage string and a description.
+# These are parsed at runtime to power help messages and routing behavior.
+
+
+# *Help & Status*
 help:
   usage: "/help"
-  description: "Show this message"
+  description: "Show this help message with available commands"
 
 showsettings:
   usage: "/showset"
-  description: "Show current service, model, temperature & max tokens"
+  description: "Show current bot, service, model, temperature & max tokens"
+
+status:
+  usage: "/status"
+  description: "Check if current bot, service, model, etc. are usable"
+
+undo:
+  usage: "/undo"
+  description: "Undo the last configuration change (e.g., model/service)"
+
+
+# *Bots & Services*
+bots:
+  usage: "/bots"
+  description: "List all available bots (as defined in config.yaml" # with index in front of the name
+  
+bot:
+  usage: "/bot <int>"
+  description: "Switch to bot by index"
 
 services:
   usage: "/services"
-  description: "List available services: [draw services from yamle]"
-
-bots:
-	usage: "/bots"
-    description: "List available bots: [draw them from yaml file]"
+  description: "List all available LLM services"  # with index in front of the name
 
 cservice:
-  usage: "/cservice <service_name>"
-  description: "Change service (e.g. mistral or groq)" # and show settings
+  usage: "/cservice <service_name | <int>"
+  description: "Change the active LLM service by name or index" # answer with "services not found" and call /services to list services
 
-model:
-  usage: "/model [<model_name>]"
-  description: "Show info about the current (or given) model"
-
+# *Models*
 models:
   usage: "/models"
-  description: "List models for current service"
+  description: "List models for the current service" # with index in front of the name
 
-cmodel:
-  usage: "/cmodel <model_name>"
-  description: "Change model of current service"
+model:
+  usage: "/model [<model_name> | <int>]"
+  description: "Show info about or switch to a specific model by name or index" # answer with "model not found for <services<" and call /models to list models
 
 maxtokens:
-  usage: "/maxtokens <int>"
-  description: "Change max tokens (positive integer)"
+  usage: "/tokens <int>"
+  description: "Set or view max tokens (positive integer only)"
 
 temperature:
   usage: "/temp <float>"
-  description: "Change model's temperature (0.0–2.0)"
+  description: "Set model temperature (0.0 to 2.0, controls creativity)"
 
 setasdefaults:
   usage: "/setdefaults"
-  description: "Persist current settings as defaults"
+  description: "Save current config (service, model, etc.) as bot's default"
 
-factoryreset:
-  usage: "/factoryreset"
-  description: "Reset to factory defaults"
-
-## Todo: From here on to be implemented
 defaults:
-  usage: "/resdefault"
-  description: "restore your defaults (and show list model + settings)"
+  usage: "/defaults"
+  description: "Reset to bot defaults or use global defaults with 'global'"
 
-restoredefaults:
-  usage: "/resdefault"
-  description: "restore your defaults (and show list model + settings)"
+# *Save & Export*
+savestring:
+  usage: "/savethis [<text>]"
+  description: "Save any string (without sending it to LLM)"
 
-# Save responses or inputs
-saveresponse:
-  usage: "/s [<filename>]"
-  description: "save last reponse"
-
-saveresponsenamed:
-  usage: "/sn"
-  description: "save last response & ask for filename" # do not update history with that
-
-saveeuser:
+saveuser:
   usage: "/su [<filename>]"
-  description: "save previous user input"
+  description: "Save the last user input to a file (timestamped if no name)"
 
-# Summarize
-summarize:
-  usage: "/summarize"
-  description: "summarize history and ask if supposed to use as history or provided as message to adjust"
-sumthis:
-  usage: "/sumthis [<text>]"
-  description: "use this text as summary"
+saveresponse:
+  usage: "/sr [--ask | <filename>]"
+  description: "Save the last model response (filename optional or prompt)" # if "--ask", send the model's response back to the model and ask for a filename and use it (we want to ask the model for code snippets in different syntax (txt, python, json, markdown, yaml) and be able to save it with the according file extension
 
-# History
-histtoggle:
-  usage: "f/sf [filename]"
-  description: save attached file (without sending it to LLM)"
 
-histsave:
-  usage: "f/sf [filename]"
-  description: save attached file (without sending it to LLM)"
+# *History*
+history:
+  usage: "/history <on|off|save|files|load|sum|new> [arg]"
+  description: >
+    Manage chat history:
+    - on/off: toggle logging
+    - sum: Let model summarize chat; ask user to accept summary as new history
+    - new <text>: replace history with new content
+    - save: save current history to file with timestamp or argument as filename.txt
+    - load <n|filename>: load history by number or name
+    - files: list history files (Indexed and ordered from earliest to oldest)
 
-histload:
-  usage: "f/sf [filename]"
-  description: save attached file (without sending it to LLM)"
-
-histories:
-  usage: "/sn"
-  description: "show stored histories"
-
-histshow:
-  usage: "f/hshow [filename]"
-  description: list plus 1 (in reverse -1, -2,)"
-
-histdelete:
-  usage: "f/hdel [<entry>]"
-  description: save attached file (without sending it to LLM); ask for confirmation"
-
-# Jailbreaks
-jailbreaks:
-  usage: "f/jbshow"
-  description: "show list of jailbreaks"
+# *Jailbreaks*
+jbs:
+  usage: "/jbs"
+  description: "List all available jailbreak prompts" # with index in front of the name
 
 sendjailbreak:
-  usage: "f/jbs <int>"
-  description: "show list of jailbreaks"
-
-# Telegram exclusive
-savestring:
-  usage: "/savethis [<filename>]"
-  description: save a string to file (without sending it to LLM)"
-
-savefile:
-  usage: "f/sf [filename]"
-  description: save attached file (without sending it to LLM)"
+  usage: "/jb <int>"
+  description: "Send a specific jailbreak prompt to the model

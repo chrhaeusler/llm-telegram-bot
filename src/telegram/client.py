@@ -1,3 +1,18 @@
+# To Do:
+# Sending messages to the chat seems broken
+# I added comments above lines or block that raise an error
+# is temperature implemented at all?
+# implement startup message with, date time, bot, service, model, (max) token
+# e.g. like this
+# f"Bot started\n"
+# f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+# f"🤖 {bot_name} in {chat_id}
+# f"🔌 Service: {service}\n"
+# f"🧠 Model: {model}\n"
+# f"🌡️ Temperature: {temperature}\n"
+# f"🔢 Max Tokens: {token}\n"
+# f'ℹ️ Send "/help" for help'
+
 import logging
 import os
 from pathlib import Path
@@ -92,6 +107,7 @@ class TelegramClient:
     async def send_message(self, text: str) -> Dict[str, Any]:
         payload = {"chat_id": self.chat_id, "text": text}
         try:
+            # Error: Item "None" of "ClientSession | None" has no attribute "post"
             async with self.session.post(
                 f"{self.api_url}/sendMessage", data=payload
             ) as response:
@@ -140,6 +156,7 @@ class TelegramClient:
             logger.info(f"[get_file] Requesting file details for file_id: {file_id}")
 
             # Request file details from Telegram API
+            # Error: Item "None" of "ClientSession | None" has no attribute "post"
             async with self.session.post(
                 f"{self.api_url}/getFile", data={"file_id": file_id}
             ) as response:
@@ -187,6 +204,7 @@ class TelegramClient:
             logger.debug(f"[download_file] Directory ensured: {destination.parent}")
 
             # Check if the file extension is allowed
+            # Error: "TelegramClient" has no attribute "is_allowed_extension"; maybe "allowed_extensions"?
             if not self.is_allowed_extension(file_name):
                 msg = f"Rejected file: {file_name}. Unsupported file type."
                 logger.warning(f"[download_file] {msg}")
@@ -198,6 +216,7 @@ class TelegramClient:
                 }
 
             # Perform file download
+            # Item "None" of "ClientSession | None" has no attribute "get"
             async with self.session.get(url) as response:
                 logger.debug(f"[download_file] Response status: {response.status}")
                 logger.debug(f"[download_file] Response headers: {response.headers}")
@@ -212,7 +231,9 @@ class TelegramClient:
                     with open(destination, "wb") as f:
                         f.write(content)
 
-                    # Verify that the file was saved successfully
+                    # Verify that the file was saved successfully#
+                    # I do not receive the following message in the chat anymore?
+                    # the file is stored but no feedback at the moment
                     if destination.exists() and destination.stat().st_size > 0:
                         msg = f"✅ File downloaded successfully: {file_name}"
                         logger.info(f"[download_file] {msg}")
