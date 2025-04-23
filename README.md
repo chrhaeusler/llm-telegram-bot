@@ -95,36 +95,38 @@ I think we are good for now. I went through what we did and updated our road map
 │   └── cli-chatbot.py              # To Do: Entry point for CLI interaction
 ├── config/
 │   ├── commands.yaml               # To Do: Supported commands and metadata (later implementation)
-│   ├── config.yaml                 # 1. Done
-│   └── models_info.json            # 2. Done
+│   ├── config.yaml                 #
+│   └── models_info.json            #
 ├── logs/
 ├── main.py                         # ?. To Do: Optional: unified app launcher (later, if needed),
-├── .pre-commit-config.yaml         # To Do
-├── pyproject.toml                  # To Do
+├── .pre-commit-config.yaml         #
+├── pyproject.toml                  #
 ├── README.md                       # ...finalize at the end
 ├── src/
 │   ├── __init__.py
-│   ├── config_loader.py            # 3. Done
-│   ├── telegram/
-│   │   ├── __init__.py
-│   │   ├── poller.py               # Works
-│   │   ├── routing.py              # 6. To Do: will handle parsing incoming messages from Telegram and routing them to the right service (LLM, commands, etc.)
-│   │   └── client.py               # 5. To Do: update this file to handle both Telegram messages and LLM interactions
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── services_base.py        # 4. Done: Interface/base class for LLM providers
-│   │   ├── service_groq.py         # 5. Done: for groq.com API (LLM provider)
-│   │   └── service_mistral.py      # 6. Done: for mistral.ai API (LLM provider)
 │   ├── commands/                   # To Do: Command handling directory
 │   │   ├── __init__.py             # To Do: Initialization for commands module
-│   │   ├── parser.py               # To Do: Recognizes commands and handles execution
+│   │   ├── commands_loader.py      # WIP: Needs to be tested
+│   │   ├── commands_registry.py    # WIP: Needs to be tested
+│   │   ├── parser.py               # To Do: Recognizes commands and handles execution (src/telegram/routing.py should handle that already?)
 │   │   ├── show.py                 # To Do: Commands to show info about the current model, services, etc.
 │   │   ├── send.py                 # To Do: Commands to send LLM replies or input to file
 │   │   ├── change.py               # To Do: Commands to change service, model, parameters, etc.
 │   │   ├── saverestore.py          # To Do: Commands for saving/restoring chat history
-│   │   └── jailbreaks.py           # To Do: Standard jailbreak prompt logic
+│   │   ├── jailbreaks.py           # To Do: Standard jailbreak prompt logic
 │   │   ├── saver.py                # To Do: File saving utilities (/s, /s0, etc.)
 │   │   └── history_logger.py       # To Do: Logs ongoing chat to file (if enabled)
+│   ├── config_loader.py            #
+│   ├── telegram/
+│   │   ├── __init__.py
+│   │   ├── poller.py               # WIP: Needs to be tested
+│   │   ├── routing.py              # WIP: Needs to be tested
+│   │   └── client.py               # WIP: Needs to be tested
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── services_base.py
+│   │   ├── service_groq.py
+│   │   └── service_mistral.py
 │   └── utils/
 │       ├── __init__.py
 │       └── helpers.py              # To Do: Common utilities (timestamps, formatting, etc.)

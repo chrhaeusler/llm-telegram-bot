@@ -97,7 +97,7 @@ history:
     - files: list history files (Indexed and ordered from earliest to oldest)
 
 # *Jailbreaks*
-jbs:
+jailbreaks:
   usage: "/jbs"
   description: "List all available jailbreak prompts" # with index in front of the name
 

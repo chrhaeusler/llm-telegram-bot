@@ -19,7 +19,7 @@ CONFIG_YAML = "config/config.yaml"
 MODELS_INFO_JSON = "config/models_info.json"
 
 
-def load_config(config_path: str = CONFIG_YAML) -> Dict[str, Any]:
+def config_loader(config_path: str = CONFIG_YAML) -> Dict[str, Any]:
     """
     Loads and validates the unified configuration from a YAML file.
 
