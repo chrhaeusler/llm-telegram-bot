@@ -31,25 +31,6 @@ client = TelegramClient(...)
 await client.send_message("Hi there!")
 """
 
-"""
-Telegram API Interface Layer
-
-What It Does:
-This file handles all communication with the Telegram API, making it a low-level
-utility that:
-    - Manages sessions with the Telegram server.
-    - Handles incoming messages and file uploads (get_updates, get_file, download_file).
-    - Sends text messages and error logs back to the user (send_message).
-    - Manages a per-chat download folder and will also support saving chat history.
-
-Integration Model:
-This module does not interpret commands or respond to specific user intent
-- it's strictly about I/O between Telegram and your application.
-Other modules (like poller.py, routing.py, and parser.py) will import and use this client like so:
-
-client = TelegramClient(...)
-await client.send_message("Hi there!")
-"""
 
 import logging
 import os
@@ -90,10 +71,30 @@ setup_logging()
 
 class TelegramClient:
     allowed_extensions: List[str] = [
-        ".txt", ".json", ".yaml", ".yml", ".pdf",
-        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
-        ".mp3", ".wav", ".ogg", ".m4a", ".mp4", ".mov",
-        ".avi", ".mkv", ".webm", ".zip", ".tar.gz", ".tar", ".gz",
+        ".txt",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".pdf",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".webp",
+        ".mp3",
+        ".wav",
+        ".ogg",
+        ".m4a",
+        ".mp4",
+        ".mov",
+        ".avi",
+        ".mkv",
+        ".webm",
+        ".zip",
+        ".tar.gz",
+        ".tar",
+        ".gz",
     ]
 
     def __init__(
@@ -141,22 +142,33 @@ class TelegramClient:
         payload = {"chat_id": self.chat_id, "text": text}
         start = time.time()
         try:
-            async with session.post(f"{self.api_url}/sendMessage", data=payload) as resp:
+            async with session.post(
+                f"{self.api_url}/sendMessage", data=payload
+            ) as resp:
                 data = await resp.json()
                 elapsed = time.time() - start
 
                 if resp.status == 200 and data.get("ok", False):
-                    logger.debug(f"[send_message] Sent to {self.chat_id} in {elapsed:.2f}s: {text!r}")
+                    logger.debug(
+                        f"[send_message] Sent to {self.chat_id} in {elapsed:.2f}s: {text!r}"
+                    )
                     return data
                 else:
                     error = data.get("description", f"HTTP {resp.status}")
                     logger.error(f"[send_message] Failed ({elapsed:.2f}s): {error}")
-                    return {"ok": False, "error_code": resp.status, "description": error}
+                    return {
+                        "ok": False,
+                        "error_code": resp.status,
+                        "description": error,
+                    }
         except Exception as e:
-            logger.exception(f"[send_message] Exception after {time.time() - start:.2f}s")
+            logger.exception(
+                f"[send_message] Exception after {time.time() - start:.2f}s"
+            )
             return {"ok": False, "error_code": 500, "description": str(e)}
 
-    async def get_updates(self, offset: int = None) -> Dict[str, Any]:
+
+    async def get_updates(self, offset: Optional[int] = None) -> Dict[str, Any]:
         """Long-poll Telegram for new updates."""
         # Ensure session is initialized, then narrow type for MyPy
         if self.session is None:
@@ -174,14 +186,22 @@ class TelegramClient:
                 elapsed = time.time() - start
 
                 if resp.status == 200 and data.get("ok", False):
-                    logger.debug(f"[get_updates] Retrieved {len(data.get('result', []))} updates in {elapsed:.2f}s")
+                    logger.debug(
+                        f"[get_updates] Retrieved {len(data.get('result', []))} updates in {elapsed:.2f}s"
+                    )
                     return data
                 else:
                     error = data.get("description", f"HTTP {resp.status}")
                     logger.error(f"[get_updates] Failed ({elapsed:.2f}s): {error}")
-                    return {"ok": False, "error_code": resp.status, "description": error}
+                    return {
+                        "ok": False,
+                        "error_code": resp.status,
+                        "description": error,
+                    }
         except Exception as e:
-            logger.exception(f"[get_updates] Exception after {time.time() - start:.2f}s")
+            logger.exception(
+                f"[get_updates] Exception after {time.time() - start:.2f}s"
+            )
             return {"ok": False, "error_code": 500, "description": str(e)}
 
     async def get_file(self, file_id: str) -> Dict[str, Any]:
@@ -194,7 +214,9 @@ class TelegramClient:
         logger.debug(f"[get_file] Requesting details for file_id={file_id}")
         start = time.time()
         try:
-            async with session.post(f"{self.api_url}/getFile", data={"file_id": file_id}) as resp:
+            async with session.post(
+                f"{self.api_url}/getFile", data={"file_id": file_id}
+            ) as resp:
                 data = await resp.json()
                 elapsed = time.time() - start
 
@@ -205,7 +227,11 @@ class TelegramClient:
                     error = data.get("description", f"HTTP {resp.status}")
                     logger.error(f"[get_file] Failed ({elapsed:.2f}s): {error}")
                     await self.send_message(f"⚠️ Could not retrieve file info: {error}")
-                    return {"ok": False, "error_code": resp.status, "description": error}
+                    return {
+                        "ok": False,
+                        "error_code": resp.status,
+                        "description": error,
+                    }
         except Exception as e:
             logger.exception(f"[get_file] Exception after {time.time() - start:.2f}s")
             await self.send_message(f"❌ Exception retrieving file info: {e}")
@@ -232,16 +258,24 @@ class TelegramClient:
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     with open(destination, "wb") as f:
                         f.write(content)
-                    logger.info(f"[download_file] Saved {file_name} ({len(content)} bytes) in {elapsed:.2f}s")
+                    logger.info(
+                        f"[download_file] Saved {file_name} ({len(content)} bytes) in {elapsed:.2f}s"
+                    )
                     await self.send_message(f"✅ Downloaded {file_name}")
                     return {"ok": True, "file_name": str(destination)}
                 else:
                     error = f"HTTP {resp.status}"
                     logger.error(f"[download_file] Failed ({elapsed:.2f}s): {error}")
                     await self.send_message(f"❌ Download failed: {error}")
-                    return {"ok": False, "error_code": resp.status, "description": error}
+                    return {
+                        "ok": False,
+                        "error_code": resp.status,
+                        "description": error,
+                    }
         except Exception as e:
-            logger.exception(f"[download_file] Exception after {time.time() - start:.2f}s")
+            logger.exception(
+                f"[download_file] Exception after {time.time() - start:.2f}s"
+            )
             await self.send_message(f"❌ Exception downloading file: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 

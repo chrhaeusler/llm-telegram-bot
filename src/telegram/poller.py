@@ -139,6 +139,7 @@ class PollingLoop:
                     )
                     return {"ok": False}
                 await asyncio.sleep(delay)
+        return {"ok": False}
 
     async def handle_update(self, update: Dict[str, Any]) -> None:
         """
