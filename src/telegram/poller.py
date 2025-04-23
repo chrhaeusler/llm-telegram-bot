@@ -8,6 +8,8 @@ import time
 from typing import Any, Dict, List, Optional
 
 from src.config_loader import config_loader
+from src.services.service_groq import GroqService
+from src.services.service_mistral import MistralService
 from src.telegram.client import TelegramClient
 from src.telegram.routing import route_message
 
@@ -43,8 +45,8 @@ class PollingLoop:
         self.config = config
 
         telegram_conf = config["telegram"]
-        bot_conf = telegram_conf.get(bot_name, {})
-        self.chat_id: Optional[int] = bot_conf.get("chat_id")
+        self.bot_config = telegram_conf.get(bot_name, {})
+        self.chat_id: Optional[int] = self.bot_config.get("chat_id")
         if not isinstance(self.chat_id, int):
             raise ValueError(
                 f"[PollingLoop] Invalid chat_id for {bot_name}: {self.chat_id!r}"
@@ -53,24 +55,40 @@ class PollingLoop:
         logger.debug(f"[PollingLoop] Init bot={bot_name} chat_id={self.chat_id}")
 
         # polling intervals (per-bot override or global default)
-        self.active_interval = bot_conf.get(
+        self.active_interval = self.bot_config.get(
             "polling_interval_active", telegram_conf["polling_interval_active"]
         )
-        self.idle_interval = bot_conf.get(
+        self.idle_interval = self.bot_config.get(
             "polling_interval_idle", telegram_conf["polling_interval_idle"]
         )
 
-        # back-off tracking
+        # state trackers
         self.last_event_time = time.time()
         self.current_interval = self.active_interval
-        self.last_update_id: Optional[int] = None
+        self.last_update_id = None
+        self._running = True
 
         # prepare download dir (used by client.download_file)
         base = telegram_conf.get("download_path", "tmp")
         self.download_dir = os.path.join(base, bot_name, str(self.chat_id))
         os.makedirs(self.download_dir, exist_ok=True)
 
-        self._running = True
+        # instantiate the LLM service for this bot
+        svc_name = self.bot_config["default"]["service"]
+        svc_conf = config["services"].get(svc_name)
+        if svc_conf is None:
+            raise ValueError(f"No configuration for service '{svc_name}'")
+        if svc_name == "groq":
+            self.llm_service = GroqService(config=svc_conf)
+        elif svc_name == "mistral":
+            self.llm_service = MistralService(config=svc_conf)
+        else:
+            raise ValueError(f"Unsupported service '{svc_name}'")
+
+        logging.debug(
+            f"[PollingLoop] Initialized bot={bot_name}, "
+            f"service={svc_name}, model={self.bot_config['default']['model']}"
+        )
 
     def stop(self) -> None:
         self._running = False
@@ -141,54 +159,59 @@ class PollingLoop:
                 await asyncio.sleep(delay)
         return {"ok": False}
 
-    async def handle_update(self, update: Dict[str, Any]) -> None:
+    async def handle_update(self, update: dict[str, Any]):
         """
-        Called for every Telegram update.  Downloads files if present,
-        otherwise invokes the router for text messages.
+        Called for every incoming update.
+        1) If it's a document, fetch & download it.
+        2) If it's text, pass to route_message → either a /command or LLM call.
         """
         try:
-            logger.info(f"[PollingLoop] Update: {update}")
-            if "message" not in update:
+            msg = update.get("message")
+            if not msg:
+                logging.debug("[PollingLoop] update with no message, skipping")
                 return
 
-            msg = update["message"]
             chat_id = msg["chat"]["id"]
+            # sync session
+            from src.telegram.poller import (
+                ChatSession,  # ensure ChatSession is in scope
+            )
+
             session = ChatSession(self.client, chat_id)
 
-            # Document handling
+            # handle attachments first
             if "document" in msg:
-                fid = msg["document"]["file_id"]
-                fname = msg["document"]["file_name"]
-                logger.info(f"[PollingLoop] Document received: {fname} (file_id={fid})")
-
-                file_info = await self.client.get_file(fid)
-                if file_info.get("ok"):
-                    path = file_info["result"]["file_path"]
-                    # delegate actual download to client
-                    dl = await self.client.download_file(path)
-                    if not dl.get("ok"):
-                        await session.send_message(
-                            f"❌ Failed to download {fname}: {dl.get('description')}"
-                        )
+                file_id = msg["document"]["file_id"]
+                file_name = msg["document"]["file_name"]
+                logging.info(f"[PollingLoop] Document → {file_name} (id={file_id})")
+                details = await self.client.get_file(file_id)
+                if details.get("ok"):
+                    path = details["result"]["file_path"]
+                    await self.client.download_file(path)
                 else:
-                    await session.send_message(
-                        f"❌ Could not get details for file: {fname}"
-                    )
+                    logging.error(f"[PollingLoop] get_file failed: {details}")
+                    await session.send_message(f"❌ Could not retrieve '{file_name}'")
+                # do not fall through to text routing
 
-            # Text routing
+            # handle text (either slash‐commands or LLM prompt)
             if "text" in msg:
-                await route_message(session, msg)
+                await route_message(
+                    session=session,
+                    message=msg,
+                    llm_call=self.llm_service.send_prompt,
+                    model=self.bot_config["default"]["model"],
+                    temperature=self.bot_config["default"]["temperature"],
+                    maxtoken=self.bot_config["default"]["maxtoken"],
+                )
 
         except Exception as e:
-            logger.exception(f"[PollingLoop] Error in handle_update: {e}")
-            # try to notify user
+            logging.exception(f"[PollingLoop] error in handle_update: {e}")
+            # best effort to let the user know
             try:
-                chat_id = update.get("message", {}).get("chat", {}).get("id")
-                if chat_id:
-                    session = ChatSession(self.client, chat_id)
-                    await session.send_message(f"❌ Internal error: {e}")
-            except Exception:
-                logger.exception("[PollingLoop] Also failed to send error message")
+                session = ChatSession(self.client, update["message"]["chat"]["id"])
+                await session.send_message(f"❌ Error processing update: {e}")
+            except:
+                pass
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 # src/telegram/routing.py
 
 import logging
-from typing import Any, Dict
+from typing import Any, Awaitable, Dict, List
 
 from src.commands.commands_registry import (
     dummy_handler,
@@ -12,57 +12,68 @@ from src.commands.commands_registry import (
 logger = logging.getLogger(__name__)
 
 
-async def route_message(session: Any, message: Dict[str, Any]) -> None:
+async def route_message(
+    session: Any,
+    message: Dict[str, Any],
+    llm_call: Awaitable,
+    model: str,
+    temperature: float,
+    maxtoken: int,
+) -> None:
     """
-    Routes an incoming Telegram message to the appropriate command handler.
+    Routes an incoming message to either:
+      • a registered slash‐command handler, or
+      • the LLM service for free‐text prompts.
 
-    Args:
-      session:    A ChatSession-like object with a `send_message(text: str)` method.
-      message:    The Telegram 'message' dict (expects 'text' and 'chat':{'id':...}).
+    session       – any object with 'chat_id' attribute and an async 'send_message(text)'.
+    message       – raw Telegram message dict (must include 'text' and 'chat':{'id':…}).
+    llm_call      – coroutine: llm_call(prompt, model, temperature, maxtoken) → str
+    model, temperature, maxtoken – LLM params for free‐text calls.
     """
-    # Extract text and chat_id
-    text = message.get("text", "")
+    text = message.get("text", "").strip()
     chat = message.get("chat", {})
     chat_id = chat.get("id")
 
-    if chat_id is None:
-        logger.warning("[Routing] No chat.id in message, skipping.")
-        return
+    # keep session in sync
+    if hasattr(session, "chat_id"):
+        session.chat_id = chat_id
 
     if not text:
-        logger.warning(f"[Routing] Empty text from chat {chat_id}, skipping.")
+        logger.warning("[Routing] empty text; ignoring")
         return
 
-    logger.info(f"[Routing] chat={chat_id} → '{text}'")
+    # ── Slash commands ────────────────────────────────────────────────────────────
+    if text.startswith("/"):
+        parts: List[str] = text.split()
+        cmd = parts[0]
+        args = parts[1:]
 
-    command_name = text.strip().split()[0]
-    handler = get_command_handler(command_name)
-
-    try:
+        handler = get_command_handler(cmd)
         if handler:
-            # Execute the handler
-            logger.debug(f"[Routing] Calling handler for '{command_name}'")
-            result = await handler(session=session, message=message)
-            if result:
-                await session.send_message(result)
-
-        elif is_command_implemented(command_name):
-            # Known but not yet implemented
-            logger.debug(f"[Routing] Known but unimplemented '{command_name}'")
-            result = await dummy_handler(session=session, message=message)
-            if result:
-                await session.send_message(result)
-
+            logger.info(f"[Routing] ‹{cmd}› → command handler, args={args}")
+            try:
+                await handler(session=session, message=message, args=args)
+            except Exception as e:
+                logger.exception(f"[Routing] error in handler ‹{cmd}›: {e}")
+                await session.send_message(f"❌ Error executing {cmd}: {e}")
         else:
-            # Unknown command
-            logger.info(f"[Routing] Unknown command '{command_name}'")
-            await session.send_message(
-                f"⚠️ Unknown command: {command_name}\nSend /help for a list."
-            )
+            if is_command_implemented(cmd):
+                logger.info(f"[Routing] ‹{cmd}› known but unimplemented")
+                await dummy_handler(session=session, message=message, args=args)
+            else:
+                logger.info(f"[Routing] unknown command ‹{cmd}›")
+                await session.send_message(
+                    f"⚠️ Unknown command: {cmd}\nSend /help for a list."
+                )
+        return
 
-    except Exception:
-        logger.exception(f"[Routing] Exception while routing '{command_name}'")
-        # Notify the user
-        await session.send_message(
-            "❌ An internal error occurred while processing your command."
+    # ── Free-text → LLM ──────────────────────────────────────────────────────────
+    logger.info("[Routing] Free-text input; sending to LLM…")
+    try:
+        reply = await llm_call(
+            prompt=text, model=model, temperature=temperature, maxtoken=maxtoken
         )
+        await session.send_message(reply)
+    except Exception as e:
+        logger.exception(f"[Routing] LLM call failed: {e}")
+        await session.send_message(f"❌ LLM service error: {e}")
