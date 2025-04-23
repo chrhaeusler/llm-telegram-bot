@@ -1,9 +1,3 @@
-# Mine
-ignore
-ignore
-config/config.yaml
-tmp
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -178,3 +172,11 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Mine
+00-todo.md
+00-vscode-workspace.code-workspace
+config/config.yaml
+ignore
+tmp
+
