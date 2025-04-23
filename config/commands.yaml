@@ -31,8 +31,11 @@ bots:
   description: "List all available bots (as defined in config.yaml" # with index in front of the name
   
 bot:
-  usage: "/bot <int>"
+  usage: "/bot <start|stop|<int>"
   description: "Switch to bot by index"
+    - start: send inputs to the LLM service (default)
+    - stop: stop sending messages to the LLM service (offline-mode)
+    - <int>: switch to bot as indexed in list provided by command "/bots"
 
 services:
   usage: "/services"
@@ -83,7 +86,7 @@ saveresponse:
 
 # *History*
 history:
-  usage: "/history <on|off|save|files|load|sum|new> [arg]"
+  usage: "/history <on|off|sum|<new> [arg]|save|load|files"
   description: >
     Manage chat history:
     - on/off: toggle logging

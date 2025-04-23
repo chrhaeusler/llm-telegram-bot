@@ -193,59 +193,46 @@ class PollingLoop:
 
 
 if __name__ == "__main__":
-    import signal
     import sys
 
     async def main():
-        bot_name = sys.argv[1] if len(sys.argv) > 1 else "bot_1"
         config = load_config()
-        bot_config = config["telegram"][bot_name]
+        bot_names = sys.argv[1:] or list(config["telegram"].keys())
+        # bot_names = [bot_name for bot_name in bot_names if bot_name.startswith("bot_")]
+        bot_names = [
+            bot_name
+            for bot_name in bot_names
+            if bot_name.startswith("bot_")
+            and config["telegram"].get(bot_name, {}).get("enabled", False)
+        ]
 
-        client = TelegramClient(
-            token=bot_config["token"],
-            chat_id=bot_config["chat_id"],
-            bot_name=bot_name,
-            download_path=config["telegram"]["download_path"],
-            chat_history_path=config["telegram"]["chat_history_path"],
-        )
-        await client.init_session()
+        tasks = []
+        for bot_name in bot_names:
+            # Debugging log to check bot_config and bot_name
+            print(f"Bot Name: {bot_name}")
+            bot_config = config["telegram"].get(bot_name, {})
+            print(f"Bot Config: {bot_config}")
 
-        poller = PollingLoop(bot_name, client, config)
+            if not isinstance(bot_config, dict):
+                raise ValueError(
+                    f"Bot configuration for {bot_name} is not a dictionary: {bot_config}"
+                )
+            bot_config = config["telegram"][bot_name]
+            client = TelegramClient(
+                token=bot_config["token"],
+                chat_id=bot_config["chat_id"],
+                bot_name=bot_name,
+                download_path=config["telegram"]["download_path"],
+                chat_history_path=config["telegram"]["chat_history_path"],
+            )
+            await client.init_session()
 
-        loop = asyncio.get_running_loop()
-        stop_event = asyncio.Event()
+            poller = PollingLoop(bot_name, client, config)
+            task = asyncio.create_task(poller.run())
+            tasks.append(task)
 
-        def shutdown():
-            print("\n👋 Shutting down...")
-            poller.stop()  # 🔹 Stop polling loop
-            stop_event.set()
-
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, shutdown)
-
-        await asyncio.gather(poller.run(), stop_event.wait())
-
-        await client.close_session()
+        logging.info(f"[Main] Started {len(tasks)} bot(s): {', '.join(bot_names)}")
+        await asyncio.gather(*tasks)
 
     logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
-
-    # async def main():
-    #     bot_name = sys.argv[1] if len(sys.argv) > 1 else "bot_1"
-    #     config = load_config()
-    #     bot_config = config["telegram"][bot_name]
-
-    #     client = TelegramClient(
-    #         token=bot_config["token"],
-    #         chat_id=bot_config["chat_id"],
-    #         bot_name=bot_name,
-    #         download_path=config["telegram"]["download_path"],
-    #         chat_history_path=config["telegram"]["chat_history_path"],
-    #     )
-    #     await client.init_session()
-
-    #     poller = PollingLoop(bot_name, client, config)
-    #     await poller.run()
-
-    # logging.basicConfig(level=logging.INFO)
-    # asyncio.run(main())
