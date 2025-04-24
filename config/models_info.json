@@ -1,5 +1,23 @@
 {
   "mistral": {
+    "open-mistral-nemo": {
+      "creator": "Mistral AI",
+      "short": "12B multilingual open‑source model.",
+      "release_year": "2024",
+      "token_win": [2048, 4096],
+      "main_purpose": "multilingual translation and summarization",
+      "strengths": "Strong translation and cross‑lingual capabilities.",
+      "weaknesses": "Not optimized for code or niche domains.",
+      "rank_power": "good",
+      "rank_coding": "mid",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "hidden conversation arcs",
+        "direct system override",
+        "instruction layering"
+      ],
+      "details": "Excels at multilingual tasks. It supports a context range of 2048–4096 tokens for translation and summarization; its good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
+    },
     "pixtral-12b-2409": {
       "creator": "Mistral AI",
       "short": "12B MoE model for diverse tasks.",
@@ -53,27 +71,26 @@
         "hidden instruction chaining within code blocks"
       ],
       "details": "Exceptional performance in code completion, refactoring, and fill-in-the-middle scenarios; limited general conversational abilities; lacks robust safety filters, making it highly susceptible to jailbreak techniques."
-    },
-    "open-mistral-nemo": {
-      "creator": "Mistral AI",
-      "short": "12B multilingual open‑source model.",
-      "release_year": "2024",
-      "token_win": [2048, 4096],
-      "main_purpose": "multilingual translation and summarization",
-      "strengths": "Strong translation and cross‑lingual capabilities.",
-      "weaknesses": "Not optimized for code or niche domains.",
-      "rank_power": "good",
-      "rank_coding": "mid",
-      "rank_jail": "high",
-      "jailbreaks": [
-        "hidden conversation arcs",
-        "direct system override",
-        "instruction layering"
-      ],
-      "details": "Excels at multilingual tasks. It supports a context range of 2048–4096 tokens for translation and summarization; its good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
     }
   },
   "groq": {
+    "compound-beta": {
+      "creator": "Groq",
+      "short": "Baseline Groq beta model for general tasks.",
+      "release_year": "2024",
+      "strengths": "Balanced performance for common NLP tasks with moderate resource use.",
+      "weaknesses": "Not optimized for long contexts or deep reasoning.",
+      "rank_power": "low",
+      "token_win": [2048, 4096],
+      "rank_coding": "low",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "system prompt override",
+        "disguised malicious instructions",
+        "zero‑shot jailbreak scripts"
+      ],
+      "details": "Ideal for simple chatbots and text processing pipelines but moderate performance across typical language tasks; lacks advanced reasoning layers; easy target for jailbreak via prompt and instruction manipulation."
+    },
     "compound-beta-mini": {
       "creator": "Groq",
       "short": "Compact version of Groq's beta model.",
@@ -91,23 +108,6 @@
         "chain‑of‑thought diversion"
       ],
       "details": "tailored for lower computational resources and faster inference by sacrificing depth and throughput under heavy load; minimal safety filters make it highly susceptible to jailbreaking."
-    },
-    "compound-beta": {
-      "creator": "Groq",
-      "short": "Baseline Groq beta model for general tasks.",
-      "release_year": "2024",
-      "strengths": "Balanced performance for common NLP tasks with moderate resource use.",
-      "weaknesses": "Not optimized for long contexts or deep reasoning.",
-      "rank_power": "low",
-      "token_win": [2048, 4096],
-      "rank_coding": "low",
-      "rank_jail": "high",
-      "jailbreaks": [
-        "system prompt override",
-        "disguised malicious instructions",
-        "zero‑shot jailbreak scripts"
-      ],
-      "details": "Ideal for simple chatbots and text processing pipelines but moderate performance across typical language tasks; lacks advanced reasoning layers; easy target for jailbreak via prompt and instruction manipulation."
     },
     "deepseek-r1-distill-llama-70b": {
       "creator": "DeepSeek",
@@ -250,7 +250,7 @@
         "multi‑stage injection chains",
         "persona reverse psychology"
       ],
-      "details": "supports 128k tokens; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
+      "details": "supports 128k tokens; 16k in prompt, 131k context windows, response length 4k; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
     },
     "qwen-qwq-32b": {
       "creator": "Qwen AI",

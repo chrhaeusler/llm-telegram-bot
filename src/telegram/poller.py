@@ -7,6 +7,7 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
+from src.commands.handlers import help  # noqa: F401
 from src.config_loader import config_loader
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
@@ -16,7 +17,11 @@ from src.telegram.routing import route_message
 
 logger = logging.getLogger(__name__)
 # suppress very verbose aiohttp debug logs
-logging.getLogger("aiohttp").setLevel(logging.WARNING)
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Ensure DEBUG messages are logged
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 # after this many seconds of no activity, back off
 ACTIVE_PERIOD = 300

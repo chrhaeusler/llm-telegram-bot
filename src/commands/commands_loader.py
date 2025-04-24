@@ -1,9 +1,12 @@
-"""
-lets us load the command descriptions from commands.yaml and fetch usage/help info for individual commands. This will plug into routing and help logic soon.
-"""
-
 # src/commands/commands_loader.py
+"""
+Lets us load the command descriptions from commands.yaml and fetch usage/help info for individual commands.
+This will plug into routing and help logic soon.
+"""
 
+from __future__ import annotations
+
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
@@ -11,14 +14,20 @@ import yaml
 _COMMANDS_FILE = Path("config/commands.yaml")
 
 
-class CommandInfo:
-    def __init__(self, name: str, usage: str, description: str):
-        self.name = name
-        self.usage = usage
-        self.description = description
+@dataclass
+class ArgSpec:
+    name: str
+    type: str = "str"  # default to string if not specified
+    optional: bool = False
+    flag: str | None = None
 
-    def __repr__(self):
-        return f"<CommandInfo name={self.name}>"
+
+@dataclass
+class CommandInfo:
+    name: str
+    usage: str
+    description: str
+    args_schema: list[ArgSpec]
 
 
 def load_commands_yaml() -> dict[str, CommandInfo]:
@@ -30,7 +39,25 @@ def load_commands_yaml() -> dict[str, CommandInfo]:
     for name, entry in raw.items():
         usage = entry.get("usage", f"/{name}")
         description = entry.get("description", "")
-        commands[name] = CommandInfo(name, usage, description)
+
+        raw_args = entry.get("args", [])
+        args_schema = []
+        for arg in raw_args:
+            args_schema.append(
+                ArgSpec(
+                    name=arg["name"],
+                    type=arg.get("type", "str"),
+                    optional=arg.get("optional", False),
+                    flag=arg.get("flag"),
+                )
+            )
+
+        commands[name] = CommandInfo(
+            name=name,
+            usage=usage,
+            description=description,
+            args_schema=args_schema,
+        )
 
     return commands
 
@@ -38,6 +65,6 @@ def load_commands_yaml() -> dict[str, CommandInfo]:
 def format_help_text(commands: dict[str, CommandInfo]) -> str:
     """Formats a readable help message for the /help command."""
     lines = ["Available commands:"]
-    for name, cmd in sorted(commands.items()):
-        lines.append(f"{cmd.usage:<20} - {cmd.description}")
+    for cmd in commands.values():
+        lines.append(f"{cmd.usage}\n{cmd.description}")
     return "\n".join(lines)

@@ -1,22 +1,23 @@
 # src/telegram/routing.py
 
 import logging
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from src.commands.commands_registry import (
-    dummy_handler,
     get_command_handler,
-    is_command_implemented,
 )
 
 logger = logging.getLogger(__name__)
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Ensure DEBUG messages are logged
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 
 async def route_message(
     session: Any,
     message: Dict[str, Any],
-    # I will give you a function (callable),
-    # that takes 4 args and returns a coroutine (awaitable).
     llm_call: Callable[[str, Optional[str], float, int], Awaitable[str]],
     model: str,
     temperature: float,
@@ -26,17 +27,12 @@ async def route_message(
     Routes an incoming message to either:
       • a registered slash‐command handler, or
       • the LLM service for free‐text prompts.
-
-    session       – any object with 'chat_id' attribute and an async 'send_message(text)'.
-    message       – raw Telegram message dict (must include 'text' and 'chat':{'id':…}).
-    llm_call      – coroutine: llm_call(prompt, model, temperature, maxtoken) → str
-    model, temperature, maxtoken – LLM params for free‐text calls.
     """
     text = message.get("text", "").strip()
     chat = message.get("chat", {})
     chat_id = chat.get("id")
 
-    # keep session in sync
+    # Sync chat_id if session supports it
     if hasattr(session, "chat_id"):
         session.chat_id = chat_id
 
@@ -44,32 +40,36 @@ async def route_message(
         logger.warning("[Routing] empty text; ignoring")
         return
 
-    # ── Slash commands ────────────────────────────────────────────────────────────
+    # ── Slash Commands ────────────────────────────────────────────────────
     if text.startswith("/"):
-        parts: List[str] = text.split()
-        cmd = parts[0]
+        parts = text.split()
+        raw = parts[0]  # '/help' or '/help@BotName'
         args = parts[1:]
 
-        handler = get_command_handler(cmd)
-        if handler:
-            logger.info(f"[Routing] ‹{cmd}› → command handler, args={args}")
-            try:
-                await handler(session=session, message=message, args=args)
-            except Exception as e:
-                logger.exception(f"[Routing] error in handler ‹{cmd}›: {e}")
-                await session.send_message(f"❌ Error executing {cmd}: {e}")
-        else:
-            if is_command_implemented(cmd):
-                logger.info(f"[Routing] ‹{cmd}› known but unimplemented")
-                await dummy_handler(session=session, message=message, args=args)
-            else:
-                logger.info(f"[Routing] unknown command ‹{cmd}›")
-                await session.send_message(
-                    f"⚠️ Unknown command: {cmd}\nSend /help for a list."
-                )
-        return
+        cmd = raw.lstrip("/")
+        if "@" in cmd:
+            cmd = cmd.split("@", 1)[0]
 
-    # ── Free-text → LLM ──────────────────────────────────────────────────────────
+        # Log and check for handler
+        logger.info(f"[Routing] Checking for handler for command: /{cmd}")
+        handler = get_command_handler(cmd)
+
+        if handler:
+            logger.info(f"[Routing] ‹/{cmd}› → command handler, args={args}")
+            try:
+                await handler(session, message, args)
+            except Exception as e:
+                logger.exception(f"[Routing] error in handler ‹/{cmd}›: {e}")
+                await session.send_message(f"❌ Error executing /{cmd}: {e}")
+        else:
+            logger.warning(f"[Routing] Command handler not found for ‹/{cmd}›")
+            await session.send_message(
+                f"⚠️ Unknown command: /{cmd}\nSend /help for a list."
+            )
+
+    return
+
+    # ── Free-text → LLM ───────────────────────────────────────────────────
     logger.info("[Routing] Free-text input; sending to LLM…")
     try:
         reply = await llm_call(text, model, temperature, maxtoken)

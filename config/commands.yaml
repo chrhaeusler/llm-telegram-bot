@@ -1,106 +1,163 @@
 # config/commands.yaml
-# To Do: line breaks in CLI
-
-# config/commands.yaml
 # This file defines all user-facing slash commands for the Telegram chatbot.
 # Each command includes a usage string and a description.
 # These are parsed at runtime to power help messages and routing behavior.
+# config/commands.yaml
+# Defines all slash commands: usage, description, and (optionally) args.
 
-
-# *Help & Status*
+# ── Help & Status ────────────────────────────────────────────────────────
 help:
-  usage: "/help"
-  description: "Show this help message with available commands"
-
-showsettings:
-  usage: "/showset"
-  description: "Show current bot, service, model, temperature & max tokens"
+  usage: /help
+  description: Show this help message with available commands
+  args: []
 
 status:
-  usage: "/status"
-  description: "Check if current bot, service, model, etc. are usable"
+  usage: /status
+  description: Check whether the current bot, service, model, etc. are usable
+  args: []
 
 undo:
-  usage: "/undo"
-  description: "Undo the last configuration change (e.g., model/service)"
+  usage: /undo
+  description: Undo the last configuration change (e.g. model/service)
+  args: []
 
-
-# *Bots & Services*
+# ── Bots & Services ─────────────────────────────────────────────────────
 bots:
-  usage: "/bots"
-  description: "List all available bots (as defined in config.yaml" # with index in front of the name
-  
+  usage: /bots
+  description: List all available bots
+  args: []
+
 bot:
-  usage: "/bot <start|stop|<int>"
-  description: "Switch to bot by index"
-    - start: send inputs to the LLM service (default)
-    - stop: stop sending messages to the LLM service (offline-mode)
-    - <int>: switch to bot as indexed in list provided by command "/bots"
+  usage: /bot [<index>|start|stop]
+  description: >
+    Manage Bot
+      • no args: show current bot's settings (service, model, temp, max tokens).  
+      • <index>: switch to bot by its number (from `/bots`).  
+      • start: resume sending messages to LLM (online).  
+      • stop: pause messaging (offline).
+  args:
+    - name: action
+      type: str
+      choices: [start, stop]
+      optional: true
+    - name: index
+      type: int
+      optional: true
 
 services:
-  usage: "/services"
-  description: "List all available LLM services"  # with index in front of the name
+  usage: /services
+  description: List all available LLM services
+  args: []
 
 cservice:
-  usage: "/cservice <service_name | <int>"
-  description: "Change the active LLM service by name or index" # answer with "services not found" and call /services to list services
+  usage: /cservice <name|index>
+  description: Change the active LLM service by name or list index
+  args:
+    - name: service
+      type: str
 
-# *Models*
+# ── Models ────────────────────────────────────────────────────────────────
 models:
-  usage: "/models"
-  description: "List models for the current service" # with index in front of the name
+  usage: /models
+  description: List all models for the current service
+  args: []
 
 model:
-  usage: "/model [<model_name> | <int>]"
-  description: "Show info about or switch to a specific model by name or index" # answer with "model not found for <services<" and call /models to list models
+  usage: /model [<name|index>]
+  description: Show info about or switch to a specific model
+  args:
+    - name: model
+      type: str
+      optional: true
 
 maxtokens:
-  usage: "/tokens <int>"
-  description: "Set or view max tokens (positive integer only)"
+  usage: /tokens <int>
+  description: Set or view max tokens (positive integer only)
+  args:
+    - name: tokens
+      type: int
 
 temperature:
-  usage: "/temp <float>"
-  description: "Set model temperature (0.0 to 2.0, controls creativity)"
+  usage: /temp <float>
+  description: Set model temperature (0.0–2.0, controls creativity)
+  args:
+    - name: temperature
+      type: float
 
-setasdefaults:
-  usage: "/setdefaults"
-  description: "Save current config (service, model, etc.) as bot's default"
+setdefaults:
+  usage: /setdefaults
+  description: Save current config (service, model, etc.) as bot’s default
+  args: []
 
 defaults:
-  usage: "/defaults"
-  description: "Reset to bot defaults or use global defaults with 'global'"
+  usage: /defaults [global]
+  description: Reset to bot defaults or use global defaults when “global” is provided
+  args:
+    - name: scope
+      type: str
+      choices: [global]
+      optional: true
 
-# *Save & Export*
+# ── Save & Export ────────────────────────────────────────────────────────
 savestring:
-  usage: "/savethis [<text>]"
-  description: "Save any string (without sending it to LLM)"
+  usage: /savethis [<text>]
+  description: Save any string locally (doesn’t send to LLM)
+  args:
+    - name: text
+      type: str
+      optional: true
 
 saveuser:
-  usage: "/su [<filename>]"
-  description: "Save the last user input to a file (timestamped if no name)"
+  usage: /su [<filename>]
+  description: Save the last user input to file (timestamped if no name)
+  args:
+    - name: filename
+      type: str
+      optional: true
 
 saveresponse:
-  usage: "/sr [--ask | <filename>]"
-  description: "Save the last model response (filename optional or prompt)" # if "--ask", send the model's response back to the model and ask for a filename and use it (we want to ask the model for code snippets in different syntax (txt, python, json, markdown, yaml) and be able to save it with the according file extension
+  usage: /sr [--ask|<filename>]
+  description: >
+    Save the last model response.  
+    If “--ask”, prompt for a filename;  
+    else use provided name (or timestamp).
+  args:
+    - name: ask
+      flag: --ask
+      type: bool
+      optional: true
+    - name: filename
+      type: str
+      optional: true
 
-
-# *History*
+# ── History ───────────────────────────────────────────────────────────────
 history:
-  usage: "/history <on|off|sum|<new> [arg]|save|load|files"
+  usage: /history <on|off|sum|new|save|load|files> [arg]
   description: >
     Manage chat history:
-    - on/off: toggle logging
-    - sum: Let model summarize chat; ask user to accept summary as new history
-    - new <text>: replace history with new content
-    - save: save current history to file with timestamp or argument as filename.txt
-    - load <n|filename>: load history by number or name
-    - files: list history files (Indexed and ordered from earliest to oldest)
+      • on/off: toggle logging  
+      • sum: summarize chat & confirm summary as new history  
+      • new <text>: replace history  
+      • save [filename]: save to file  
+      • load <index|filename>  
+      • files: list saved histories
+  args:
+    - name: action
+      type: str
+      choices: [on, off, sum, new, save, load, files]
+    - name: arg
+      type: str
+      optional: true
 
-# *Jailbreaks*
+# ── Jailbreaks ───────────────────────────────────────────────────────────
 jailbreaks:
-  usage: "/jbs"
-  description: "List all available jailbreak prompts" # with index in front of the name
+  usage: /jbs
+  description: List all available jailbreak prompts
+  args: []
 
 sendjailbreak:
-  usage: "/jb <int>"
-  description: "Send a specific jailbreak prompt to the model
+  usage: /jb <index>
+  description: Send a specific jailbreak prompt to the model
+  args:
+    - name: index
+      type: int
