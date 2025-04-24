@@ -67,9 +67,16 @@ async def route_message(
                 f"⚠️ Unknown command: /{cmd}\nSend /help for a list."
             )
 
-    return
+        return
 
+    logger.debug(
+        f"[Routing] messaging_paused={getattr(session, 'messaging_paused', 'N/A')}"
+    )
     # ── Free-text → LLM ───────────────────────────────────────────────────
+    if getattr(session, "messaging_paused", False):
+        logger.info(f"[Routing] Messaging paused for chat {chat_id}")
+        return
+
     logger.info("[Routing] Free-text input; sending to LLM…")
     try:
         reply = await llm_call(text, model, temperature, maxtoken)

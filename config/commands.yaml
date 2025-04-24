@@ -31,9 +31,9 @@ bot:
   usage: /bot [<index>|start|stop]
   description: >
     Manage Bot
-      • no args: show current bot's settings (service, model, temp, max tokens).  
-      • <index>: switch to bot by its number (from `/bots`).  
-      • start: resume sending messages to LLM (online).  
+      • no args: show current bot's settings (service, model, temp, max tokens).
+      • <index>: switch to bot by its number (from `/bots`).
+      • start: resume sending messages to LLM (online).
       • stop: pause messaging (offline).
   args:
     - name: action
@@ -70,7 +70,7 @@ model:
       type: str
       optional: true
 
-maxtokens:
+tokens:
   usage: /tokens <int>
   description: Set or view max tokens (positive integer only)
   args:
@@ -107,7 +107,7 @@ savestring:
       type: str
       optional: true
 
-saveuser:
+savelastprompt:
   usage: /su [<filename>]
   description: Save the last user input to file (timestamped if no name)
   args:
@@ -115,12 +115,12 @@ saveuser:
       type: str
       optional: true
 
-saveresponse:
+savelastresponse:
   usage: /sr [--ask|<filename>]
   description: >
-    Save the last model response.  
-    If “--ask”, prompt for a filename;  
-    else use provided name (or timestamp).
+    • Save the last model response.
+    • If “--ask”, prompt for a filename;
+    • else use provided name (or timestamp).
   args:
     - name: ask
       flag: --ask

@@ -1,5 +1,5 @@
 # tests/unit/test_routing.py
-
+# run via "pytest tests/unit/test_routing.py"
 import asyncio
 
 

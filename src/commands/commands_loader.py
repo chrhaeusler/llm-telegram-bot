@@ -63,8 +63,20 @@ def load_commands_yaml() -> dict[str, CommandInfo]:
 
 
 def format_help_text(commands: dict[str, CommandInfo]) -> str:
-    """Formats a readable help message for the /help command."""
-    lines = ["Available commands:"]
+    """Formats a readable help message for the /help command, preserving YAML order and adding spacing."""
+    lines: list[str] = ["Available commands:"]
+    # Preserve insertion order as defined in commands.yaml
     for cmd in commands.values():
-        lines.append(f"{cmd.usage}\n{cmd.description}")
+        # Clean description to remove unintended newlines
+        desc = cmd.description.strip()
+        # Append usage on its own line
+        lines.append(cmd.usage)
+        # Append each line of the description indented
+        for desc_line in desc.splitlines():
+            lines.append(f"{desc_line}")
+        # Blank line between commands
+        lines.append("")
+    # Remove the last blank line for clean output
+    if lines and not lines[-1].strip():
+        lines.pop()
     return "\n".join(lines)
