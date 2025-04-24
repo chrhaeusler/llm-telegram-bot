@@ -32,6 +32,7 @@ await client.send_message("Hi there!")
 """
 
 
+import itertools
 import logging
 import os
 import time
@@ -167,7 +168,6 @@ class TelegramClient:
             )
             return {"ok": False, "error_code": 500, "description": str(e)}
 
-
     async def get_updates(self, offset: Optional[int] = None) -> Dict[str, Any]:
         """Long-poll Telegram for new updates."""
         # Ensure session is initialized, then narrow type for MyPy
@@ -237,16 +237,28 @@ class TelegramClient:
             await self.send_message(f"❌ Exception retrieving file info: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
-    async def download_file(self, file_path: str) -> Dict[str, Any]:
-        """Download the binary contents of a file by its Telegram file_path."""
-        # Ensure session is initialized, then narrow type for MyPy
+    async def download_file(
+        self, file_path: str, original_name: str | None = None
+    ) -> Dict[str, Any]:
+        """Download a file by its Telegram file_path and save it with a unique name (preserving original if possible)."""
+        # Ensure session is initialized
         if self.session is None:
             await self.init_session()
         session: aiohttp.ClientSession = self.session  # type: ignore[assignment]
 
         url = f"{self.download_base_url}/{file_path}"
-        file_name = os.path.basename(file_path)
-        destination = self.download_path / file_name
+        safe_name = original_name or os.path.basename(file_path)
+        destination = self.download_path / safe_name
+
+        # Ensure destination filename is unique
+        if destination.exists():
+            base, ext = os.path.splitext(safe_name)
+            for i in itertools.count(1):
+                alt_name = f"{base}_{i}{ext}"
+                alt_path = self.download_path / alt_name
+                if not alt_path.exists():
+                    destination = alt_path
+                    break
 
         logger.debug(f"[download_file] URL={url}, dest={destination}")
         start = time.time()
@@ -259,9 +271,9 @@ class TelegramClient:
                     with open(destination, "wb") as f:
                         f.write(content)
                     logger.info(
-                        f"[download_file] Saved {file_name} ({len(content)} bytes) in {elapsed:.2f}s"
+                        f"[download_file] Saved {destination.name} ({len(content)} bytes) in {elapsed:.2f}s"
                     )
-                    await self.send_message(f"✅ Downloaded {file_name}")
+                    await self.send_message(f"✅ Downloaded {destination.name}")
                     return {"ok": True, "file_name": str(destination)}
                 else:
                     error = f"HTTP {resp.status}"
@@ -278,11 +290,6 @@ class TelegramClient:
             )
             await self.send_message(f"❌ Exception downloading file: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
-
-    def is_allowed_extension(self, file_name: str) -> bool:
-        """Check if the file extension is one of the permitted types."""
-        lower = file_name.lower()
-        return any(lower.endswith(ext) for ext in self.allowed_extensions)
 
 
 # Initialize logging configuration on import

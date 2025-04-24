@@ -175,36 +175,38 @@ class PollingLoop:
                 return
 
             chat_id = msg["chat"]["id"]
-            # sync session
             from src.telegram.poller import (
                 ChatSession,  # ensure ChatSession is in scope
             )
 
             session = ChatSession(self.client, chat_id)
 
-            # handle attachments first
+            # ── Document (Attachment) Handling ────────────────────────────────
             if "document" in msg:
                 file_id = msg["document"]["file_id"]
                 file_name = msg["document"]["file_name"]
                 logging.info(f"[PollingLoop] Document → {file_name} (id={file_id})")
+
                 details = await self.client.get_file(file_id)
-                if details.get("ok"):
-                    path = details["result"]["file_path"]
-                    await self.client.download_file(path)
+                if details.get("ok") and "result" in details:
+                    file_path = details["result"]["file_path"]
+                    await self.client.download_file(
+                        file_path=file_path, original_name=file_name
+                    )
                 else:
                     logging.error(f"[PollingLoop] get_file failed: {details}")
                     await session.send_message(f"❌ Could not retrieve '{file_name}'")
-                # do not fall through to text routing
+                return  # Do not fall through to text handling
 
-            # handle text (either slash‐commands or LLM prompt)
+            # ── Text (Free Input or Slash Command) ────────────────────────────
             if "text" in msg:
                 await route_message(
-                    session,
-                    msg,
-                    self.llm_service.send_prompt,
-                    self.bot_config["default"]["model"],
-                    self.bot_config["default"]["temperature"],
-                    self.bot_config["default"]["maxtoken"],
+                    session=session,
+                    message=msg,
+                    llm_call=self.llm_service.send_prompt,
+                    model=self.bot_config["default"]["model"],
+                    temperature=self.bot_config["default"]["temperature"],
+                    maxtoken=self.bot_config["default"]["maxtoken"],
                 )
 
         except Exception as e:
