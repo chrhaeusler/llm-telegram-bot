@@ -186,9 +186,9 @@ class TelegramClient:
                 elapsed = time.time() - start
 
                 if resp.status == 200 and data.get("ok", False):
-                    logger.debug(
-                        f"[get_updates] Retrieved {len(data.get('result', []))} updates in {elapsed:.2f}s"
-                    )
+                    # logger.debug(
+                    #     f"[get_updates] Retrieved {len(data.get('result', []))} updates in {elapsed:.2f}s"
+                    # )
                     return data
                 else:
                     error = data.get("description", f"HTTP {resp.status}")

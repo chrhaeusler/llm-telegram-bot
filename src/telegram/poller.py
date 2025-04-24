@@ -153,7 +153,7 @@ class PollingLoop:
         while attempts < max_attempts:
             attempts += 1
             try:
-                logger.debug(f"[PollingLoop] getUpdates attempt {attempts}")
+                # logger.debug(f"[PollingLoop] getUpdates attempt {attempts}")
                 return await self.client.get_updates(offset=self.last_update_id)
             except Exception as e:
                 logger.error(
