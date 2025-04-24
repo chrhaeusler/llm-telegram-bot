@@ -1,6 +1,7 @@
 # src/providers/provider_mistral.py
 
 import logging
+from typing import Optional
 
 import aiohttp
 from aiohttp import ClientTimeout
@@ -44,7 +45,7 @@ class MistralService(BaseLLMService):
     async def send_prompt(
         self,
         prompt: str,
-        model: str,
+        model: Optional[str] = None,
         temperature: float = 0.7,
         maxtoken: int = 512,
     ) -> str:

@@ -48,7 +48,7 @@ class GroqService(BaseLLMService):
     async def send_prompt(
         self,
         prompt: str,
-        model: str,
+        model: Optional[str] = None,
         temperature: float = 0.7,
         maxtoken: int = 512,
     ) -> str:

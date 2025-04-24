@@ -1,4 +1,4 @@
-# llm-telegram-bot
+# llm-telegram-bot (WIP)
 
 A lightweight Python bot that proxies messages between Telegram and various LLM APIs.  
 Modular, configurable, and extendable—switch services, models, temperature, and token limits on the fly.

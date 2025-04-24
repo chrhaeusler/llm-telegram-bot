@@ -1,7 +1,7 @@
 # src/telegram/routing.py
 
 import logging
-from typing import Any, Awaitable, Dict, List
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from src.commands.commands_registry import (
     dummy_handler,
@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 async def route_message(
     session: Any,
     message: Dict[str, Any],
-    llm_call: Awaitable,
+    # I will give you a function (callable),
+    # that takes 4 args and returns a coroutine (awaitable).
+    llm_call: Callable[[str, Optional[str], float, int], Awaitable[str]],
     model: str,
     temperature: float,
     maxtoken: int,
@@ -70,9 +72,7 @@ async def route_message(
     # ── Free-text → LLM ──────────────────────────────────────────────────────────
     logger.info("[Routing] Free-text input; sending to LLM…")
     try:
-        reply = await llm_call(
-            prompt=text, model=model, temperature=temperature, maxtoken=maxtoken
-        )
+        reply = await llm_call(text, model, temperature, maxtoken)
         await session.send_message(reply)
     except Exception as e:
         logger.exception(f"[Routing] LLM call failed: {e}")

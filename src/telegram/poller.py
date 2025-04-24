@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from src.config_loader import config_loader
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
+from src.services.services_base import BaseLLMService
 from src.telegram.client import TelegramClient
 from src.telegram.routing import route_message
 
@@ -76,8 +77,10 @@ class PollingLoop:
         # instantiate the LLM service for this bot
         svc_name = self.bot_config["default"]["service"]
         svc_conf = config["services"].get(svc_name)
+        # explicitly tell MyPy the intended interface
         if svc_conf is None:
             raise ValueError(f"No configuration for service '{svc_name}'")
+        self.llm_service: BaseLLMService
         if svc_name == "groq":
             self.llm_service = GroqService(config=svc_conf)
         elif svc_name == "mistral":
@@ -196,12 +199,12 @@ class PollingLoop:
             # handle text (either slash‐commands or LLM prompt)
             if "text" in msg:
                 await route_message(
-                    session=session,
-                    message=msg,
-                    llm_call=self.llm_service.send_prompt,
-                    model=self.bot_config["default"]["model"],
-                    temperature=self.bot_config["default"]["temperature"],
-                    maxtoken=self.bot_config["default"]["maxtoken"],
+                    session,
+                    msg,
+                    self.llm_service.send_prompt,
+                    self.bot_config["default"]["model"],
+                    self.bot_config["default"]["temperature"],
+                    self.bot_config["default"]["maxtoken"],
                 )
 
         except Exception as e:
