@@ -1,0 +1,20 @@
+# config/users/<user-key>.yaml
+
+name:
+  nick: "Kimmey"
+  first: "Kim-Jon"
+  last: "Un"
+  age: 29
+biography:
+  - "Born in Vienna"
+  - "Studied economics"
+appearance:
+  - "chubby"
+personality:
+  - curious
+  - reflective
+hobbies_skills:
+  - "programming in Python"
+interests:
+  - "caring for poor people"
+  - "eating"

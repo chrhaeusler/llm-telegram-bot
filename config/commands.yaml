@@ -130,22 +130,54 @@ savelastresponse:
       type: str
       optional: true
 
-# ── History ───────────────────────────────────────────────────────────────
-history:
-  usage: /history <on|off|sum|new|save|load|files|extract> [arg]
+# ── Roleplay & Memory Commands ────────────────────────────────────────────
+
+char:
+  usage: /char <list|switch|show|update> [<value>]
   description: >
-    Manage chat history:
-      • on/off: toggle logging  
-      • sum: summarize chat & confirm replacing history  
-      • new <text>: replace history entirely  
-      • save [filename]: save to file  
-      • load <index|filename>: load saved history  
-      • files: list saved histories  
-      • extract: extract key facts from history into memory
+    Manage characters & scenarios:
+      • list:   list available chars + their scenarios  
+      • show:   show current (or indexed) char+scenario details
+      • reset:  reload char from its YAML file  
+      • switch: switch to given char (by name or index)
   args:
     - name: action
       type: str
-      choices: [on, off, sum, new, save, load, files, extract]
+      choices: [list, switch, show, reset]
+    - name: value
+      type: str
+      optional: true
+
+memory:
+  usage: /memory <show|update> [<value>]
+  description: >
+    Manage session memory:
+      • show:    display all memory buckets  
+      • update:  add or replace a memory entry
+  args:
+    - name: action
+      type: str
+      choices: [show, update]
+    - name: value
+      type: str
+      optional: true
+
+# ── History ───────────────────────────────────────────────────────────────
+history:
+  usage: /history <on|off|files|sum|extract|new|save|load> [arg]
+  description: >
+    Manage chat history (per char+scenario):
+      • on/off:   toggle logging  
+      • files:    list saved histories  
+      • sum:      summarize chat & confirm replacing history  
+      • extract:  extract key facts → memory  
+      • new <t>:  replace history with text <t>  
+      • save <f>: save current history to file <f>  
+      • load <v>: load saved history by index or name
+  args:
+    - name: action
+      type: str
+      choices: [on, off, files, sum, extract, new, save, load]
     - name: arg
       type: str
       optional: true
@@ -162,49 +194,3 @@ sendjailbreak:
   args:
     - name: index
       type: int
-
-# ── Roleplay & Memory Commands ────────────────────────────────────────────
-
-persona:
-  usage: /persona <list|switch|show|update> [<value>]
-  description: >
-    Manage personas:
-      • list: show available personas  
-      • switch <name>: switch to given persona  
-      • show: display current persona details  
-      • update [<file>]: load or edit persona template
-  args:
-    - name: action
-      type: str
-      choices: [list, switch, show, update]
-    - name: value
-      type: str
-      optional: true
-
-memory:
-  usage: /memory <show|update> [<value>]
-  description: >
-    Manage session memory:
-      • show: display current memory sections  
-      • update <value>: manually add or replace memory entry
-  args:
-    - name: action
-      type: str
-      choices: [show, update]
-    - name: value
-      type: str
-      optional: true
-
-scenario:
-  usage: /scenario <show|update> [<file>]
-  description: >
-    Manage scenario settings:
-      • show: display current scenario context  
-      • update <file>: load new scenario from file or prompt
-  args:
-    - name: action
-      type: str
-      choices: [show, update]
-    - name: file
-      type: str
-      optional: true
