@@ -263,7 +263,14 @@ class PollingLoop:
                 assert svc_name is not None, "active_service was not initialized"
                 svc_conf = self.config.get("services", {}).get(svc_name, {})
 
-                if svc_name == bot_def_service:
+                from src.session.session_manager import get_model
+
+                # 1) Manual override wins
+                manual = get_model(chat_id)
+                if manual:
+                    model = manual
+
+                elif svc_name == bot_def_service:
                     # On bot’s default service → use the bot’s default model/params
                     model = bot_def_model
                     temperature = bot_def_temp

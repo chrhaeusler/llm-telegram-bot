@@ -28,11 +28,10 @@ bots:
   args: []
 
 bot:
-  usage: /bot [<index>|pause|resume]
+  usage: /bot [pause|resume]
   description: >
     Manage Bot
-      • no args: show current bot's settings (service, model, temp, max tokens).
-      • <index>: switch to bot by its number (from `/bots`).
+      • no args: show current bot's settings.
       • pause: pause routing messages to LLM.
       • resume: resume routing messages.
   args:
@@ -46,13 +45,15 @@ bot:
 
 service:
   usage: /service [<name>|<index>]
-  description: Show current service and list or switch between available LLM services
+  description: >
+    Manage service
+    • no args: Show current and available services
+    • <name>|index>: Switch to that service
   args:
     - name: name_or_index
       type: str
       optional: true
-      description: Name or index of the service to switch to (omit to just show current + available)
-
+      description: Name or index of the service to switch to
 
 # ── Models ────────────────────────────────────────────────────────────────
 models:

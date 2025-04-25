@@ -19,12 +19,14 @@ class Session:
     """
 
     def __init__(self, chat_id: int):
+        # Chat
         self.chat_id: int = chat_id
-        # Bot control
-        self.messaging_paused: bool = False
+        # Bot
         self.active_bot: Optional[str] = None
-        # Service
+        self.messaging_paused: bool = False
+        # Service + Model
         self.active_service: Optional[str] = None
+        self.active_model: Optional[str] = None
         # Roleplay
         self.active_char: Optional[str] = None
         self.active_scenario: Optional[str] = None
@@ -62,7 +64,7 @@ def get_session(chat_id: int) -> Session:
 
     return _sessions[chat_id]
 
-
+# Chat Management
 def pause(chat_id: int) -> None:
     """Pause messaging for the given chat_id."""
     get_session(chat_id).pause()
@@ -78,7 +80,16 @@ def is_paused(chat_id: int) -> bool:
     return get_session(chat_id).messaging_paused
 
 
-# ── Bot Management ────────────────────────────────────────────────────────
+# Model Managament
+def get_model(chat_id: int) -> Optional[str]:
+    return get_session(chat_id).active_model
+
+
+def set_model(chat_id: int, model: str) -> None:
+    get_session(chat_id).active_model = model
+
+
+# Bot Management
 
 
 def get_available_bots() -> List[str]:

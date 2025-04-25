@@ -27,7 +27,7 @@ async def service_handler(session, message, args):
         # Show current service and available options
         if not args:
             current = session_manager.get_service(chat_id)
-            lines = [f"✅ {current or 'None'}", "or change to:"]
+            lines = [f"*{current or 'None'}*", "Available:"]
             for i, name in enumerate(services_conf.keys(), 1):
                 lines.append(f"{i}. {name}")
             await session.send_message("\n".join(lines))
@@ -62,10 +62,10 @@ async def service_handler(session, message, args):
         session.maxtoken = maxtoken
 
         await session.send_message(
-            f"✅ Switched to service: {new_service}\n"
-            f"Model: {model}\n"
-            f"Temperature: {temperature}\n"
-            f"Max tokens: {maxtoken}"
+            f"✅ Switched to\n*{new_service}*\n"
+            f"{model}\n"
+            f"Temp: {temperature}\n"
+            f"Tokens: {maxtoken}"
         )
 
     except Exception as e:

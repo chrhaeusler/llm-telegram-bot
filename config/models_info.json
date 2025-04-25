@@ -250,7 +250,7 @@
         "multi‑stage injection chains",
         "persona reverse psychology"
       ],
-      "details": "supports 128k tokens; 16k in prompt, 131k context windows, response length 4k; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
+      "details": "128k token support: 131k context window, 16k prompt, 4k response; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
     },
     "qwen-qwq-32b": {
       "creator": "Qwen AI",

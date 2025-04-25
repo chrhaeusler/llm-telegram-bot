@@ -34,7 +34,7 @@ async def bots_handler(session: Any, message: dict, args: List[str]) -> None:
         await session.send_message("⚠️ No bots configured.")
         return
 
-    lines = ["Available bots:"]
+    lines = ["*Configured and enabled bots:*"]
     for idx, (name, handle) in enumerate(bots_list):
         # Display index, name, and handle
         if handle:

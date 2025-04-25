@@ -1,53 +1,45 @@
 # src/commands/handlers/models.py
 
 import logging
+from typing import Any, Dict, List
 
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
+from src.session.session_manager import get_model, get_session
 
 logger = logging.getLogger(__name__)
 
 
 @register_command("/models")
-async def models_handler(session, message, args):
-    """List available models for the current LLM service."""
-    try:
-        cfg = config_loader()
-        telegram_conf = cfg.get("telegram", {})
-        # Locate this chat's bot configuration
-        bot_conf = None
-        for conf in telegram_conf.values():
-            # Skip non-dict entries
-            if not isinstance(conf, dict):
-                continue
-            if conf.get("chat_id") == session.chat_id:
-                bot_conf = conf
-                break
+async def models_handler(
+    session: Any, message: Dict[str, Any], args: List[str]
+) -> None:
+    """
+    /models
+    List all models available for the current active service.
+    """
+    cfg = config_loader()
+    bot_name = session.client.bot_name
 
-        if not bot_conf:
-            await session.send_message("⚠️ Bot configuration not found for this chat.")
-            return
+    # 1) Determine which service we’re on
+    state = get_session(session.chat_id)
+    svc = state.active_service or cfg["telegram"][bot_name]["default"]["service"]
 
-        svc_name = bot_conf.get("default", {}).get("service")
-        if not svc_name:
-            await session.send_message("⚠️ No default service configured for this bot.")
-            return
+    # 2) Fetch that service’s model map from your JSON
+    svc_models_map: Dict[str, Dict] = cfg.get("models_info", {}).get(svc, {})
 
-        services_conf = cfg.get("services", {})
-        svc_conf = services_conf.get(svc_name, {})
-        models = svc_conf.get("models") or svc_conf.get("available_models") or []
+    # 3) If empty → warn
+    if not svc_models_map:
+        return await session.send_message(f"⚠️ No models configured for service '{svc}'")
 
-        if not models:
-            await session.send_message(
-                f"⚠️ No models configured for service '{svc_name}'."
-            )
-            return
+    # 4) Build the list, marking the currently active model
+    current_model = (
+        get_model(session.chat_id) or cfg["telegram"][bot_name]["default"]["model"]
+    )
+    lines = [f"Models for {svc}:"]
+    for idx, (model_name, meta) in enumerate(svc_models_map.items(), start=1):
+        mark = "✅" if model_name == current_model else "  "
+        # short_desc = meta.get("short", "")
+        lines.append(f"{idx}. {mark} {model_name:<30}")  # " — {short_desc}")
 
-        lines = [f"Models for service '{svc_name}':"]
-        for idx, model in enumerate(models, start=1):
-            lines.append(f"{idx}. {model}")
-
-        await session.send_message("\n".join(lines))
-    except Exception as e:
-        logger.exception(f"[models_handler] Error listing models: {e}")
-        await session.send_message(f"❌ Could not list models: {e}")
+    await session.send_message("\n".join(lines))

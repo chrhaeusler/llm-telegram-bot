@@ -19,6 +19,36 @@ CONFIG_YAML = "config/config.yaml"
 MODELS_INFO_JSON = "config/models_info.json"
 
 
+def load_model_info(json_path: str = MODELS_INFO_JSON) -> Dict[str, Any]:
+    """
+    Loads model metadata from a JSON file.
+
+    Args:
+        json_path: Path to the model info JSON file.
+
+    Returns:
+        A dictionary of model information indexed by service name.
+
+    Raises:
+        FileNotFoundError: If the file doesn't exist.
+        json.JSONDecodeError: If JSON parsing fails.
+    """
+    if not os.path.exists(json_path):
+        logger.error(f"Model info file not found: {json_path}")
+        raise FileNotFoundError(f"Model info file not found: {json_path}")
+
+    logger.debug(f"Loading model info from: {json_path}")
+
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            model_info = json.load(f)
+        logger.debug("Model info loaded successfully.")
+        return model_info
+    except json.JSONDecodeError as e:
+        logger.error(f"Error parsing model info JSON: {e}")
+        raise
+
+
 def config_loader(config_path: str = CONFIG_YAML) -> Dict[str, Any]:
     """
     Loads and validates the unified configuration from a YAML file.
@@ -37,10 +67,19 @@ def config_loader(config_path: str = CONFIG_YAML) -> Dict[str, Any]:
         logger.error(f"Config file not found: {config_path}")
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
+    # 1) Load YAML
     logger.debug(f"Loading config from: {config_path}")
 
     with open(config_path, "r", encoding="utf-8") as f:
         config: Dict[str, Any] = yaml.safe_load(f)
+
+    # 2) Merge in model‐info JSON
+    try:
+        from .config_loader import load_model_info
+
+        config["models_info"] = load_model_info()
+    except Exception:
+        config["models_info"] = {}
 
     # Validate top-level keys
     required_top_keys = ["telegram", "services"]
@@ -75,33 +114,3 @@ def config_loader(config_path: str = CONFIG_YAML) -> Dict[str, Any]:
 
     logger.debug("Configuration loaded and validated successfully.")
     return config
-
-
-def load_model_info(json_path: str = MODELS_INFO_JSON) -> Dict[str, Any]:
-    """
-    Loads model metadata from a JSON file.
-
-    Args:
-        json_path: Path to the model info JSON file.
-
-    Returns:
-        A dictionary of model information indexed by service name.
-
-    Raises:
-        FileNotFoundError: If the file doesn't exist.
-        json.JSONDecodeError: If JSON parsing fails.
-    """
-    if not os.path.exists(json_path):
-        logger.error(f"Model info file not found: {json_path}")
-        raise FileNotFoundError(f"Model info file not found: {json_path}")
-
-    logger.debug(f"Loading model info from: {json_path}")
-
-    try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            model_info = json.load(f)
-        logger.debug("Model info loaded successfully.")
-        return model_info
-    except json.JSONDecodeError as e:
-        logger.error(f"Error parsing model info JSON: {e}")
-        raise

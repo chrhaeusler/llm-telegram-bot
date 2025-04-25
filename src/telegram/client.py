@@ -140,7 +140,7 @@ class TelegramClient:
             await self.init_session()
         session: aiohttp.ClientSession = self.session  # type: ignore[assignment]
 
-        payload = {"chat_id": self.chat_id, "text": text}
+        payload = {"chat_id": self.chat_id, "text": text, "parse_mode": "Markdown"}
         start = time.time()
         try:
             async with session.post(

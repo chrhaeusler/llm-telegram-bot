@@ -11,7 +11,6 @@ from src.session.session_manager import (
     is_paused,
     pause,
     resume,
-    set_active_bot,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,16 +45,18 @@ async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) ->
     current_bot = get_active_bot(chat_id)
     is_active = not is_paused(chat_id)
     status = "✅ online" if is_active else "⏸️ offline"
+    # Escape underscores for Markdown
+    safe_bot = current_bot.replace("_", "\\_")
 
     # No args: show settings
     if not args:
         lines = [
-            f"{current_bot} ({status})",
-            f"Name: {display_name}",
+            f"*{display_name}* ({safe_bot})",
+            f"{status}",
             f"Service: {service}",
-            f"Model: {model}",
-            f"Temperature: {temperature}",
-            f"Max tokens: {maxtoken}",
+            f"{model}",
+            f"Temp: {temperature}",
+            f"Tokens: {maxtoken}",
         ]
         await session.send_message("\n".join(lines))
         return
@@ -72,15 +73,4 @@ async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) ->
         await session.send_message("✅ Bot messaging resumed.")
         return
 
-    # Switch by index:
-    if arg.isdigit():
-        idx = int(arg)
-        if 0 <= idx < len(available):
-            new_bot = available[idx]
-            set_active_bot(chat_id, new_bot)
-            await session.send_message(f"🔄 Switched to bot: {new_bot}")
-        else:
-            await session.send_message(f"⚠️ Bot index out of range: {arg}")
-        return
-
-    await session.send_message("⚠️ Invalid argument. Use /bot [<index>|pause|resume]")
+    await session.send_message("⚠️ Invalid argument. Use /bot [pause|resume]")
