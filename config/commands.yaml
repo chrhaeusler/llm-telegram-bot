@@ -24,7 +24,7 @@ undo:
 # ── Bots & Services ─────────────────────────────────────────────────────
 bots:
   usage: /bots
-  description: List all available bots
+  description: Lists (enabled) configured bots
   args: []
 
 bot:
@@ -44,17 +44,15 @@ bot:
       type: int
       optional: true
 
-services:
-  usage: /services
-  description: List all available LLM services
-  args: []
-
-cservice:
-  usage: /cservice <name|index>
-  description: Change the active LLM service by name or list index
+service:
+  usage: /service [<name>|<index>]
+  description: Show current service and list or switch between available LLM services
   args:
-    - name: service
+    - name: name_or_index
       type: str
+      optional: true
+      description: Name or index of the service to switch to (omit to just show current + available)
+
 
 # ── Models ────────────────────────────────────────────────────────────────
 models:

@@ -8,7 +8,7 @@ from src.config_loader import config_loader
 logger = logging.getLogger(__name__)
 
 
-@register_command("/models")
+@register_command("/model")
 async def models_handler(session, message, args):
     """List available models for the current LLM service."""
     try:

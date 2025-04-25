@@ -23,6 +23,8 @@ class Session:
         # Bot control
         self.messaging_paused: bool = False
         self.active_bot: Optional[str] = None
+        # Service
+        self.active_service: Optional[str] = None
         # Roleplay
         self.active_char: Optional[str] = None
         self.active_scenario: Optional[str] = None
@@ -47,7 +49,17 @@ def get_session(chat_id: int) -> Session:
     Retrieve an existing Session or create a new one.
     """
     if chat_id not in _sessions:
-        _sessions[chat_id] = Session(chat_id)
+        session = Session(chat_id)
+
+        # Set a default service from config
+        from src.config_loader import config_loader
+
+        config = config_loader()
+        default_service = next(iter(config.get("services", {}).keys()), None)
+        session.active_service = default_service
+
+        _sessions[chat_id] = session
+
     return _sessions[chat_id]
 
 
@@ -98,6 +110,17 @@ def get_active_bot(chat_id: int) -> Optional[str]:
         session.active_bot = bots[0]
         return session.active_bot
     return None
+
+
+# Then, add these functions to the module:
+def get_service(chat_id: int) -> Optional[str]:
+    """Get the currently selected LLM service."""
+    return get_session(chat_id).active_service
+
+
+def set_service(chat_id: int, service: str) -> None:
+    """Set the active LLM service."""
+    get_session(chat_id).active_service = service
 
 
 # ── Persona (Character) Management ─────────────────────────────────────────

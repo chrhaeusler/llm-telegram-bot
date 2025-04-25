@@ -7,5 +7,5 @@ from src.commands.handlers import (
     help,
     model,
     models,
-    services,
+    service,
 )

@@ -12,8 +12,8 @@ from src.config_loader import config_loader
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
 from src.services.services_base import BaseLLMService
+from src.session.session_manager import get_session
 from src.telegram.client import TelegramClient
-from src.telegram.routing import route_message
 
 logger = logging.getLogger(__name__)
 # suppress very verbose aiohttp debug logs
@@ -29,19 +29,32 @@ ACTIVE_PERIOD = 300
 
 class ChatSession:
     """
-    A tiny wrapper so commands and routing only ever see a 'session'
-    that has a send_message(text) coroutine.  Under the hood we
-    sync chat_id into the shared TelegramClient.
+    Wrapper for a chat session that provides:
+      - send_message(text): handles Telegram message sending
+      - access to session state like active_service, active_bot, etc.
     """
 
     def __init__(self, client: TelegramClient, chat_id: int):
         self.client = client
         self.chat_id = chat_id
+        self._session = get_session(chat_id)  # ← the real stateful session
 
     async def send_message(self, text: str) -> None:
-        # Ensure the TelegramClient will target the right chat
         self.client.chat_id = self.chat_id
         await self.client.send_message(text)
+
+    # Optional passthroughs
+    @property
+    def active_service(self):
+        return self._session.active_service
+
+    @property
+    def active_bot(self):
+        return self._session.active_bot
+
+    @property
+    def messaging_paused(self):
+        return self._session.messaging_paused
 
 
 class PollingLoop:
@@ -171,55 +184,103 @@ class PollingLoop:
         """
         Called for every incoming update.
         1) If it's a document, fetch & download it.
-        2) If it's text, pass to route_message → either a /command or LLM call.
+        2) If it's text, route commands or send to the LLM service.
         """
         try:
             msg = update.get("message")
             if not msg:
-                logging.debug("[PollingLoop] update with no message, skipping")
+                logger.debug("[PollingLoop] update with no message, skipping")
                 return
 
             chat_id = msg["chat"]["id"]
-            from src.telegram.poller import (
-                ChatSession,  # ensure ChatSession is in scope
-            )
+            # Wrap our TelegramClient + chat into a ChatSession helper
+            from src.telegram.poller import ChatSession
 
             session = ChatSession(self.client, chat_id)
 
-            # ── Document (Attachment) Handling ────────────────────────────────
+            # Bring in all helpers
+            from src.llm.dispatcher import get_service_for_name
+            from src.session.session_manager import get_session, is_paused, set_service
+            from src.telegram.routing import route_message
+
+            state = get_session(chat_id)
+
+            # ── Initialize default service if not set ─────────────────────────
+            if state.active_service is None:
+                default_svc = self.config.get("factorydefault", {}).get(
+                    "service"
+                ) or next(iter(self.config.get("services", {})), None)
+                set_service(chat_id, default_svc)
+
+            # ── Document Handling ───────────────────────────────────────────────
             if "document" in msg:
                 file_id = msg["document"]["file_id"]
                 file_name = msg["document"]["file_name"]
-                logging.info(f"[PollingLoop] Document → {file_name} (id={file_id})")
+                logger.info(f"[PollingLoop] Document → {file_name} (id={file_id})")
 
                 details = await self.client.get_file(file_id)
                 if details.get("ok") and "result" in details:
-                    file_path = details["result"]["file_path"]
+                    path = details["result"]["file_path"]
                     await self.client.download_file(
-                        file_path=file_path, original_name=file_name
+                        file_path=path, original_name=file_name
                     )
                 else:
-                    logging.error(f"[PollingLoop] get_file failed: {details}")
+                    logger.error(f"[PollingLoop] get_file failed: {details}")
                     await session.send_message(f"❌ Could not retrieve '{file_name}'")
-                return  # Do not fall through to text handling
+                return  # skip further processing
 
-            # ── Text (Free Input or Slash Command) ────────────────────────────
+            # ── Text Handling ──────────────────────────────────────────────────
             if "text" in msg:
-                await route_message(
-                    session=session,
-                    message=msg,
-                    llm_call=self.llm_service.send_prompt,
-                    model=self.bot_config["default"]["model"],
-                    temperature=self.bot_config["default"]["temperature"],
-                    maxtoken=self.bot_config["default"]["maxtoken"],
+                text = msg["text"].strip()
+
+                # Slash‐command?
+                if text.startswith("/"):
+                    await route_message(
+                        session=session,
+                        message=msg,
+                        llm_call=None,  # ignored for commands
+                        model="",  # ignored
+                        temperature=0.0,  # ignored
+                        maxtoken=0,  # ignored
+                    )
+                    return
+
+                # Paused?
+                if is_paused(chat_id):
+                    logger.info(
+                        f"[PollingLoop] Messaging paused for {chat_id}, skipping LLM"
+                    )
+                    return
+
+                # Build LLM parameters from active service
+                svc_name = state.active_service
+                svc_name = state.active_service
+                assert svc_name is not None, "active_service was not initialized"
+                svc_conf = self.config.get("services", {}).get(svc_name, {})
+                model = svc_conf.get("model", self.bot_config["default"]["model"])
+                temperature = svc_conf.get(
+                    "temperature", self.bot_config["default"]["temperature"]
+                )
+                maxtoken = svc_conf.get(
+                    "maxtoken", self.bot_config["default"]["maxtoken"]
                 )
 
+                # Instantiate the correct LLM service and send prompt
+                service = get_service_for_name(svc_name, svc_conf)
+                reply = await service.send_prompt(
+                    prompt=text,
+                    model=model,
+                    temperature=temperature,
+                    maxtoken=maxtoken,
+                )
+                await session.send_message(reply)
+
         except Exception as e:
-            logging.exception(f"[PollingLoop] error in handle_update: {e}")
-            # best effort to let the user know
+            logger.exception(f"[PollingLoop] error in handle_update: {e}")
+            # best-effort fallback message
             try:
-                session = ChatSession(self.client, update["message"]["chat"]["id"])
-                await session.send_message(f"❌ Error processing update: {e}")
+                fallback = ChatSession(self.client, update["message"]["chat"]["id"])
+                await fallback.send_message(f"❌ Error processing update: {e}")
             except:
                 pass
 

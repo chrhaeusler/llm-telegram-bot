@@ -3,10 +3,9 @@
 import logging
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from src.commands.commands_registry import (
-    get_command_handler,
-)
-from src.session.session_manager import is_paused
+from src.commands.commands_registry import get_command_handler
+from src.config_loader import config_loader
+from src.session.session_manager import get_session, is_paused
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +18,12 @@ logging.basicConfig(
 async def route_message(
     session: Any,
     message: Dict[str, Any],
-    llm_call: Callable[[str, Optional[str], float, int], Awaitable[str]],
-    model: str,
-    temperature: float,
-    maxtoken: int,
+    llm_call: Optional[
+        Callable[[str, Optional[str], float, int], Awaitable[str]]
+    ] = None,
+    model: str = "",
+    temperature: float = 0.7,
+    maxtoken: int = 1024,
 ) -> None:
     """
     Routes an incoming message to either:
@@ -66,12 +67,10 @@ async def route_message(
             await session.send_message(
                 f"⚠️ Unknown command: /{cmd}\nSend /help for a list."
             )
-
         return
 
     # ── Free-text → LLM ──────────────────────────────────────────────────────
 
-    # ✅ Proper pause check using session_manager
     if is_paused(session.chat_id):
         logger.info(
             f"[Routing] Messaging paused for chat {session.chat_id} — skipping LLM"
@@ -79,9 +78,33 @@ async def route_message(
         return
 
     logger.info("[Routing] Free-text input; sending to LLM…")
+
     try:
+        # Dynamically override model from active service (if set)
+        real_session = get_session(
+            chat_id
+        )  # ensures we have our internal Session object
+        if real_session.active_service:
+            config = config_loader()
+            service_conf = config.get("services", {}).get(
+                real_session.active_service, {}
+            )
+            model = service_conf.get("model", model)
+
+            logger.debug(
+                f"[Routing] Using overridden service: {real_session.active_service}, model: {model}"
+            )
+        else:
+            logger.debug(f"[Routing] Using default model: {model}")
+
+        # Guard: only call llm_call if it’s provided
+        if llm_call is None:
+            logger.error("No LLM-call function passed for free-text; skipping.")
+            return
         reply = await llm_call(text, model, temperature, maxtoken)
+
         await session.send_message(reply)
+
     except Exception as e:
         logger.exception(f"[Routing] LLM call failed: {e}")
         await session.send_message(f"❌ LLM service error: {e}")
