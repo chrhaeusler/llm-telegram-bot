@@ -178,5 +178,6 @@ cython_debug/
 00-vscode-workspace.code-workspace
 config/config.yaml
 ignore
+issues.md
 tmp
 

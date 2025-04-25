@@ -151,7 +151,7 @@ class TelegramClient:
 
                 if resp.status == 200 and data.get("ok", False):
                     logger.debug(
-                        f"[send_message] Sent to {self.chat_id} in {elapsed:.2f}s: {text!r}"
+                        f"[send_message] Sent to {self.chat_id} in {elapsed:.2f}s: {text[0:20]!r}"
                     )
                     return data
                 else:
