@@ -1,74 +1,81 @@
 # src/commands/handlers/bot.py
 
 import logging
+from typing import Any, List
 
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
+from src.session.session_manager import pause, resume, set_active_char
 
 logger = logging.getLogger(__name__)
 
+from src.session.session_manager import is_paused
+
 
 @register_command("/bot")
-async def bot_handler(session, message, args):
+async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) -> None:
     """
-    /bot [<index>|start|stop]
-    - No args: show current bot settings
-    - <index>: switch to bot by its list index (from /bots)
-    - start: resume messaging to LLM
-    - stop: pause messaging to LLM
+    /bot [<index>|pause|resume]
+    Manage the current bot:
+      • no args: show settings
+      • <index>: switch to bot by its number (from /bots)
+      • pause: pause messaging to LLM
+      • resume: resume messaging to LLM
+
     """
-    try:
-        cfg = config_loader()
-        telegram_conf = cfg.get("telegram", {})
-        bots = list(telegram_conf.keys())
+    config = config_loader()
+    telegram_conf = config.get("telegram", {})
+    bot_name = session.client.bot_name
+    bot_conf = telegram_conf.get(bot_name, {})
 
-        # Current bot
-        current_bot = getattr(session.client, "bot_name", None)
-        default_conf = telegram_conf.get(current_bot, {}).get("default", {})
-        name = telegram_conf.get(current_bot, {}).get("name", None)
+    # Get defaults
+    default_conf = bot_conf.get("default", {})
+    current_bot = bot_name
+    display_name = bot_conf.get("name", current_bot)
+    service = default_conf.get("service")
+    model = default_conf.get("model")
+    temperature = default_conf.get("temperature")
+    maxtoken = default_conf.get("maxtoken")
 
-        # No args: show settings
-        if not args:
-            svc = default_conf.get("service")
-            model = default_conf.get("model")
-            temp = default_conf.get("temperature")
-            maxt = default_conf.get("maxtoken")
-            lines = [
-                f"Current bot: {current_bot}",
-                f"Name: {name}",
-                f"Service: {svc}",
-                f"Model: {model}",
-                f"Temperature: {temp}",
-                f"Max tokens: {maxt}",
-            ]
-            await session.send_message("\n".join(lines))
-            return
+    # No args: show current settings
+    if not args:
+        is_active = not is_paused(session.chat_id)
+        # paused_status = "✅ Yes" if is_paused(session.chat_id) else "❌ No"
+        active_status = "✅ online" if is_active else "❌ offline"
+        lines = [
+            f"{current_bot} ({active_status})",
+            f"Name: {display_name}",
+            f"Service: {service}",
+            f"Model: {model}",
+            f"Temperature: {temperature}",
+            f"Max tokens: {maxtoken}",
+        ]
+        await session.send_message("\n".join(lines))
+        return
 
-        arg = args[0]
-        # Start/stop
-        if arg.lower() == "start":
-            await session.send_message("✅ Bot messaging resumed.")
-            return
-        if arg.lower() == "stop":
-            await session.send_message("⏸️ Bot messaging paused.")
-            return
+    arg = args[0].lower()
+    # Resume messaging
+    if arg == "start":
+        resume(session.chat_id)
+        await session.send_message("✅ Bot messaging resumed.")
+        return
+    # Pause messaging
+    if arg == "pause":
+        pause(session.chat_id)
+        await session.send_message("⏸️ Bot messaging paused.")
+        return
 
-        # Switch by index
-        if arg.isdigit():
-            idx = int(arg) - 1
-            if 0 <= idx < len(bots):
-                new_bot = bots[idx]
-                new_conf = telegram_conf[new_bot]
-                session.client.bot_name = new_bot
-                # update chat_id for new bot
-                session.client.chat_id = new_conf.get("chat_id", session.client.chat_id)
-                await session.send_message(f"✅ Switched to bot '{new_bot}'")
-                return
+    # Switch by index
+    if arg.isdigit():
+        index = int(arg) - 1
+        bot_list = [n for n in telegram_conf.keys() if n.startswith("bot_")]
+        if 0 <= index < len(bot_list):
+            new_bot = bot_list[index]
+            set_active_char(session.chat_id, new_bot)
+            await session.send_message(f"🔄 Switched to bot: {new_bot}")
+        else:
+            await session.send_message(f"⚠️ Bot index out of range: {arg}")
+        return
 
-        # Invalid arg
-        await session.send_message(
-            "❌ Invalid argument for /bot. Use /bots to list available bots."
-        )
-    except Exception as e:
-        logger.exception(f"[bot_handler] Error in /bot: {e}")
-        await session.send_message(f"❌ Error handling /bot: {e}")
+    # Invalid usage
+    await session.send_message("⚠️ Invalid argument. Usage: /bot [<index>|start|stop]")

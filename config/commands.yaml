@@ -28,13 +28,13 @@ bots:
   args: []
 
 bot:
-  usage: /bot [<index>|start|stop]
+  usage: /bot [<index>|pause|resume]
   description: >
     Manage Bot
       • no args: show current bot's settings (service, model, temp, max tokens).
       • <index>: switch to bot by its number (from `/bots`).
-      • start: resume sending messages to LLM (online).
-      • stop: pause messaging (offline).
+      • pause: pause routing messages to LLM.
+      • resume: resume routing messages.
   args:
     - name: action
       type: str

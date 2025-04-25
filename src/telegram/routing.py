@@ -6,6 +6,7 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 from src.commands.commands_registry import (
     get_command_handler,
 )
+from src.session.session_manager import is_paused
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,6 @@ async def route_message(
         logger.warning("[Routing] empty text; ignoring")
         return
 
-    # ── Slash Commands ────────────────────────────────────────────────────
     if text.startswith("/"):
         parts = text.split()
         raw = parts[0]  # '/help' or '/help@BotName'
@@ -69,12 +69,13 @@ async def route_message(
 
         return
 
-    logger.debug(
-        f"[Routing] messaging_paused={getattr(session, 'messaging_paused', 'N/A')}"
-    )
-    # ── Free-text → LLM ───────────────────────────────────────────────────
-    if getattr(session, "messaging_paused", False):
-        logger.info(f"[Routing] Messaging paused for chat {chat_id}")
+    # ── Free-text → LLM ──────────────────────────────────────────────────────
+
+    # ✅ Proper pause check using session_manager
+    if is_paused(session.chat_id):
+        logger.info(
+            f"[Routing] Messaging paused for chat {session.chat_id} — skipping LLM"
+        )
         return
 
     logger.info("[Routing] Free-text input; sending to LLM…")
