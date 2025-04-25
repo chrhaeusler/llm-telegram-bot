@@ -51,19 +51,27 @@ async def service_handler(session, message, args):
         # Update service
         session_manager.set_service(chat_id, new_service)
 
-        # Optionally update model, temperature, maxtoken
+        # Get the per-service config block
         new_conf = services_conf.get(new_service, {})
-        model = new_conf.get("model")
-        temperature = new_conf.get("temperature", 0.7)  # fallback if not set
+
+        # Update the model in session state
+        from src.session.session_manager import set_model
+
+        default_model = new_conf.get("model")
+        if default_model:
+            set_model(chat_id, default_model)
+
+        # Optionally update temperature and maxtoken too
+        temperature = new_conf.get("temperature", 0.7)
         maxtoken = new_conf.get("maxtoken", 4096)
 
-        session.model = model
+        session.model = default_model
         session.temperature = temperature
         session.maxtoken = maxtoken
 
         await session.send_message(
             f"✅ Switched to\n*{new_service}*\n"
-            f"{model}\n"
+            f"{default_model}\n"
             f"Temp: {temperature}\n"
             f"Tokens: {maxtoken}"
         )

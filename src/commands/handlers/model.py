@@ -57,10 +57,10 @@ async def model_handler(session: Any, message: Dict[str, Any], args: List[str]) 
             f"*Jailbreak:* {rank_jail}\n",
             f"+ {strengths}",
             f"- {weaknesses}\n",
-            f"{details}",
+            f"*Details:* {details}",
         ]
         if jailbreaks:
-            lines.append("*Known jailbreaks:* " + ", ".join(jailbreaks))
+            lines.append("*Jailbreaks:* " + ", ".join(jailbreaks))
         return lines
 
     # 1) No args: show current model info
@@ -95,12 +95,11 @@ async def model_handler(session: Any, message: Dict[str, Any], args: List[str]) 
             )
             return
 
-
     # 3) Commit and show new info
     set_model(session.chat_id, new_model)
     info = models_map.get(new_model)
     if not info:
         await session.send_message(f"⚠️ No metadata found for model '{new_model}'")
         return
-    lines = ["🔄 Switched to\n"] + format_model_info(new_model, info)
+    lines = ["🔄 Switched to"] + format_model_info(new_model, info)
     await session.send_message("\n".join(lines))
