@@ -1,20 +1,33 @@
 # src/session/session_manager.py
 """
-Session manager for per-chat sessions, handling paused state, active char/scenario, and memory buckets.
+Session manager for per-chat sessions:
+- paused state
+- active_bot
+- active_char (persona)
+- active_scenario
+- memory buckets
+- list of available bots loaded from config
 """
-from typing import Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from src.config_loader import config_loader
 
 
 class Session:
     """
     Represents a session for a single chat_id.
     """
+
     def __init__(self, chat_id: int):
         self.chat_id: int = chat_id
+        # Bot control
         self.messaging_paused: bool = False
+        self.active_bot: Optional[str] = None
+        # Roleplay
         self.active_char: Optional[str] = None
         self.active_scenario: Optional[str] = None
-        self.memory: Dict[str, list[Any]] = {}
+        # Dynamic memory
+        self.memory: Dict[str, List[Any]] = {}
 
     def pause(self) -> None:
         """Pause messaging to the LLM for this session."""
@@ -32,12 +45,6 @@ _sessions: Dict[int, Session] = {}
 def get_session(chat_id: int) -> Session:
     """
     Retrieve an existing Session or create a new one.
-
-    Args:
-        chat_id (int): Telegram chat identifier.
-
-    Returns:
-        Session: The session object for the given chat_id.
     """
     if chat_id not in _sessions:
         _sessions[chat_id] = Session(chat_id)
@@ -59,8 +66,45 @@ def is_paused(chat_id: int) -> bool:
     return get_session(chat_id).messaging_paused
 
 
+# ── Bot Management ────────────────────────────────────────────────────────
+
+
+def get_available_bots() -> List[str]:
+    """
+    Return list of bot names enabled in config.
+    """
+    cfg = config_loader()
+    bots = []
+    for name, conf in cfg.get("telegram", {}).items():
+        if not isinstance(conf, dict):
+            continue
+        if conf.get("enabled", False):
+            bots.append(name)
+    return bots
+
+
+def set_active_bot(chat_id: int, bot_name: str) -> None:
+    """Set the active bot for the session."""
+    get_session(chat_id).active_bot = bot_name
+
+
+def get_active_bot(chat_id: int) -> Optional[str]:
+    """Get the active bot for the session (default first available)."""
+    session = get_session(chat_id)
+    if session.active_bot:
+        return session.active_bot
+    bots = get_available_bots()
+    if bots:
+        session.active_bot = bots[0]
+        return session.active_bot
+    return None
+
+
+# ── Persona (Character) Management ─────────────────────────────────────────
+
+
 def set_active_char(chat_id: int, char_key: str) -> None:
-    """Set the active character for the session."""
+    """Set the active character (persona) for the session."""
     get_session(chat_id).active_char = char_key
 
 
@@ -79,7 +123,10 @@ def get_active_scenario(chat_id: int) -> Optional[str]:
     return get_session(chat_id).active_scenario
 
 
-def get_memory(chat_id: int) -> Dict[str, list[Any]]:
+# ── Memory Management ──────────────────────────────────────────────────────
+
+
+def get_memory(chat_id: int) -> Dict[str, List[Any]]:
     """Return the memory buckets for the session."""
     return get_session(chat_id).memory
 

@@ -1,6 +1,7 @@
 # src/commands/handlers/bots.py
 
 import logging
+from typing import Any, List
 
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
@@ -9,22 +10,36 @@ logger = logging.getLogger(__name__)
 
 
 @register_command("/bots")
-async def bots_handler(session, message, args):
-    """List all available bots and their enabled status."""
-    try:
-        cfg = config_loader()
-        telegram_conf = cfg.get("telegram", {})
-        if not telegram_conf:
-            await session.send_message("⚠️ No bots configured.")
-            return
+async def bots_handler(session: Any, message: dict, args: List[str]) -> None:
+    """
+    /bots
+    List all configured bots (display name and Telegram handle).
+    """
+    config = config_loader()
+    telegram_conf = config.get("telegram", {})
 
-        lines = ["Available bots:"]
-        for idx, (bot_name, bot_conf) in enumerate(telegram_conf.items(), start=1):
-            enabled = bot_conf.get("enabled", False)
-            status = "enabled" if enabled else "disabled"
-            lines.append(f"{idx}. {bot_name} ({status})")
+    bots_list: List[tuple[str, str]] = []  # list of (name, handle)
+    for key, conf in telegram_conf.items():
+        # Identify bot entries by key prefix
+        if not key.startswith("bot_") or not isinstance(conf, dict):
+            continue
+        # Only include enabled bots
+        if not conf.get("enabled", False):
+            continue
+        name = conf.get("name", key)
+        handle = conf.get("handle", "")
+        bots_list.append((name, handle))
 
-        await session.send_message("\n".join(lines))
-    except Exception as e:
-        logger.exception(f"[bots_handler] Error listing bots: {e}")
-        await session.send_message(f"❌ Could not list bots: {e}")
+    if not bots_list:
+        await session.send_message("⚠️ No bots configured.")
+        return
+
+    lines = ["Available bots:"]
+    for idx, (name, handle) in enumerate(bots_list):
+        # Display index, name, and handle
+        if handle:
+            lines.append(f"{idx+1}. {name} ({handle})")
+        else:
+            lines.append(f"{idx+1}. {name}")
+
+    await session.send_message("\n".join(lines))
