@@ -252,12 +252,27 @@ class PollingLoop:
                     )
                     return
 
-                # Build LLM parameters from active service
-                svc_name = state.active_service
+                # ── Build LLM parameters from active service ────────────────────────────
+                bot_def = self.bot_config["default"]
+                bot_def_service = bot_def.get("service")
+                bot_def_model = bot_def.get("model")
+                bot_def_temp = bot_def.get("temperature")
+                bot_def_max = bot_def.get("maxtoken")
+
                 svc_name = state.active_service
                 assert svc_name is not None, "active_service was not initialized"
                 svc_conf = self.config.get("services", {}).get(svc_name, {})
-                model = svc_conf.get("model", self.bot_config["default"]["model"])
+
+                if svc_name == bot_def_service:
+                    # On bot’s default service → use the bot’s default model/params
+                    model = bot_def_model
+                    temperature = bot_def_temp
+                    maxtoken = bot_def_max
+                else:
+                    # On a switched service → use that service’s default model/params
+                    model = svc_conf.get("model", bot_def_model)
+                    temperature = svc_conf.get("temperature", bot_def_temp)
+                    maxtoken = svc_conf.get("maxtoken", bot_def_max)
                 temperature = svc_conf.get(
                     "temperature", self.bot_config["default"]["temperature"]
                 )
