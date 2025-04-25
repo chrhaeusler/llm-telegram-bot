@@ -132,19 +132,20 @@ savelastresponse:
 
 # ── History ───────────────────────────────────────────────────────────────
 history:
-  usage: /history <on|off|sum|new|save|load|files> [arg]
+  usage: /history <on|off|sum|new|save|load|files|extract> [arg]
   description: >
     Manage chat history:
       • on/off: toggle logging  
-      • sum: summarize chat & confirm summary as new history  
-      • new <text>: replace history  
+      • sum: summarize chat & confirm replacing history  
+      • new <text>: replace history entirely  
       • save [filename]: save to file  
-      • load <index|filename>  
-      • files: list saved histories
+      • load <index|filename>: load saved history  
+      • files: list saved histories  
+      • extract: extract key facts from history into memory
   args:
     - name: action
       type: str
-      choices: [on, off, sum, new, save, load, files]
+      choices: [on, off, sum, new, save, load, files, extract]
     - name: arg
       type: str
       optional: true
@@ -161,3 +162,49 @@ sendjailbreak:
   args:
     - name: index
       type: int
+
+# ── Roleplay & Memory Commands ────────────────────────────────────────────
+
+persona:
+  usage: /persona <list|switch|show|update> [<value>]
+  description: >
+    Manage personas:
+      • list: show available personas  
+      • switch <name>: switch to given persona  
+      • show: display current persona details  
+      • update [<file>]: load or edit persona template
+  args:
+    - name: action
+      type: str
+      choices: [list, switch, show, update]
+    - name: value
+      type: str
+      optional: true
+
+memory:
+  usage: /memory <show|update> [<value>]
+  description: >
+    Manage session memory:
+      • show: display current memory sections  
+      • update <value>: manually add or replace memory entry
+  args:
+    - name: action
+      type: str
+      choices: [show, update]
+    - name: value
+      type: str
+      optional: true
+
+scenario:
+  usage: /scenario <show|update> [<file>]
+  description: >
+    Manage scenario settings:
+      • show: display current scenario context  
+      • update <file>: load new scenario from file or prompt
+  args:
+    - name: action
+      type: str
+      choices: [show, update]
+    - name: file
+      type: str
+      optional: true
