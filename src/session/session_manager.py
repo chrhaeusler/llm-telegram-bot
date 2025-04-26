@@ -13,6 +13,19 @@ from typing import Any, Dict, List, Optional
 from src.config_loader import config_loader
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+class ModelConfig:
+    """
+    Per-session configuration for model-specific settings.
+    """
+
+    def __init__(self):
+        self.model_name: Optional[str] = None
+        self.temperature: float = 0.7
+        self.max_tokens: int = 4096
+        # To Do: extend with top_p, frequency_penalty, system prompts?
+
+
 class Session:
     """
     Represents a session for a single chat_id.
@@ -27,6 +40,8 @@ class Session:
         # Service + Model
         self.active_service: Optional[str] = None
         self.active_model: Optional[str] = None
+        # LLM: Temp & Tokens
+        self.model_config: ModelConfig = ModelConfig()
         # Roleplay
         self.active_char: Optional[str] = None
         self.active_scenario: Optional[str] = None
@@ -42,6 +57,7 @@ class Session:
         self.messaging_paused = False
 
 
+# ─────────────────────────────────────────────────────────────────────────────
 # Internal storage of sessions by chat_id
 _sessions: Dict[int, Session] = {}
 
@@ -64,6 +80,53 @@ def get_session(chat_id: int) -> Session:
 
     return _sessions[chat_id]
 
+
+def is_paused(chat_id: int) -> bool:
+    """Check if the session is paused."""
+    return get_session(chat_id).messaging_paused
+
+
+def get_model(chat_id: int) -> Optional[str]:
+    """Return the active model name for a chat, if manually set."""
+    return get_session(chat_id).active_model
+
+
+def set_model(chat_id: int, model: str) -> None:
+    """Set the active model name for a chat."""
+    get_session(chat_id).active_model = model
+
+
+def get_service(chat_id: int) -> Optional[str]:
+    """Return the active service for a chat."""
+    return get_session(chat_id).active_service
+
+
+def set_service(chat_id: int, service: str) -> None:
+    """Set the active service for a chat."""
+    get_session(chat_id).active_service = service
+
+
+def get_temperature(chat_id: int) -> float:
+    """Return the temperature for a chat session."""
+    return get_session(chat_id).model_config.temperature
+
+
+def set_temperature(chat_id: int, temperature: float) -> None:
+    """Set a new temperature for a chat session."""
+    get_session(chat_id).model_config.temperature = temperature
+
+
+def get_maxtoken(chat_id: int) -> int:
+    """Return the max_tokens for a chat session."""
+    return get_session(chat_id).model_config.max_tokens
+
+
+def set_maxtoken(chat_id: int, max_tokens: int) -> None:
+    """Set a new max_tokens for a chat session."""
+    get_session(chat_id).model_config.max_tokens = max_tokens
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Chat Management
 def pause(chat_id: int) -> None:
     """Pause messaging for the given chat_id."""
@@ -75,23 +138,7 @@ def resume(chat_id: int) -> None:
     get_session(chat_id).resume()
 
 
-def is_paused(chat_id: int) -> bool:
-    """Check if messaging is paused for the given chat_id."""
-    return get_session(chat_id).messaging_paused
-
-
-# Model Managament
-def get_model(chat_id: int) -> Optional[str]:
-    return get_session(chat_id).active_model
-
-
-def set_model(chat_id: int, model: str) -> None:
-    get_session(chat_id).active_model = model
-
-
 # Bot Management
-
-
 def get_available_bots() -> List[str]:
     """
     Return list of bot names enabled in config.
@@ -121,17 +168,6 @@ def get_active_bot(chat_id: int) -> Optional[str]:
         session.active_bot = bots[0]
         return session.active_bot
     return None
-
-
-# Then, add these functions to the module:
-def get_service(chat_id: int) -> Optional[str]:
-    """Get the currently selected LLM service."""
-    return get_session(chat_id).active_service
-
-
-def set_service(chat_id: int, service: str) -> None:
-    """Set the active LLM service."""
-    get_session(chat_id).active_service = service
 
 
 # ── Persona (Character) Management ─────────────────────────────────────────

@@ -1,6 +1,14 @@
+# File: src/commands/handlers/undo.py
+
+from typing import Any, Dict, List
+
 from src.commands.commands_registry import register_command
 
 
 @register_command("/undo")
-async def saveresponse_handler(session, message, args):
-    await session.send_message("⚠️ /sr not yet implemented.")
+async def undo_handler(session: Any, message: Dict[str, Any], args: List[str]) -> None:
+    """
+    /undo
+    Undo the last configuration change (not yet implemented).
+    """
+    await session.send_message("⚠️ /undo not yet implemented.")

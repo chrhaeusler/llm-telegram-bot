@@ -8,4 +8,8 @@ from src.commands.handlers import (
     model,
     models,
     service,
+    status,
+    temperature,
+    tokens,
+    undo,
 )

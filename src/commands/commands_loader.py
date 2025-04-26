@@ -5,6 +5,7 @@ lets us load the command descriptions from commands.yaml and fetch usage/help in
 # src/commands/commands_loader.py
 
 from pathlib import Path
+
 import yaml
 
 _COMMANDS_FILE = Path("config/commands.yaml")
@@ -47,8 +48,8 @@ def format_help_text(commands: dict[str, CommandInfo]) -> str:
     # Each command: usage in code, description, blank line
     for name, cmd in sorted(commands.items()):
         # Escape Markdown-sensitive characters in usage
-        usage = cmd.usage.replace("<", "\\<").replace(">", "\\>")
-        lines.append(f"`{usage}` - {cmd.description}")
+        usage = cmd.usage.replace("<", "<").replace(">", ">")
+        lines.append(f"{usage} - {cmd.description}")
         lines.append("")
 
     # Remove trailing blank line

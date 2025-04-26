@@ -7,7 +7,6 @@ from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.session.session_manager import (
     get_active_bot,
-    get_available_bots,
     is_paused,
     pause,
     resume,
@@ -41,7 +40,7 @@ async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) ->
     maxtoken = default_conf.get("maxtoken")
 
     chat_id = session.chat_id
-    available = get_available_bots()
+    # available = get_available_bots()
     current_bot = get_active_bot(chat_id)
     is_active = not is_paused(chat_id)
     status = "✅ online" if is_active else "⏸️ offline"

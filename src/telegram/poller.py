@@ -12,8 +12,9 @@ from src.config_loader import config_loader
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
 from src.services.services_base import BaseLLMService
-from src.session.session_manager import get_session
+from src.session.session_manager import get_maxtoken, get_session, get_temperature
 from src.telegram.client import TelegramClient
+from src.utils.markdown import safe_message
 
 logger = logging.getLogger(__name__)
 # suppress very verbose aiohttp debug logs
@@ -41,6 +42,7 @@ class ChatSession:
 
     async def send_message(self, text: str) -> None:
         self.client.chat_id = self.chat_id
+        text = safe_message(text)
         await self.client.send_message(text)
 
     # Optional passthroughs
@@ -234,6 +236,7 @@ class PollingLoop:
                 text = msg["text"].strip()
 
                 # Slash‐command?
+                # error: "Unexpected keyword argument "session" for "route_message""
                 if text.startswith("/"):
                     await route_message(
                         session=session,
@@ -265,27 +268,34 @@ class PollingLoop:
 
                 from src.session.session_manager import get_model
 
-                # 1) Manual override wins
-                manual = get_model(chat_id)
-                if manual:
-                    model = manual
-
+                # 1) Manual override for model wins
+                manual_model = get_model(chat_id)
+                if manual_model:
+                    model = manual_model
                 elif svc_name == bot_def_service:
-                    # On bot’s default service → use the bot’s default model/params
                     model = bot_def_model
-                    temperature = bot_def_temp
-                    maxtoken = bot_def_max
                 else:
-                    # On a switched service → use that service’s default model/params
                     model = svc_conf.get("model", bot_def_model)
-                    temperature = svc_conf.get("temperature", bot_def_temp)
-                    maxtoken = svc_conf.get("maxtoken", bot_def_max)
-                temperature = svc_conf.get(
-                    "temperature", self.bot_config["default"]["temperature"]
-                )
-                maxtoken = svc_conf.get(
-                    "maxtoken", self.bot_config["default"]["maxtoken"]
-                )
+
+                # 2) Manual override for temperature and tokens
+                manual_temp = get_temperature(chat_id)
+                manual_tokens = get_maxtoken(chat_id)
+
+                if manual_temp is not None:
+                    temperature = manual_temp
+                else:
+                    if svc_name == bot_def_service:
+                        temperature = bot_def_temp
+                    else:
+                        temperature = svc_conf.get("temperature", bot_def_temp)
+
+                if manual_tokens is not None:
+                    maxtoken = manual_tokens
+                else:
+                    if svc_name == bot_def_service:
+                        maxtoken = bot_def_max
+                    else:
+                        maxtoken = svc_conf.get("maxtoken", bot_def_max)
 
                 # Instantiate the correct LLM service and send prompt
                 service = get_service_for_name(svc_name, svc_conf)

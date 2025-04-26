@@ -10,12 +10,13 @@ from src.session.session_manager import get_session, is_paused
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
-    level=logging.DEBUG,  # Ensure DEBUG messages are logged
+    level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
 async def route_message(
+    *,
     session: Any,
     message: Dict[str, Any],
     llm_call: Optional[
@@ -34,12 +35,8 @@ async def route_message(
     chat = message.get("chat", {})
     chat_id = chat.get("id")
 
-    # Sync chat_id if session supports it
-    if hasattr(session, "chat_id"):
-        session.chat_id = chat_id
-
     if not text:
-        logger.warning("[Routing] empty text; ignoring")
+        logger.warning("[Routing] Empty text; ignoring.")
         return
 
     if text.startswith("/"):
@@ -51,7 +48,6 @@ async def route_message(
         if "@" in cmd:
             cmd = cmd.split("@", 1)[0]
 
-        # Log and check for handler
         logger.info(f"[Routing] Checking for handler for command: /{cmd}")
         handler = get_command_handler(cmd)
 
@@ -60,8 +56,8 @@ async def route_message(
             try:
                 await handler(session, message, args)
             except Exception as e:
-                logger.exception(f"[Routing] error in handler ‹/{cmd}›: {e}")
-                await session.send_message(f"❌ Error executing /{cmd}: {e}")
+                logger.exception(f"[Routing] Error in handler ‹/{cmd}›: {e}")
+                await session.send_message(f"❌ Error executing /{cmd}: `{e}`")
         else:
             logger.warning(f"[Routing] Command handler not found for ‹/{cmd}›")
             await session.send_message(
@@ -71,40 +67,35 @@ async def route_message(
 
     # ── Free-text → LLM ──────────────────────────────────────────────────────
 
-    if is_paused(session.chat_id):
-        logger.info(
-            f"[Routing] Messaging paused for chat {session.chat_id} — skipping LLM"
-        )
+    if is_paused(chat_id):
+        logger.info(f"[Routing] Messaging paused for chat {chat_id}; skipping LLM.")
         return
 
     logger.info("[Routing] Free-text input; sending to LLM…")
 
     try:
-        # Dynamically override model from active service (if set)
-        real_session = get_session(
-            chat_id
-        )  # ensures we have our internal Session object
+        # Always access the latest session state
+        real_session = get_session(chat_id)
+
         if real_session.active_service:
             config = config_loader()
             service_conf = config.get("services", {}).get(
                 real_session.active_service, {}
             )
             model = service_conf.get("model", model)
-
             logger.debug(
                 f"[Routing] Using overridden service: {real_session.active_service}, model: {model}"
             )
         else:
             logger.debug(f"[Routing] Using default model: {model}")
 
-        # Guard: only call llm_call if it’s provided
         if llm_call is None:
             logger.error("No LLM-call function passed for free-text; skipping.")
             return
-        reply = await llm_call(text, model, temperature, maxtoken)
 
+        reply = await llm_call(text, model, temperature, maxtoken)
         await session.send_message(reply)
 
     except Exception as e:
         logger.exception(f"[Routing] LLM call failed: {e}")
-        await session.send_message(f"❌ LLM service error: {e}")
+        await session.send_message(f"❌ LLM service error: `{e}`")
