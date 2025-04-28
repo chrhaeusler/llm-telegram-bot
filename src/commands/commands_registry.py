@@ -45,9 +45,7 @@ def is_command_implemented(name: str) -> bool:
 async def dummy_handler(*args, **kwargs) -> None:
     """Placeholder handler for known but unimplemented commands."""
     if "session" in kwargs:
-        await kwargs["session"].send_message(
-            "⚠️ This command is known but not yet implemented."
-        )
+        await kwargs["session"].send_message("⚠️ This command is known but not yet implemented.")
 
 
 def get_known_handlers() -> dict[str, CommandHandler]:

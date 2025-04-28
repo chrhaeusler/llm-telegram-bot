@@ -73,9 +73,7 @@ class GroqService(BaseLLMService):
             "max_tokens": maxtoken,
         }
 
-        logger.debug(
-            f"[Groq] Sending prompt to {self.endpoint} using model={selected_model}"
-        )
+        logger.debug(f"[Groq] Sending prompt to {self.endpoint} using model={selected_model}")
 
         async with aiohttp.ClientSession() as session:
             try:

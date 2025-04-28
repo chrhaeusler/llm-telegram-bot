@@ -6,7 +6,11 @@ from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.session import session_manager
 
+# Create logger
 logger = logging.getLogger(__name__)
+
+# Log that the help handler is being loaded
+logger.info("[Help Handler] service.py is being loaded")
 
 
 @register_command("/service")
@@ -27,10 +31,10 @@ async def service_handler(session, message, args):
         # Show current service and available options
         if not args:
             current = session_manager.get_service(chat_id)
-            lines = [f"*{current or 'None'}*", "Available:"]
+            lines = [f"<b>Current: {current or 'None'}</b>", "Available:"]
             for i, name in enumerate(services_conf.keys(), 1):
                 lines.append(f"{i}. {name}")
-            await session.send_message("\n".join(lines))
+            await session.send_message("\n".join(lines), parse_mode="HTML")
             return
 
         # Determine new service by index or name
@@ -70,10 +74,11 @@ async def service_handler(session, message, args):
         session.maxtoken = maxtoken
 
         await session.send_message(
-            f"✅ Switched to\n*{new_service}*\n"
+            f"✅ Switched to\n<b>{new_service}</b>\n"
             f"{default_model}\n"
             f"Temp: {temperature}\n"
-            f"Tokens: {maxtoken}"
+            f"Tokens: {maxtoken}",
+            parse_mode="HTML",
         )
 
     except Exception as e:

@@ -7,17 +7,22 @@ from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.session.session_manager import get_model, get_session, set_model
 
+# Create logger
 logger = logging.getLogger(__name__)
+
+# Log that the help handler is being loaded
+logger.info("[Help Handler] model.py is being loaded")
 
 
 @register_command("/model")
-async def model_handler(session: Any, message: Dict[str, Any], args: List[str]) -> None:
+async def model_handler(session, message, args):
     """
     /model [<name>|<index>]
-    • No args: show detailed info about current model
-    • <index>: switch to model by position in /models
-    • <name>: switch to model by exact model name
+    • No args: Show detailed info about the current model
+    • <index>: Switch to model by position in /models
+    • <name>: Switch to model by exact model name
     """
+    # Load the configuration
     cfg = config_loader()
     bot_name = session.client.bot_name
 
@@ -49,21 +54,21 @@ async def model_handler(session: Any, message: Dict[str, Any], args: List[str]) 
         jailbreaks = info.get("jailbreaks", [])
 
         lines = [
-            f"*{target_model}*",
+            f"<b>{target_model}</b>",
             f"by {creator} ({release_year})\n",
-            f"*{token_str}* tokens for {purpose}\n",
-            f"*Power:* {rank_power}",
-            f"*Coding:* {rank_coding}",
-            f"*Jailbreak:* {rank_jail}\n",
+            f"<b>{token_str}</b> tokens for {purpose}\n",
+            f"<b>Power:</b> {rank_power}",
+            f"<b>Coding:</b> {rank_coding}",
+            f"<b>Jailbreak:</b> {rank_jail}\n",
             f"+ {strengths}",
             f"- {weaknesses}\n",
-            f"*Details:* {details}",
+            f"<b>Details:</b> {details}",
         ]
         if jailbreaks:
-            lines.append("*Jailbreaks:* " + ", ".join(jailbreaks))
+            lines.append("<b>Jailbreaks:</b> " + ", ".join(jailbreaks))
         return lines
 
-    # 1) No args: show current model info
+    # 1) No args: Show current model info
     if not args:
         current = get_model(session.chat_id) or bot_default_model
         info = models_map.get(current)
@@ -71,10 +76,10 @@ async def model_handler(session: Any, message: Dict[str, Any], args: List[str]) 
             await session.send_message(f"⚠️ No metadata found for model '{current}'")
             return
         lines = format_model_info(current, info)
-        await session.send_message("\n".join(lines))
+        await session.send_message("\n".join(lines), parse_mode="HTML")
         return
 
-    # 2) Arg provided: decide new_model first
+    # 2) Arg provided: Decide new_model first
     choice = args[0]
     new_model: str
     names = list(models_map.keys())
@@ -90,9 +95,7 @@ async def model_handler(session: Any, message: Dict[str, Any], args: List[str]) 
         if choice in names:
             new_model = choice
         else:
-            await session.send_message(
-                f"⚠️ Model not found: {choice}\nUse /models to list available models."
-            )
+            await session.send_message(f"⚠️ Model not found: {choice}\nUse /models to list available models.")
             return
 
     # 3) Commit and show new info
@@ -102,4 +105,4 @@ async def model_handler(session: Any, message: Dict[str, Any], args: List[str]) 
         await session.send_message(f"⚠️ No metadata found for model '{new_model}'")
         return
     lines = ["🔄 Switched to"] + format_model_info(new_model, info)
-    await session.send_message("\n".join(lines))
+    await session.send_message("\n".join(lines), parse_mode="HTML")

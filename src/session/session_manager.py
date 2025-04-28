@@ -8,6 +8,7 @@ Session manager for per-chat sessions:
 - memory buckets
 - list of available bots loaded from config
 """
+
 from typing import Any, Dict, List, Optional
 
 from src.config_loader import config_loader

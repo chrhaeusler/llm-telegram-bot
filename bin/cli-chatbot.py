@@ -71,9 +71,7 @@ def load_chatbot_config(path: Path = DEFAULT_CHATBOT_CONF_PATH):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CLI chatbot client for LLM services.")
-    parser.add_argument(
-        "--save", dest="save", action="store_true", help="Enable autosaving output."
-    )
+    parser.add_argument("--save", dest="save", action="store_true", help="Enable autosaving output.")
     parser.add_argument(
         "--no-save",
         dest="save",
@@ -123,9 +121,7 @@ def main():
         session.max_tokens,
     )
     print(startup_msg)
-    print(
-        "Type /exit or Ctrl+C to quit. Use /s before your message to save the response.\n"
-    )
+    print("Type /exit or Ctrl+C to quit. Use /s before your message to save the response.\n")
 
     try:
         while True:

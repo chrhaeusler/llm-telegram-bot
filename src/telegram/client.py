@@ -31,7 +31,6 @@ client = TelegramClient(...)
 await client.send_message("Hi there!")
 """
 
-
 import itertools
 import logging
 import os
@@ -40,6 +39,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import aiohttp
+
+from src.utils.escape_markdown import safe_message
 
 logger = logging.getLogger(__name__)
 
@@ -133,26 +134,43 @@ class TelegramClient:
             await self.session.close()
             self.session = None
 
-    async def send_message(self, text: str) -> Dict[str, Any]:
-        """Send a text message to the configured chat."""
-        # Ensure session is initialized, then narrow type for MyPy
+    async def send_message(
+        self,
+        text: str,
+        parse_mode: str = "MarkdownV2",
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Send a text message to the configured chat, escaping for the chosen parse_mode."""
         if self.session is None:
             await self.init_session()
         session: aiohttp.ClientSession = self.session  # type: ignore[assignment]
 
-        payload = {"chat_id": self.chat_id, "text": text, "parse_mode": "Markdown"}
+        if parse_mode == "MarkdownV2":
+            # escape everything so MarkdownV2 is valid
+            clean = safe_message(text)
+
+        elif parse_mode == "HTML":
+            # assume your handler has already produced valid HTML tags
+            clean = text
+
+        else:
+            clean = text
+
+        payload: Dict[str, Any] = {
+            "chat_id": self.chat_id,
+            "text": clean,
+            "parse_mode": parse_mode,
+            **kwargs,  # e.g. disable_web_page_preview=True, reply_markup=…
+        }
+
         start = time.time()
         try:
-            async with session.post(
-                f"{self.api_url}/sendMessage", data=payload
-            ) as resp:
+            async with session.post(f"{self.api_url}/sendMessage", data=payload) as resp:
                 data = await resp.json()
                 elapsed = time.time() - start
 
                 if resp.status == 200 and data.get("ok", False):
-                    logger.debug(
-                        f"[send_message] Sent to {self.chat_id} in {elapsed:.2f}s: {text[0:20]!r}"
-                    )
+                    logger.debug(f"[send_message] Sent to {self.chat_id} in {elapsed:.2f}s: {clean!r}")
                     return data
                 else:
                     error = data.get("description", f"HTTP {resp.status}")
@@ -163,9 +181,7 @@ class TelegramClient:
                         "description": error,
                     }
         except Exception as e:
-            logger.exception(
-                f"[send_message] Exception after {time.time() - start:.2f}s"
-            )
+            logger.exception(f"[send_message] Exception after {time.time() - start:.2f}s")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
     async def get_updates(self, offset: Optional[int] = None) -> Dict[str, Any]:
@@ -199,9 +215,7 @@ class TelegramClient:
                         "description": error,
                     }
         except Exception as e:
-            logger.exception(
-                f"[get_updates] Exception after {time.time() - start:.2f}s"
-            )
+            logger.exception(f"[get_updates] Exception after {time.time() - start:.2f}s")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
     async def get_file(self, file_id: str) -> Dict[str, Any]:
@@ -214,9 +228,7 @@ class TelegramClient:
         logger.debug(f"[get_file] Requesting details for file_id={file_id}")
         start = time.time()
         try:
-            async with session.post(
-                f"{self.api_url}/getFile", data={"file_id": file_id}
-            ) as resp:
+            async with session.post(f"{self.api_url}/getFile", data={"file_id": file_id}) as resp:
                 data = await resp.json()
                 elapsed = time.time() - start
 
@@ -237,9 +249,7 @@ class TelegramClient:
             await self.send_message(f"❌ Exception retrieving file info: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 
-    async def download_file(
-        self, file_path: str, original_name: str | None = None
-    ) -> Dict[str, Any]:
+    async def download_file(self, file_path: str, original_name: str | None = None) -> Dict[str, Any]:
         """Download a file by its Telegram file_path and save it with a unique name (preserving original if possible)."""
         # Ensure session is initialized
         if self.session is None:
@@ -270,9 +280,7 @@ class TelegramClient:
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     with open(destination, "wb") as f:
                         f.write(content)
-                    logger.info(
-                        f"[download_file] Saved {destination.name} ({len(content)} bytes) in {elapsed:.2f}s"
-                    )
+                    logger.info(f"[download_file] Saved {destination.name} ({len(content)} bytes) in {elapsed:.2f}s")
                     await self.send_message(f"✅ Downloaded {destination.name}")
                     return {"ok": True, "file_name": str(destination)}
                 else:
@@ -285,9 +293,7 @@ class TelegramClient:
                         "description": error,
                     }
         except Exception as e:
-            logger.exception(
-                f"[download_file] Exception after {time.time() - start:.2f}s"
-            )
+            logger.exception(f"[download_file] Exception after {time.time() - start:.2f}s")
             await self.send_message(f"❌ Exception downloading file: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
 

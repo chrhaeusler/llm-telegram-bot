@@ -7,20 +7,19 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
-from src.commands.handlers import help  # noqa: F401
+from src.commands.handlers import bot, bots, help, model, models, service, status, temperature, tokens  # noqa: F401
 from src.config_loader import config_loader
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
 from src.services.services_base import BaseLLMService
 from src.session.session_manager import get_maxtoken, get_session, get_temperature
 from src.telegram.client import TelegramClient
-from src.utils.markdown import safe_message
 
 logger = logging.getLogger(__name__)
 # suppress very verbose aiohttp debug logs
 
 logging.basicConfig(
-    level=logging.DEBUG,  # Ensure DEBUG messages are logged
+    level=logging.INFO,  # Ensure DEBUG messages are logged
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
@@ -40,10 +39,11 @@ class ChatSession:
         self.chat_id = chat_id
         self._session = get_session(chat_id)  # ← the real stateful session
 
-    async def send_message(self, text: str) -> None:
+    async def send_message(self, text: str, *, parse_mode: str = "MarkdownV2", **kwargs) -> None:
+        # ensure client knows which chat
         self.client.chat_id = self.chat_id
-        text = safe_message(text)
-        await self.client.send_message(text)
+        # forward text and parse_mode+kwargs to the client
+        await self.client.send_message(text, parse_mode=parse_mode, **kwargs)
 
     # Optional passthroughs
     @property
@@ -69,19 +69,13 @@ class PollingLoop:
         self.bot_config = telegram_conf.get(bot_name, {})
         self.chat_id: Optional[int] = self.bot_config.get("chat_id")
         if not isinstance(self.chat_id, int):
-            raise ValueError(
-                f"[PollingLoop] Invalid chat_id for {bot_name}: {self.chat_id!r}"
-            )
+            raise ValueError(f"[PollingLoop] Invalid chat_id for {bot_name}: {self.chat_id!r}")
 
         logger.debug(f"[PollingLoop] Init bot={bot_name} chat_id={self.chat_id}")
 
         # polling intervals (per-bot override or global default)
-        self.active_interval = self.bot_config.get(
-            "polling_interval_active", telegram_conf["polling_interval_active"]
-        )
-        self.idle_interval = self.bot_config.get(
-            "polling_interval_idle", telegram_conf["polling_interval_idle"]
-        )
+        self.active_interval = self.bot_config.get("polling_interval_active", telegram_conf["polling_interval_active"])
+        self.idle_interval = self.bot_config.get("polling_interval_idle", telegram_conf["polling_interval_idle"])
 
         # state trackers
         self.last_event_time = time.time()
@@ -130,9 +124,7 @@ class PollingLoop:
                     # reset back to active rate
                     self.last_event_time = time.time()
                     if self.current_interval != self.active_interval:
-                        logger.info(
-                            f"[PollingLoop] Activity → switching to active interval {self.active_interval}s"
-                        )
+                        logger.info(f"[PollingLoop] Activity → switching to active interval {self.active_interval}s")
                     self.current_interval = self.active_interval
 
                 else:
@@ -143,9 +135,9 @@ class PollingLoop:
                             self.idle_interval,
                         )
                         if new_int != self.current_interval:
-                            last_seen = datetime.datetime.fromtimestamp(
-                                self.last_event_time
-                            ).strftime("%Y-%m-%d %H:%M:%S")
+                            last_seen = datetime.datetime.fromtimestamp(self.last_event_time).strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            )
                             logger.info(
                                 f"[PollingLoop] No activity for {int(idle)}s (last at {last_seen}), backing off to {new_int}s"
                             )
@@ -157,9 +149,7 @@ class PollingLoop:
                 logger.info("[PollingLoop] Cancelled by shutdown signal.")
                 break
             except Exception:
-                logger.exception(
-                    "[PollingLoop] Unexpected error, sleeping idle interval"
-                )
+                logger.exception("[PollingLoop] Unexpected error, sleeping idle interval")
                 await asyncio.sleep(self.idle_interval)
 
     async def _get_updates_with_retries(self) -> Dict[str, Any]:
@@ -171,13 +161,9 @@ class PollingLoop:
                 # logger.debug(f"[PollingLoop] getUpdates attempt {attempts}")
                 return await self.client.get_updates(offset=self.last_update_id)
             except Exception as e:
-                logger.error(
-                    f"[PollingLoop] get_updates failed ({attempts}/{max_attempts}): {e}"
-                )
+                logger.error(f"[PollingLoop] get_updates failed ({attempts}/{max_attempts}): {e}")
                 if attempts >= max_attempts:
-                    logger.error(
-                        "[PollingLoop] All retries failed, returning {{'ok': False}}"
-                    )
+                    logger.error("[PollingLoop] All retries failed, returning {{'ok': False}}")
                     return {"ok": False}
                 await asyncio.sleep(delay)
         return {"ok": False}
@@ -209,9 +195,9 @@ class PollingLoop:
 
             # ── Initialize default service if not set ─────────────────────────
             if state.active_service is None:
-                default_svc = self.config.get("factorydefault", {}).get(
-                    "service"
-                ) or next(iter(self.config.get("services", {})), None)
+                default_svc = self.config.get("factorydefault", {}).get("service") or next(
+                    iter(self.config.get("services", {})), None
+                )
                 set_service(chat_id, default_svc)
 
             # ── Document Handling ───────────────────────────────────────────────
@@ -223,9 +209,7 @@ class PollingLoop:
                 details = await self.client.get_file(file_id)
                 if details.get("ok") and "result" in details:
                     path = details["result"]["file_path"]
-                    await self.client.download_file(
-                        file_path=path, original_name=file_name
-                    )
+                    await self.client.download_file(file_path=path, original_name=file_name)
                 else:
                     logger.error(f"[PollingLoop] get_file failed: {details}")
                     await session.send_message(f"❌ Could not retrieve '{file_name}'")
@@ -250,9 +234,7 @@ class PollingLoop:
 
                 # Paused?
                 if is_paused(chat_id):
-                    logger.info(
-                        f"[PollingLoop] Messaging paused for {chat_id}, skipping LLM"
-                    )
+                    logger.info(f"[PollingLoop] Messaging paused for {chat_id}, skipping LLM")
                     return
 
                 # ── Build LLM parameters from active service ────────────────────────────
@@ -325,10 +307,7 @@ if __name__ == "__main__":
         bot_names = sys.argv[1:] or list(config["telegram"].keys())
         # only pick keys starting with "bot_" and marked enabled
         bot_names = [
-            n
-            for n in bot_names
-            if n.startswith("bot_")
-            and config["telegram"].get(n, {}).get("enabled", False)
+            n for n in bot_names if n.startswith("bot_") and config["telegram"].get(n, {}).get("enabled", False)
         ]
 
         tasks: List[asyncio.Task] = []
@@ -352,7 +331,5 @@ if __name__ == "__main__":
         else:
             logger.warning("[Main] No bots started; check your config.")
 
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     asyncio.run(main())

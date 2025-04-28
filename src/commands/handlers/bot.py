@@ -1,5 +1,6 @@
 # src/commands/handlers/bot.py
 
+import html
 import logging
 from typing import Any, List
 
@@ -12,7 +13,11 @@ from src.session.session_manager import (
     resume,
 )
 
+# Create logger
 logger = logging.getLogger(__name__)
+
+# Log that the help handler is being loaded
+logger.info("[Help Handler] bot.py is being loaded")
 
 
 @register_command("/bot")
@@ -40,24 +45,30 @@ async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) ->
     maxtoken = default_conf.get("maxtoken")
 
     chat_id = session.chat_id
-    # available = get_available_bots()
     current_bot = get_active_bot(chat_id)
     is_active = not is_paused(chat_id)
     status = "✅ online" if is_active else "⏸️ offline"
-    # Escape underscores for Markdown
-    safe_bot = current_bot.replace("_", "\\_")
+
+    # Escape special characters in bot name and other fields for HTML
+    safe_bot = html.escape(current_bot) if current_bot else ""  # Escape the bot name to avoid HTML issues
+    safe_bot = html.unescape(safe_bot)  # Unescape any HTML entities
+
+    safe_service = html.escape(service)
+    safe_model = html.escape(model)
+    safe_temperature = html.escape(str(temperature))
+    safe_maxtoken = html.escape(str(maxtoken))
 
     # No args: show settings
     if not args:
         lines = [
-            f"*{display_name}* ({safe_bot})",
+            f"<b>{html.escape(display_name)}</b> ({safe_bot})",  # Display name in bold
             f"{status}",
-            f"Service: {service}",
-            f"{model}",
-            f"Temp: {temperature}",
-            f"Tokens: {maxtoken}",
+            f"Service: {safe_service}",
+            f"Model: {safe_model}",
+            f"Temp: {safe_temperature}",
+            f"Tokens: {safe_maxtoken}",
         ]
-        await session.send_message("\n".join(lines))
+        await session.send_message("\n".join(lines), parse_mode="HTML")
         return
 
     arg = args[0].lower()

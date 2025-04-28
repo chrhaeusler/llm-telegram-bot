@@ -4,98 +4,89 @@ import logging
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from src.commands.commands_registry import get_command_handler
-from src.config_loader import config_loader
 from src.session.session_manager import get_session, is_paused
+from src.telegram.poller import ChatSession
+from src.utils.escape_html import html_escape
 
 logger = logging.getLogger(__name__)
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
 
 
 async def route_message(
     *,
-    session: Any,
+    session: ChatSession,
     message: Dict[str, Any],
-    llm_call: Optional[
-        Callable[[str, Optional[str], float, int], Awaitable[str]]
-    ] = None,
+    llm_call: Optional[Callable[[str, str, float, int], Awaitable[str]]] = None,
     model: str = "",
     temperature: float = 0.7,
     maxtoken: int = 1024,
 ) -> None:
     """
-    Routes an incoming message to either:
-      • a registered slash‐command handler, or
-      • the LLM service for free‐text prompts.
+    Routes an incoming Telegram message:
+      • Slash command → dispatch to handler
+      • Free-text → call LLM (if not paused)
+
+    All outgoing text is HTML-escaped and sent in HTML mode.
+
+    Args:
+        session: ChatSession wrapper with send_message()
+        message: Raw Telegram message dict
+        llm_call: Coroutine function for LLM calls
+        model: Default model name
+        temperature: Sampling temperature
+        maxtoken: Max tokens for LLM
     """
     text = message.get("text", "").strip()
-    chat = message.get("chat", {})
-    chat_id = chat.get("id")
+    chat_id = session.chat_id
 
     if not text:
         logger.warning("[Routing] Empty text; ignoring.")
         return
 
+    # ── Slash Commands ──────────────────────────────────────────────────────
     if text.startswith("/"):
         parts = text.split()
-        raw = parts[0]  # '/help' or '/help@BotName'
+        raw = parts[0]
         args = parts[1:]
 
         cmd = raw.lstrip("/")
         if "@" in cmd:
             cmd = cmd.split("@", 1)[0]
 
-        logger.info(f"[Routing] Checking for handler for command: /{cmd}")
+        logger.info(f"[Routing] Handling command: /{cmd}")
         handler = get_command_handler(cmd)
-
         if handler:
-            logger.info(f"[Routing] ‹/{cmd}› → command handler, args={args}")
             try:
-                await handler(session, message, args)
+                await handler(session=session, message=message, args=args)
             except Exception as e:
-                logger.exception(f"[Routing] Error in handler ‹/{cmd}›: {e}")
-                await session.send_message(f"❌ Error executing /{cmd}: `{e}`")
+                logger.exception(f"[Routing] Error in handler /{cmd}: {e}")
+                await session.send_message(html_escape(f"❌ Error executing /{cmd}: {e}"))
         else:
-            logger.warning(f"[Routing] Command handler not found for ‹/{cmd}›")
-            await session.send_message(
-                f"⚠️ Unknown command: /{cmd}\nSend /help for a list."
-            )
+            await session.send_message(html_escape(f"⚠️ Unknown command: /{cmd}\nSend /help for a list."))
         return
 
-    # ── Free-text → LLM ──────────────────────────────────────────────────────
-
+    # ── Free-text → LLM ────────────────────────────────────────────────────
     if is_paused(chat_id):
-        logger.info(f"[Routing] Messaging paused for chat {chat_id}; skipping LLM.")
+        logger.info(f"[Routing] Messaging paused for chat {chat_id}")
         return
 
-    logger.info("[Routing] Free-text input; sending to LLM…")
+    if llm_call is None:
+        logger.error("[Routing] No LLM call provided; skipping free-text.")
+        return
+
+    # Override model based on active service
+    real_session = get_session(chat_id)
+    svc = real_session.active_service
+    if svc:
+        from src.config_loader import config_loader
+
+        cfg = config_loader()
+        svc_conf = cfg.get("services", {}).get(svc, {})
+        model = svc_conf.get("model", model)
+        logger.debug(f"[Routing] Using service {svc}, model {model}")
 
     try:
-        # Always access the latest session state
-        real_session = get_session(chat_id)
-
-        if real_session.active_service:
-            config = config_loader()
-            service_conf = config.get("services", {}).get(
-                real_session.active_service, {}
-            )
-            model = service_conf.get("model", model)
-            logger.debug(
-                f"[Routing] Using overridden service: {real_session.active_service}, model: {model}"
-            )
-        else:
-            logger.debug(f"[Routing] Using default model: {model}")
-
-        if llm_call is None:
-            logger.error("No LLM-call function passed for free-text; skipping.")
-            return
-
         reply = await llm_call(text, model, temperature, maxtoken)
-        await session.send_message(reply)
-
+        await session.send_message(html_escape(reply))
     except Exception as e:
         logger.exception(f"[Routing] LLM call failed: {e}")
-        await session.send_message(f"❌ LLM service error: `{e}`")
+        await session.send_message(html_escape(f"❌ LLM service error: {e}"))

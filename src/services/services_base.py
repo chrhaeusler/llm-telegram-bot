@@ -26,9 +26,7 @@ class BaseLLMService(ABC):
         self.retries: int = config.get("retries", 2)
 
     @abstractmethod
-    async def send_prompt(
-        self, prompt: str, model: Optional[str], temperature: float, maxtoken: int
-    ) -> str:
+    async def send_prompt(self, prompt: str, model: Optional[str], temperature: float, maxtoken: int) -> str:
         """
         Send a prompt to the LLM service and return the response.
 

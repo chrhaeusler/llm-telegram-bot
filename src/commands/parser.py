@@ -37,6 +37,7 @@ def parse_command(text: str, info: CommandInfo) -> ParsedCommand:
     raw_args = " ".join(parts[1:])
 
     # We expect info.args_schema to be a list of ArgSpec objects, not dicts.
+    # error: "CommandInfo" has no attribute "args_schema"
     schema: List[ArgSpec] = info.args_schema or []
     result: dict[str, Any] = {}
     remaining: List[str] = parts[1:]
@@ -61,9 +62,7 @@ def parse_command(text: str, info: CommandInfo) -> ParsedCommand:
                     try:
                         result[name] = int(val)
                     except ValueError:
-                        raise ArgParseError(
-                            f"Expected integer for '{name}', got '{val}'"
-                        )
+                        raise ArgParseError(f"Expected integer for '{name}', got '{val}'")
                 elif typ == "float":
                     try:
                         result[name] = float(val)

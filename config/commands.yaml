@@ -135,9 +135,9 @@ char:
   usage: /char <list|switch|show|update> [<value>]
   description: >
     Manage characters & scenarios:
-      • list:   list available chars + their scenarios  
+      • list:   list available chars + their scenarios
       • show:   show current (or indexed) char+scenario details
-      • reset:  reload char from its YAML file  
+      • reset:  reload char from its YAML file
       • switch: switch to given char (by name or index)
   args:
     - name: action
@@ -151,7 +151,7 @@ memory:
   usage: /memory <show|update> [<value>]
   description: >
     Manage session memory:
-      • show:    display all memory buckets  
+      • show:    display all memory buckets
       • update:  add or replace a memory entry
   args:
     - name: action
@@ -166,12 +166,12 @@ history:
   usage: /history <on|off|files|sum|extract|new|save|load> [arg]
   description: >
     Manage chat history (per char+scenario):
-      • on/off:   toggle logging  
-      • files:    list saved histories  
-      • sum:      summarize chat & confirm replacing history  
-      • extract:  extract key facts → memory  
-      • new <t>:  replace history with text <t>  
-      • save <f>: save current history to file <f>  
+      • on/off:   toggle logging
+      • files:    list saved histories
+      • sum:      summarize chat & confirm replacing history
+      • extract:  extract key facts → memory
+      • new <t>:  replace history with text <t>
+      • save <f>: save current history to file <f>
       • load <v>: load saved history by index or name
   args:
     - name: action

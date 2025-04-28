@@ -6,7 +6,11 @@ from typing import Any, List
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 
+# Create logger
 logger = logging.getLogger(__name__)
+
+# Log that the help handler is being loaded
+logger.info("[Help Handler] bots.py is being loaded")
 
 
 @register_command("/bots")
@@ -34,7 +38,7 @@ async def bots_handler(session: Any, message: dict, args: List[str]) -> None:
         await session.send_message("⚠️ No bots configured.")
         return
 
-    lines = ["*Configured and enabled bots:*"]
+    lines = ["<b>Configured and enabled bots:</b>"]
     for idx, (name, handle) in enumerate(bots_list):
         # Display index, name, and handle
         if handle:
@@ -42,4 +46,4 @@ async def bots_handler(session: Any, message: dict, args: List[str]) -> None:
         else:
             lines.append(f"{idx+1}. {name}")
 
-    await session.send_message("\n".join(lines))
+    await session.send_message("\n".join(lines), parse_mode="HTML")

@@ -1,35 +1,56 @@
+# src/commands/handlers/tokens.py
+
 import logging
 from typing import Any, Dict, List
 
 from src.commands.commands_registry import register_command
-from src.telegram.poller import ChatSession
+from src.config_loader import config_loader
+from src.session.session_manager import (
+    get_maxtoken,
+    set_maxtoken,
+)
+from src.utils.escape_html import html_escape
 
 logger = logging.getLogger(__name__)
+logger.info("[Tokens Handler] tokens.py is being loaded")
 
 
 @register_command("/tokens")
-async def handle_temperature(
-    session: ChatSession, message: Dict[str, Any], args: List[str]
-) -> None:
+async def tokens_handler(session: Any, message: Dict[str, Any], args: List[str]) -> None:
     """
-    Get or set the temperature for the model in this session.
-    Usage:
-      /temperature           → shows current
-      /temperature 0.7        → sets new temp
+    /tokens [<value>]
+    Show or set the current token limit for the LLM model:
+      • no value: show current tokens
+      • <value>: set token limit to <value>
     """
+    chat_id = session.chat_id
+
     if not args:
-        current_temp = session._session.model_config.temperature
-        await session.send_message(f"🌡 Current temperature: `{current_temp}`")
+        # No argument, show current tokens
+        current_tokens = get_maxtoken(chat_id)
+        if current_tokens is None:
+            current_tokens = config_loader()["telegram"][session.client.bot_name]["default"].get("maxtoken", 4096)
+
+        await session.send_message(
+            f"Current token limit: <b>{html_escape(str(current_tokens))}</b>",
+            parse_mode="HTML",
+        )
         return
 
     try:
-        new_temp = float(args[0])
-        if not (0.0 <= new_temp <= 2.0):
-            raise ValueError
-
-        session._session.model_config.temperature = new_temp
-        await session.send_message(f"✅ Temperature set to `{new_temp}`")
+        # Try to parse the argument as an integer
+        new_tokens = int(args[0])
     except ValueError:
         await session.send_message(
-            "⚠️ Invalid temperature. Please provide a number between 0.0 and 2.0.\nExample: `/temperature 0.7`"
+            "⚠️ Invalid token value. Please provide a valid integer.",
+            parse_mode="HTML",
         )
+        return
+
+    # Set new token limit
+    set_maxtoken(chat_id, new_tokens)
+
+    await session.send_message(
+        f"✅ Token limit has been set to <b>{html_escape(str(new_tokens))}</b>",
+        parse_mode="HTML",
+    )

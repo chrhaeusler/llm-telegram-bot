@@ -1,32 +1,58 @@
-# File: src/commands/handlers/temperature.py
+# src/commands/handlers/temperature.py
 
 import logging
 from typing import Any, Dict, List
 
 from src.commands.commands_registry import register_command
+from src.config_loader import config_loader
+from src.session.session_manager import (
+    get_temperature,
+    set_temperature,
+)
+from src.utils.escape_html import html_escape
 
 logger = logging.getLogger(__name__)
+logger.info("[Temperature Handler] temperature.py is being loaded")
 
 
 @register_command("/temp")
-async def handle_temperature(
-    session: Any, message: Dict[str, Any], args: List[str]
-) -> None:
+async def temperature_handler(session: Any, message: Dict[str, Any], args: List[str]) -> None:
     """
-    /temperature [value]
-    Gets or sets the default temperature for the active chat session.
+    /temperature [<value>]
+    Show or set the current temperature for the LLM model:
+      • no value: show current temperature
+      • <value>: set temperature to <value>
     """
+    chat_id = session.chat_id
+
     if not args:
-        await session.send_message(f"🌡 Current temperature: {session.temperature:.2f}")
+        # No argument, show current temperature
+        current_temperature = get_temperature(chat_id)
+        if current_temperature is None:
+            current_temperature = config_loader()["telegram"][session.client.bot_name]["default"].get(
+                "temperature", 0.0
+            )
+
+        await session.send_message(
+            f"Current temperature: <code>{html_escape(str(current_temperature))}</code>",
+            parse_mode="HTML",
+        )
         return
 
     try:
-        new_temp = float(args[0])
-        if not 0.0 <= new_temp <= 2.0:
-            raise ValueError("Temperature must be between 0.0 and 2.0")
+        # Try to parse the argument as a float
+        new_temperature = float(args[0])
+    except ValueError:
+        await session.send_message(
+            "⚠️ Invalid temperature value. Please provide a valid number.",
+            parse_mode="HTML",
+        )
+        return
 
-        session.temperature = new_temp
-        await session.send_message(f"✅ Temperature set to {new_temp:.2f}")
+    # Set new temperature
+    set_temperature(chat_id, new_temperature)
 
-    except ValueError as e:
-        await session.send_message(f"⚠️ Invalid temperature: {e}")
+    await session.send_message(
+        f"✅ Temperature has been set to <b>{html_escape(str(new_temperature))}</b>",
+        parse_mode="HTML",
+    )

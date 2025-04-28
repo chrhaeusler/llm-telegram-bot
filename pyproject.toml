@@ -1,3 +1,13 @@
+# pyproject.toml
+# ----------------
+# Project metadata and centralized configuration
+# Tools configured: poetry (for dependencies), black, ruff, mypy
+#
+# Commands to remember:
+# Install dependencies: poetry install
+# Add a package: poetry add <package-name>
+# Update pyproject.toml: poetry update
+
 [tool.poetry]
 name = "llm-telegram-bot"
 version = "0.1.0"
@@ -6,17 +16,51 @@ authors = ["Your Name <your.email@example.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.11"
 requests = "^2.26"
 python-telegram-bot = "^13.0"
 PyYAML = "^5.4"
 
 [tool.poetry.dev-dependencies]
-black = "^21.9b0"
+black = "^23.9.1"
 pytest = "^6.2"
-mypy = "^0.910"
-ruff = "^0.0.0"
+mypy = "^1.4.1"
+ruff = "^0.1.7"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+# --------------------------------------------------
+# Ruff configuration for linting and formatting
+#
+# Commands:
+#   ruff check .     # to lint code
+#   ruff format .    # to auto-format code
+# --------------------------------------------------
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = ["tests/*", "tmp/*"]
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# --------------------------------------------------
+# Black configuration for code formatting
+#
+# Commands:
+#   black .          # to auto-format code
+# --------------------------------------------------
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+skip-string-normalization = true  # Keep double quotes if possible

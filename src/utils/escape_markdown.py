@@ -1,11 +1,11 @@
-# src/utils/markdown.py
+# src/utils/escape_markdown.py
 
 import re
 
 _escape_chars = r"_*[]()~`>#+-=|{}.!<>"
 
 
-def escape_markdown(text: str) -> str:
+def markdown_escape(text: str) -> str:
     """
     Escape special characters for Telegram MarkdownV2 formatting.
     """
@@ -16,4 +16,4 @@ def safe_message(text: str) -> str:
     """
     Prepares a message to send safely by escaping MarkdownV2 characters.
     """
-    return escape_markdown(text)
+    return markdown_escape(text)
