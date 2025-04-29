@@ -10,6 +10,8 @@ Adds get_registered_commands() to fetch a list of what’s implemented.
 import logging
 from typing import Awaitable, Callable, Optional
 
+from . import handlers  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 CommandHandler = Callable[..., Awaitable[None]]
@@ -51,3 +53,9 @@ async def dummy_handler(*args, **kwargs) -> None:
 def get_known_handlers() -> dict[str, CommandHandler]:
     """Return a copy of all known command handlers."""
     return _command_registry.copy()
+
+
+# For testing
+def clear_registry():
+    """Clear all registered commands."""
+    _command_registry.clear()

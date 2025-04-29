@@ -13,9 +13,6 @@ from config_loader import config_loader
 from services.service_groq import GroqService
 from services.service_mistral import MistralService
 
-# Add the src directory to sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
 
 async def test_service(service_class, service_name, model_name):
     print(f"\n🚀 Testing {service_name} / {model_name}")

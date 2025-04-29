@@ -1,5 +1,6 @@
 # src/commands/handlers/service.py
 
+
 import logging
 
 from src.commands.commands_registry import register_command
