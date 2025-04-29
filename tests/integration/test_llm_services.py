@@ -1,56 +1,45 @@
-#!/usr/bin/env python3
-import asyncio
-import sys
-from pathlib import Path
+# tests/integration/test_llm_services.py
 
-# run with "PYTHONPATH=src python tests/integration/test_llm_services.py"
+import pytest
 
-# Add the src directory to sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-# Now we can import from src
-from config_loader import config_loader
-from services.service_groq import GroqService
-from services.service_mistral import MistralService
+from src.config_loader import config_loader
+from src.services.service_groq import GroqService
+from src.services.service_mistral import MistralService
 
 
-async def test_service(service_class, service_name, model_name):
-    print(f"\n🚀 Testing {service_name} / {model_name}")
-    # Load your unified config
-    config = config_loader("config/config.yaml")
-    # Extract the service-specific part
-    service_config = config["services"].get(service_name)
-    if not service_config:
-        print(f"❌ No config found for service: {service_name}")
-        return
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("service_class", "service_name", "model_name"),
+    [
+        (GroqService, "groq", "compound-beta-mini"),
+        (MistralService, "mistral", "pixtral-12b-2409"),
+    ],
+)
+async def test_llm_service_endpoint(service_class, service_name, model_name):
+    """
+    Verifies that each LLM service can be instantiated and will
+    return a non‐empty string for a simple prompt.
+    """
+    # load your unified YAML config
+    cfg = config_loader()
 
-    # Instantiate the service
-    service = service_class(config=service_config)
+    # pull out just this service’s config
+    svc_conf = cfg["services"].get(service_name)
+    assert svc_conf is not None, f"No config for service '{service_name}'"
+
+    service = service_class(config=svc_conf)
 
     prompt = "Say hello in a friendly tone"
-    # Try to pick up defaults if you set them in config/services
-    temperature = service_config.get("temperature", 0.7)
-    maxtoken = service_config.get("maxtoken", 100)
+    temperature = svc_conf.get("temperature", 0.7)
+    maxtoken = svc_conf.get("maxtoken", 128)
 
-    try:
-        # Note: new method name is send_prompt(...)
-        response = await service.send_prompt(
-            prompt=prompt,
-            model=model_name,
-            temperature=temperature,
-            maxtoken=maxtoken,
-        )
-        # Truncate for readability
-        snippet = response[:200] + ("..." if len(response) > 200 else "")
-        print("✅ Response:", snippet)
-    except Exception as e:
-        print(f"❌ Error calling {service_name}: {e}")
+    reply = await service.send_prompt(
+        prompt=prompt,
+        model=model_name,
+        temperature=temperature,
+        maxtoken=maxtoken,
+    )
 
-
-async def main():
-    await test_service(GroqService, "groq", "compound-beta-mini")
-    await test_service(MistralService, "mistral", "pixtral-12b-2409")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    # sanity‐check
+    assert isinstance(reply, str)
+    assert reply.strip(), "Expected a non‐empty reply"
