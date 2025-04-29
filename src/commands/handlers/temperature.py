@@ -34,7 +34,7 @@ async def temperature_handler(session: Any, message: Dict[str, Any], args: List[
             )
 
         await session.send_message(
-            f"Current temperature: <code>{html_escape(str(current_temperature))}</code>",
+            f"Current temperature: <b>{html_escape(str(current_temperature))}</b>",
             parse_mode="HTML",
         )
         return

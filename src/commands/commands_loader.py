@@ -4,7 +4,7 @@ lets us load the command descriptions from commands.yaml and fetch usage/help in
 
 # src/commands/commands_loader.py
 
-import html  # NEW
+import html
 from pathlib import Path
 
 import yaml

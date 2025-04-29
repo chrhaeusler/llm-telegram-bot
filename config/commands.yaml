@@ -16,6 +16,7 @@ status:
   description: Check whether the current bot, service, model, etc. are usable
   args: []
 
+# TO DO
 undo:
   usage: /undo
   description: Undo the last configuration change (e.g. model/service)
@@ -83,11 +84,13 @@ temperature:
     - name: temperature
       type: float
 
+# TO DO
 setdefaults:
   usage: /setdefaults
   description: Save current config (service, model, etc.) as bot’s default
   args: []
 
+# TO DO
 defaults:
   usage: /defaults [global]
   description: Reset to bot defaults or use global defaults when “global” is provided
@@ -98,6 +101,7 @@ defaults:
       optional: true
 
 # ── Save & Export ────────────────────────────────────────────────────────
+# TO DO
 savestring:
   usage: /savethis [<text>]
   description: Save any string locally (doesn’t send to LLM)
@@ -106,16 +110,18 @@ savestring:
       type: str
       optional: true
 
+# TO DO
 savelastprompt:
-  usage: /su [<filename>]
+  usage: /slp [<filename>]
   description: Save the last user input to file (timestamped if no name)
   args:
     - name: filename
       type: str
       optional: true
 
+# TO DO
 savelastresponse:
-  usage: /sr [--ask|<filename>]
+  usage: /slr [--ask|<filename>]
   description: >
     • Save the last model response.
     • If “--ask”, prompt for a filename;
@@ -130,7 +136,7 @@ savelastresponse:
       optional: true
 
 # ── Roleplay & Memory Commands ────────────────────────────────────────────
-
+# TO DO
 char:
   usage: /char <list|switch|show|update> [<value>]
   description: >
@@ -162,6 +168,7 @@ memory:
       optional: true
 
 # ── History ───────────────────────────────────────────────────────────────
+# TO DO
 history:
   usage: /history <on|off|files|sum|extract|new|save|load> [arg]
   description: >
@@ -182,11 +189,13 @@ history:
       optional: true
 
 # ── Jailbreaks ───────────────────────────────────────────────────────────
+# TO DO
 jailbreaks:
   usage: /jbs
   description: List all available jailbreak prompts
   args: []
 
+# TO DO
 sendjailbreak:
   usage: /jb <index>
   description: Send a specific jailbreak prompt to the model
