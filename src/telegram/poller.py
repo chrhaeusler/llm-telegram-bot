@@ -12,7 +12,7 @@ from src.config_loader import config_loader
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
 from src.services.services_base import BaseLLMService
-from src.session.session_manager import get_maxtoken, get_session, get_temperature
+from src.session.session_manager import get_effective_llm_params, get_session
 from src.telegram.client import TelegramClient
 
 logger = logging.getLogger(__name__)
@@ -22,9 +22,6 @@ logging.basicConfig(
     level=logging.INFO,  # Ensure DEBUG messages are logged
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
-
-# after this many seconds of no activity, back off
-ACTIVE_PERIOD = 300
 
 
 class ChatSession:
@@ -73,13 +70,23 @@ class PollingLoop:
 
         logger.debug(f"[PollingLoop] Init bot={bot_name} chat_id={self.chat_id}")
 
-        # polling intervals (per-bot override or global default)
-        self.active_interval = self.bot_config.get("polling_interval_active", telegram_conf["polling_interval_active"])
-        self.idle_interval = self.bot_config.get("polling_interval_idle", telegram_conf["polling_interval_idle"])
+        # polling config: allow per-bot override, otherwise fall back to global
+        tg_config = config.get("telegram", {})
+        bot_config = tg_config.get(bot_name, {})
+
+        self.polling_active_period = bot_config.get(
+            "polling_active_period", tg_config.get("polling_active_period", 300)
+        )
+        self.polling_interval_active = bot_config.get(
+            "polling_interval_active", tg_config.get("polling_interval_active", 5)
+        )
+        self.polling_interval_idle = bot_config.get(
+            "polling_interval_idle", tg_config.get("polling_interval_idle", 120)
+        )
 
         # state trackers
         self.last_event_time = time.time()
-        self.current_interval = self.active_interval
+        self.current_interval = self.polling_interval_active
         self.last_update_id = None
         self._running = True
 
@@ -88,13 +95,17 @@ class PollingLoop:
         self.download_dir = os.path.join(base, bot_name, str(self.chat_id))
         os.makedirs(self.download_dir, exist_ok=True)
 
-        # instantiate the LLM service for this bot
-        svc_name = self.bot_config["default"]["service"]
+        # ── Instantiate the LLM service for this bot ───────────────────────────────
+        svc_name: str = self.bot_config["default"]["service"]
         svc_conf = config["services"].get(svc_name)
-        # explicitly tell MyPy the intended interface
+
         if svc_conf is None:
-            raise ValueError(f"No configuration for service '{svc_name}'")
+            raise ValueError(f"No configuration found for service '{svc_name}'")
+
+        # Explicitly declare the LLM service type
         self.llm_service: BaseLLMService
+
+        # Choose correct implementation
         if svc_name == "groq":
             self.llm_service = GroqService(config=svc_conf)
         elif svc_name == "mistral":
@@ -102,7 +113,7 @@ class PollingLoop:
         else:
             raise ValueError(f"Unsupported service '{svc_name}'")
 
-        logging.debug(
+        logger.debug(
             f"[PollingLoop] Initialized bot={bot_name}, "
             f"service={svc_name}, model={self.bot_config['default']['model']}"
         )
@@ -121,18 +132,20 @@ class PollingLoop:
                         self.last_update_id = upd["update_id"] + 1
                         await self.handle_update(upd)
 
-                    # reset back to active rate
+                    # reset to active interval on activity
                     self.last_event_time = time.time()
-                    if self.current_interval != self.active_interval:
-                        logger.info(f"[PollingLoop] Activity → switching to active interval {self.active_interval}s")
-                    self.current_interval = self.active_interval
+                    if self.current_interval != self.polling_interval_active:
+                        logger.info(
+                            f"[PollingLoop] Activity → switching to active interval {self.polling_interval_active}s"
+                        )
+                    self.current_interval = self.polling_interval_active
 
                 else:
                     idle = time.time() - self.last_event_time
-                    if idle > ACTIVE_PERIOD:
+                    if idle > self.polling_active_period:
                         new_int = min(
-                            self.current_interval + self.active_interval,
-                            self.idle_interval,
+                            self.current_interval + self.polling_interval_active,
+                            self.polling_interval_idle,
                         )
                         if new_int != self.current_interval:
                             last_seen = datetime.datetime.fromtimestamp(self.last_event_time).strftime(
@@ -150,7 +163,7 @@ class PollingLoop:
                 break
             except Exception:
                 logger.exception("[PollingLoop] Unexpected error, sleeping idle interval")
-                await asyncio.sleep(self.idle_interval)
+                await asyncio.sleep(self.polling_interval_idle)
 
     async def _get_updates_with_retries(self) -> Dict[str, Any]:
         attempts, max_attempts = 0, 5
@@ -237,49 +250,16 @@ class PollingLoop:
                     logger.info(f"[PollingLoop] Messaging paused for {chat_id}, skipping LLM")
                     return
 
-                # ── Build LLM parameters from active service ────────────────────────────
-                bot_def = self.bot_config["default"]
-                bot_def_service = bot_def.get("service")
-                bot_def_model = bot_def.get("model")
-                bot_def_temp = bot_def.get("temperature")
-                bot_def_max = bot_def.get("maxtoken")
-
                 svc_name = state.active_service
-                assert svc_name is not None, "active_service was not initialized"
-                svc_conf = self.config.get("services", {}).get(svc_name, {})
+                if svc_name is None:
+                    raise ValueError("No active service is selected")
 
-                from src.session.session_manager import get_model
+                bot_def = self.bot_config["default"]
+                svc_conf = self.config["services"].get(svc_name, {})
 
-                # 1) Manual override for model wins
-                manual_model = get_model(chat_id)
-                if manual_model:
-                    model = manual_model
-                elif svc_name == bot_def_service:
-                    model = bot_def_model
-                else:
-                    model = svc_conf.get("model", bot_def_model)
+                # now just:
+                model, temperature, maxtoken = get_effective_llm_params(chat_id, bot_def, svc_conf)
 
-                # 2) Manual override for temperature and tokens
-                manual_temp = get_temperature(chat_id)
-                manual_tokens = get_maxtoken(chat_id)
-
-                if manual_temp is not None:
-                    temperature = manual_temp
-                else:
-                    if svc_name == bot_def_service:
-                        temperature = bot_def_temp
-                    else:
-                        temperature = svc_conf.get("temperature", bot_def_temp)
-
-                if manual_tokens is not None:
-                    maxtoken = manual_tokens
-                else:
-                    if svc_name == bot_def_service:
-                        maxtoken = bot_def_max
-                    else:
-                        maxtoken = svc_conf.get("maxtoken", bot_def_max)
-
-                # Instantiate the correct LLM service and send prompt
                 service = get_service_for_name(svc_name, svc_conf)
                 reply = await service.send_prompt(
                     prompt=text,

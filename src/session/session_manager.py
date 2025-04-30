@@ -127,6 +127,44 @@ def set_maxtoken(chat_id: int, max_tokens: int) -> None:
     get_session(chat_id).model_config.max_tokens = max_tokens
 
 
+def get_effective_llm_params(
+    chat_id: int,
+    bot_default: dict[str, Any],
+    svc_conf: dict[str, Any],
+) -> tuple[str, float, int]:
+    """
+    Return (model, temperature, maxtoken) for this chat by:
+      1) Manual overrides in session
+      2) If using the bot’s default service → use bot_default
+      3) Otherwise → use svc_conf defaults
+    """
+    sess = get_session(chat_id)
+
+    # 1) Model override?
+    model = sess.active_model or ""
+    if not model:
+        if sess.active_service == bot_default.get("service"):
+            model = bot_default.get("model", "")
+        else:
+            model = svc_conf.get("model", bot_default.get("model", ""))
+
+    # 2) Temperature override?
+    temp = sess.model_config.temperature
+    if sess.active_service == bot_default.get("service"):
+        temp = bot_default.get("temperature", temp)
+    else:
+        temp = svc_conf.get("temperature", temp)
+
+    # 3) Max‐tokens override?
+    mt = sess.model_config.max_tokens
+    if sess.active_service == bot_default.get("service"):
+        mt = bot_default.get("maxtoken", mt)
+    else:
+        mt = svc_conf.get("maxtoken", mt)
+
+    return model, float(temp), int(mt)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Chat Management
 def pause(chat_id: int) -> None:
