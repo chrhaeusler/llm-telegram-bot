@@ -23,9 +23,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
-# after this many seconds of no activity, back off
-ACTIVE_PERIOD = 300
-
 
 class ChatSession:
     """
@@ -73,13 +70,23 @@ class PollingLoop:
 
         logger.debug(f"[PollingLoop] Init bot={bot_name} chat_id={self.chat_id}")
 
-        # polling intervals (per-bot override or global default)
-        self.active_interval = self.bot_config.get("polling_interval_active", telegram_conf["polling_interval_active"])
-        self.idle_interval = self.bot_config.get("polling_interval_idle", telegram_conf["polling_interval_idle"])
+        # polling config: allow per-bot override, otherwise fall back to global
+        tg_config = config.get("telegram", {})
+        bot_config = tg_config.get(bot_name, {})
+
+        self.polling_active_period = bot_config.get(
+            "polling_active_period", tg_config.get("polling_active_period", 300)
+        )
+        self.polling_interval_active = bot_config.get(
+            "polling_interval_active", tg_config.get("polling_interval_active", 5)
+        )
+        self.polling_interval_idle = bot_config.get(
+            "polling_interval_idle", tg_config.get("polling_interval_idle", 120)
+        )
 
         # state trackers
         self.last_event_time = time.time()
-        self.current_interval = self.active_interval
+        self.current_interval = self.polling_interval_active
         self.last_update_id = None
         self._running = True
 
@@ -125,18 +132,20 @@ class PollingLoop:
                         self.last_update_id = upd["update_id"] + 1
                         await self.handle_update(upd)
 
-                    # reset back to active rate
+                    # reset to active interval on activity
                     self.last_event_time = time.time()
-                    if self.current_interval != self.active_interval:
-                        logger.info(f"[PollingLoop] Activity → switching to active interval {self.active_interval}s")
-                    self.current_interval = self.active_interval
+                    if self.current_interval != self.polling_interval_active:
+                        logger.info(
+                            f"[PollingLoop] Activity → switching to active interval {self.polling_interval_active}s"
+                        )
+                    self.current_interval = self.polling_interval_active
 
                 else:
                     idle = time.time() - self.last_event_time
-                    if idle > ACTIVE_PERIOD:
+                    if idle > self.polling_active_period:
                         new_int = min(
-                            self.current_interval + self.active_interval,
-                            self.idle_interval,
+                            self.current_interval + self.polling_interval_active,
+                            self.polling_interval_idle,
                         )
                         if new_int != self.current_interval:
                             last_seen = datetime.datetime.fromtimestamp(self.last_event_time).strftime(
@@ -154,7 +163,7 @@ class PollingLoop:
                 break
             except Exception:
                 logger.exception("[PollingLoop] Unexpected error, sleeping idle interval")
-                await asyncio.sleep(self.idle_interval)
+                await asyncio.sleep(self.polling_interval_idle)
 
     async def _get_updates_with_retries(self) -> Dict[str, Any]:
         attempts, max_attempts = 0, 5
