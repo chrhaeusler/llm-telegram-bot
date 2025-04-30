@@ -8,6 +8,10 @@ from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.session.session_manager import (
     get_active_bot,
+    get_maxtoken,
+    get_model,
+    get_service,
+    get_temperature,
     is_paused,
     pause,
     resume,
@@ -36,25 +40,33 @@ async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) ->
     bot_name = session.client.bot_name
     bot_conf = telegram_conf.get(bot_name, {})
 
+    chat_id = session.chat_id
+
     # Defaults
-    default_conf = bot_conf.get("default", {})
-    display_name = bot_conf.get("name", bot_name)
-    service = default_conf.get("service")
-    model = default_conf.get("model")
-    temperature = default_conf.get("temperature")
-    maxtoken = default_conf.get("maxtoken")
+    # default_conf = bot_conf.get("default", {})
+
+    #    service = default_conf.get("service")
+    #    model = default_conf.get("model")
+    #    temperature = default_conf.get("temperature")
+    #    maxtoken = default_conf.get("maxtoken")
 
     chat_id = session.chat_id
     current_bot = get_active_bot(chat_id)
+    display_name = bot_conf.get("name", bot_name)
     is_active = not is_paused(chat_id)
     status = "✅ online" if is_active else "⏸️ offline"
+
+    service = get_service(chat_id)
+    model = get_model(chat_id)
+    temperature = get_temperature(chat_id)
+    maxtoken = get_maxtoken(chat_id)
 
     # Escape special characters in bot name and other fields for HTML
     safe_bot = html.escape(current_bot) if current_bot else ""  # Escape the bot name to avoid HTML issues
     safe_bot = html.unescape(safe_bot)  # Unescape any HTML entities
 
-    safe_service = html.escape(service)
-    safe_model = html.escape(model)
+    safe_service = html.escape(service or "")
+    safe_model = html.escape(model or "")
     safe_temperature = html.escape(str(temperature))
     safe_maxtoken = html.escape(str(maxtoken))
 

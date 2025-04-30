@@ -189,7 +189,7 @@ history:
       optional: true
 
 # ── Jailbreaks ───────────────────────────────────────────────────────────
-# TO DO
+# TO DO; this command can be merged with /jb (just /jb showing all jailbreaks and /jb <number> applying it to the prompt (or just history [to be send with the future prompts)
 jailbreaks:
   usage: /jbs
   description: List all available jailbreak prompts
