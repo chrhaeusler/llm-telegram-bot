@@ -100,15 +100,21 @@ defaults:
       choices: [global]
       optional: true
 
-# ── Save & Export ────────────────────────────────────────────────────────
-# TO DO
+# ── Save & Export ──────────────────────────────────────────────────────
 savestring:
-  usage: /savethis [<text>]
-  description: Save any string locally (doesn’t send to LLM)
+  usage: /savestr [<filename>] <text>
+  description: Save an arbitrary string locally
+    • If `<filename>` (.txt, .log, .md) is provided, write into that file
+    • Otherwise auto‐generate `<timestamp>_savestring.txt`
   args:
-    - name: text
+    - name: filename
       type: str
       optional: true
+      description: Destination filename
+    - name: text
+      type: str
+      optional: false
+      description: The text to save
 
 # TO DO
 savelastprompt:
@@ -136,6 +142,8 @@ savelastresponse:
       optional: true
 
 # ── Roleplay & Memory Commands ────────────────────────────────────────────
+# Note: each char already has a scenario bound to it; we also need to add a /user command similarly to the /char command because we have json files with configuration for char + its scenario and for differen user (i.e. its name + role)
+
 # TO DO
 char:
   usage: /char <list|switch|show|update> [<value>]

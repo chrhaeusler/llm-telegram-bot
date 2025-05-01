@@ -7,7 +7,9 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
-from src.commands.handlers import bot, bots, help, model, models, service, status, temperature, tokens  # noqa: F401
+import src.commands.handlers  # noqa: F401
+
+# from src.commands.handlers import bot, bots, help, model, models, service, status, temperature, tokens  # noqa: F401
 from src.config_loader import config_loader
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
