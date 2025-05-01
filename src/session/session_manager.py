@@ -38,12 +38,33 @@ _sessions: Dict[int, Session] = {}
 
 
 def get_session(chat_id: int) -> Session:
+    """
+    Retrieve an existing Session or create a new one.
+    When newly creating, seed `active_service` and `active_model`
+    from the telegram-config for whichever bot owns `chat_id`.
+    """
     if chat_id not in _sessions:
         session = Session(chat_id)
-        config = config_loader()
-        default_service = next(iter(config.get("services", {}).keys()), None)
+
+        cfg = config_loader()
+        # 1) Find which bot this chat_id belongs to
+        bot_name = None
+        for name, conf in cfg.get("telegram", {}).items():
+            if isinstance(conf, dict) and conf.get("chat_id") == chat_id:
+                bot_name = name
+                break
+
+        # 2) Seed active_service from first service in config
+        default_service = next(iter(cfg.get("services", {}).keys()), None)
         session.active_service = default_service
+
+        # 3) If we found a bot_name, seed its default model
+        if bot_name:
+            bot_conf = cfg["telegram"][bot_name].get("default", {})
+            session.active_model = bot_conf.get("model")
+
         _sessions[chat_id] = session
+
     return _sessions[chat_id]
 
 
