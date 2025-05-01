@@ -2,7 +2,6 @@
 
 import asyncio
 import datetime
-import logging
 import os
 import time
 from typing import Any, Dict, List, Optional
@@ -16,14 +15,7 @@ from src.services.service_mistral import MistralService
 from src.services.services_base import BaseLLMService
 from src.session.session_manager import get_effective_llm_params, get_session
 from src.telegram.client import TelegramClient
-
-logger = logging.getLogger(__name__)
-# suppress very verbose aiohttp debug logs
-
-logging.basicConfig(
-    level=logging.INFO,  # Ensure DEBUG messages are logged
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+from src.utils.logger import logger
 
 
 class ChatSession:
@@ -114,11 +106,6 @@ class PollingLoop:
             self.llm_service = MistralService(config=svc_conf)
         else:
             raise ValueError(f"Unsupported service '{svc_name}'")
-
-        logger.debug(
-            f"[PollingLoop] Initialized bot={bot_name}, "
-            f"service={svc_name}, model={self.bot_config['default']['model']}"
-        )
 
     def stop(self) -> None:
         self._running = False
@@ -294,7 +281,7 @@ if __name__ == "__main__":
 
         tasks: List[asyncio.Task] = []
         for bot in bot_names:
-            logger.info(f"[BOOT] Initializing {bot}")
+            # logger.info(f"[BOOT] Initializing {bot}")
             conf = config["telegram"][bot]
             client = TelegramClient(
                 token=conf["token"],
@@ -308,10 +295,9 @@ if __name__ == "__main__":
             tasks.append(asyncio.create_task(poller.run()))
 
         if tasks:
-            logger.info(f"[Main] Running {len(tasks)} bot(s): {', '.join(bot_names)}")
+            # logger.info(f"[Main] Running {len(tasks)} bot(s): {', '.join(bot_names)}")
             await asyncio.gather(*tasks)
         else:
             logger.warning("[Main] No bots started; check your config.")
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     asyncio.run(main())

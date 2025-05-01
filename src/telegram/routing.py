@@ -1,14 +1,12 @@
 # src/telegram/routing.py
 
-import logging
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from src.commands.commands_registry import get_command_handler
 from src.session.session_manager import get_session, is_paused
 from src.telegram.poller import ChatSession
 from src.utils.escape_html import html_escape
-
-logger = logging.getLogger(__name__)
+from src.utils.logger import logger
 
 
 async def route_message(

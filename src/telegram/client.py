@@ -32,7 +32,6 @@ await client.send_message("Hi there!")
 """
 
 import itertools
-import logging
 import os
 import time
 from pathlib import Path
@@ -41,34 +40,7 @@ from typing import Any, Dict, List, Optional
 import aiohttp
 
 from src.utils.escape_markdown import safe_message
-
-logger = logging.getLogger(__name__)
-
-
-def setup_logging() -> None:
-    log_directory = "logs"
-    os.makedirs(log_directory, exist_ok=True)
-
-    log_filename = os.path.join(log_directory, "bot_log.log")
-
-    logger.setLevel(logging.DEBUG)
-
-    if not logger.handlers:
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.DEBUG)
-
-        file_handler = logging.FileHandler(log_filename)
-        file_handler.setLevel(logging.DEBUG)
-
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        console_handler.setFormatter(formatter)
-        file_handler.setFormatter(formatter)
-
-        logger.addHandler(console_handler)
-        logger.addHandler(file_handler)
-
-
-setup_logging()
+from src.utils.logger import logger
 
 
 class TelegramClient:
@@ -296,7 +268,3 @@ class TelegramClient:
             logger.exception(f"[download_file] Exception after {time.time() - start:.2f}s")
             await self.send_message(f"❌ Exception downloading file: {e}")
             return {"ok": False, "error_code": 500, "description": str(e)}
-
-
-# Initialize logging configuration on import
-setup_logging()
