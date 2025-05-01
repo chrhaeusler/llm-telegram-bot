@@ -72,7 +72,7 @@ async def service_handler(session, message, args):
 
         await session.send_message(
             f"✅ Switched to\n<b>{new_service}</b>\n"
-            f"{default_model}\n"
+            f"Model: {default_model}\n"
             f"Temp: {temperature}\n"
             f"Tokens: {maxtoken}",
             parse_mode="HTML",

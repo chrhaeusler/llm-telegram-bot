@@ -1,16 +1,4 @@
-# To Do:
-# I added comments above lines or block that raise an error
-# is temperature implemented at all as variable? don't we need it here, too?
-# implement startup message with, date time, bot, service, model, (max) token
-# e.g. like this; but probably better located in main.py?
-# f"Bot started\n"
-# f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
-# f"🤖 {bot_name} in {chat_id}
-# f"🔌 Service: {service}\n"
-# f"🧠 Model: {model}\n"
-# f"🌡️ Temperature: {temperature}\n"
-# f"🔢 Max Tokens: {token}\n"
-# f'ℹ️ Send "/help" for help'
+# src/telegram/client.py
 """
 Telegram API Interface Layer
 
