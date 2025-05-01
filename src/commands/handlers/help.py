@@ -1,11 +1,8 @@
 # src/commands/handlers/help.py
-import logging
 
 from src.commands.commands_loader import format_help_text, load_commands_yaml
 from src.commands.commands_registry import register_command
-
-# Create logger
-logger = logging.getLogger(__name__)
+from src.utils.logger import logger
 
 # Log that the help handler is being loaded
 logger.info("[Help Handler] help.py is being loaded")

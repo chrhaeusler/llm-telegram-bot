@@ -1,18 +1,10 @@
 import json
-import logging
 import os
 from typing import Any, Dict
 
 import yaml
 
-# Setup logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# Optional: also print to console for dev use
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-logger.addHandler(console_handler)
+from src.utils.logger import logger
 
 # Constants
 CONFIG_YAML = "config/config.yaml"

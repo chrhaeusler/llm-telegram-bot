@@ -1,21 +1,21 @@
 # src/commands/handlers/status.py
 
-import logging
 from typing import Any, Dict, List
 
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.session.session_manager import (
-    get_maxtoken,
+    get_max_tokens,
     get_model,
     get_session,
     get_temperature,
     is_paused,
 )
 from src.utils.escape_html import html_escape
+from src.utils.logger import logger
 
-logger = logging.getLogger(__name__)
-logger.info("[Status Handler] status.py is being loaded")
+# Log that the help handler is being loaded
+logger.info("[Help Handler] status.py is being loaded")
 
 
 @register_command("/status")
@@ -47,7 +47,7 @@ async def status_handler(session: Any, message: Dict[str, Any], args: List[str])
         tmp = bot_conf.get("temperature", 0.0)
 
     # Max tokens
-    mx = get_maxtoken(chat_id)
+    mx = get_max_tokens(chat_id)
     if mx is None:
         cfg = config_loader()
         bot_conf = cfg["telegram"][session.client.bot_name]["default"]

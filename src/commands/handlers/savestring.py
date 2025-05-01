@@ -8,6 +8,9 @@ from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.utils.logger import logger
 
+# Log that the help handler is being loaded
+logger.info("[Savestring Handler] savestring.py is being loaded")
+
 
 @register_command("/savestr")
 async def savestring_handler(session: Any, message: dict[str, Any], args: List[str]):

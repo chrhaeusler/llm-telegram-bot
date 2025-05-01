@@ -1,14 +1,13 @@
 # src/commands/handlers/bot.py
 
 import html
-import logging
 from typing import Any, List
 
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.session.session_manager import (
     get_active_bot,
-    get_maxtoken,
+    get_max_tokens,
     get_model,
     get_service,
     get_temperature,
@@ -16,65 +15,60 @@ from src.session.session_manager import (
     pause,
     resume,
 )
+from src.utils.logger import logger
 
-# Create logger
-logger = logging.getLogger(__name__)
-
-# Log that the help handler is being loaded
-logger.info("[Help Handler] bot.py is being loaded")
+logger.info("[Bot Handler] bot.py is being loaded")
 
 
 @register_command("/bot")
 async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) -> None:
     """
-    /bot [<index>|pause|resume]
+    /bot [pause|resume]
     Manage the current bot:
       • no args: show current settings
       • pause: pause messaging
       • resume: resume messaging
-      • <index>: switch to bot by number (see /bots)
     """
-    config = config_loader()
-    telegram_conf = config.get("telegram", {})
+    cfg = config_loader()
+    telegram_conf = cfg.get("telegram", {})
 
     bot_name = session.client.bot_name
     bot_conf = telegram_conf.get(bot_name, {})
+    # pull out the “default” block so we can fall back cleanly
+    default_conf = bot_conf.get("default", {})
 
     chat_id = session.chat_id
-
-    # Defaults
-    # default_conf = bot_conf.get("default", {})
-
-    #    service = default_conf.get("service")
-    #    model = default_conf.get("model")
-    #    temperature = default_conf.get("temperature")
-    #    maxtoken = default_conf.get("maxtoken")
-
-    chat_id = session.chat_id
-    current_bot = get_active_bot(chat_id)
+    current_bot = get_active_bot(chat_id) or bot_name
     display_name = bot_conf.get("name", bot_name)
-    is_active = not is_paused(chat_id)
-    status = "✅ online" if is_active else "⏸️ offline"
+    status = "✅ online" if not is_paused(chat_id) else "⏸️ offline"
 
-    service = get_service(chat_id)
-    model = get_model(chat_id)
+    service = get_service(chat_id) or ""
+    # Model (manual override wins, else bot default)
+    # TO DO: initiate session with the standard model of the bot!
+    manual_model = get_model(chat_id)
+    if manual_model:
+        mdl = manual_model
+    else:
+        cfg = config_loader()
+        bot_conf = cfg["telegram"][session.client.bot_name]["default"]
+        mdl = bot_conf.get("model", "None")
+    # model parameters
     temperature = get_temperature(chat_id)
-    maxtoken = get_maxtoken(chat_id)
+    maxtoken = get_max_tokens(chat_id)
 
-    # Escape special characters in bot name and other fields for HTML
-    safe_bot = html.escape(current_bot) if current_bot else ""  # Escape the bot name to avoid HTML issues
-    safe_bot = html.unescape(safe_bot)  # Unescape any HTML entities
-
-    safe_service = html.escape(service or "")
-    safe_model = html.escape(model or "")
-    safe_temperature = html.escape(str(temperature))
-    safe_maxtoken = html.escape(str(maxtoken))
+    # Escape for HTML
+    safe_display = html.escape(display_name)
+    safe_bot = html.escape(current_bot)
+    safe_service = html.escape(service)
+    safe_model = html.escape(mdl)
+    safe_temperature = html.escape(f"{temperature}")
+    safe_maxtoken = html.escape(f"{maxtoken}")
 
     # No args: show settings
     if not args:
         lines = [
-            f"<b>{html.escape(display_name)}</b> ({safe_bot})",  # Display name in bold
-            f"{status}",
+            f"<b>{safe_display}</b> ({safe_bot})",
+            status,
             f"Service: {safe_service}",
             f"Model: {safe_model}",
             f"Temp: {safe_temperature}",

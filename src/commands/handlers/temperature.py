@@ -1,6 +1,5 @@
 # src/commands/handlers/temperature.py
 
-import logging
 from typing import Any, Dict, List
 
 from src.commands.commands_registry import register_command
@@ -10,8 +9,9 @@ from src.session.session_manager import (
     set_temperature,
 )
 from src.utils.escape_html import html_escape
+from src.utils.logger import logger
 
-logger = logging.getLogger(__name__)
+# Log that the help handler is being loaded
 logger.info("[Temperature Handler] temperature.py is being loaded")
 
 
