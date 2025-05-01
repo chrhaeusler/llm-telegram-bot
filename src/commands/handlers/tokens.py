@@ -1,17 +1,17 @@
 # src/commands/handlers/tokens.py
 
-import logging
 from typing import Any, Dict, List
 
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.session.session_manager import (
-    get_maxtoken,
-    set_maxtoken,
+    get_max_tokens,
+    set_max_tokens,
 )
 from src.utils.escape_html import html_escape
+from src.utils.logger import logger
 
-logger = logging.getLogger(__name__)
+# Log that the help handler is being loaded
 logger.info("[Tokens Handler] tokens.py is being loaded")
 
 
@@ -27,7 +27,7 @@ async def tokens_handler(session: Any, message: Dict[str, Any], args: List[str])
 
     if not args:
         # No argument, show current tokens
-        current_tokens = get_maxtoken(chat_id)
+        current_tokens = get_max_tokens(chat_id)
         if current_tokens is None:
             current_tokens = config_loader()["telegram"][session.client.bot_name]["default"].get("maxtoken", 4096)
 
@@ -48,7 +48,7 @@ async def tokens_handler(session: Any, message: Dict[str, Any], args: List[str])
         return
 
     # Set new token limit
-    set_maxtoken(chat_id, new_tokens)
+    set_max_tokens(chat_id, new_tokens)
 
     await session.send_message(
         f"✅ Token limit has been set to <b>{html_escape(str(new_tokens))}</b>",

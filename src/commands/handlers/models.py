@@ -1,17 +1,14 @@
 # src/commands/handlers/models.py
 
-import logging
 from typing import Any, Dict, List
 
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
 from src.session.session_manager import get_model, get_session
-
-# Create logger
-logger = logging.getLogger(__name__)
+from src.utils.logger import logger
 
 # Log that the help handler is being loaded
-logger.info("[Help Handler] models.py is being loaded")
+logger.info("[Models Handler] models.py is being loaded")
 
 
 @register_command("/models")

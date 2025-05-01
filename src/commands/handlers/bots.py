@@ -1,16 +1,13 @@
 # src/commands/handlers/bots.py
 
-import logging
 from typing import Any, List
 
 from src.commands.commands_registry import register_command
 from src.config_loader import config_loader
-
-# Create logger
-logger = logging.getLogger(__name__)
+from src.utils.logger import logger
 
 # Log that the help handler is being loaded
-logger.info("[Help Handler] bots.py is being loaded")
+logger.info("[Bots Handler] bots.py is being loaded")
 
 
 @register_command("/bots")
@@ -21,6 +18,7 @@ async def bots_handler(session: Any, message: dict, args: List[str]) -> None:
     """
     config = config_loader()
     telegram_conf = config.get("telegram", {})
+
 
     bots_list: List[tuple[str, str]] = []  # list of (name, handle)
     for key, conf in telegram_conf.items():
