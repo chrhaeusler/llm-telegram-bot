@@ -27,7 +27,7 @@ async def savestring_handler(session: Any, message: dict[str, Any], args: List[s
         filename = raw[0]
         text = " ".join(raw[1:])
     else:
-        ts = time.strftime("%Y%m%d_%H%M%S")
+        ts = time.strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"{ts}_saved-string.txt"
         text = " ".join(raw)
 
@@ -41,12 +41,19 @@ async def savestring_handler(session: Any, message: dict[str, Any], args: List[s
     full_dir = os.path.join(download_root, bot_name, chat_id)
     os.makedirs(full_dir, exist_ok=True)
 
+    # Ensure destination filename is unique
+    base, ext = os.path.splitext(filename)
     path = os.path.join(full_dir, filename)
+    counter = 1
+    while os.path.exists(path):
+        path = os.path.join(full_dir, f"{base}_{counter}{ext}")
+        counter += 1
+
     try:
         with open(path, "w", encoding="utf-8") as f:
             f.write(text)
         logger.info(f"[savestring] Saved to {path}")
-        await session.send_message(f"✅ Saved to `{filename}`")
+        await session.send_message(f"✅ Saved to `{os.path.basename(path)}`")
     except Exception as e:
         logger.exception("[savestring] Failed to save string")
         await session.send_message(f"❌ Failed to save: {e}")
