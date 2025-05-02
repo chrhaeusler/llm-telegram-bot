@@ -45,7 +45,7 @@ def format_help_text(commands: dict[str, CommandInfo]) -> str:
     lines.append("<b>Available commands:</b>")
     lines.append("")
 
-    for name, cmd in sorted(commands.items()):
+    for name, cmd in commands.items():
         # Escape any HTML-sensitive chars
         safe_usage = html.escape(cmd.usage)
         safe_desc = html.escape(cmd.description)
