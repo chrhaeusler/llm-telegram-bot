@@ -11,7 +11,7 @@ from src.config_loader import config_loader
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
 from src.services.services_base import BaseLLMService
-from src.session.session_manager import get_effective_llm_params, get_session
+from src.session.session_manager import add_memory, get_effective_llm_params, get_session
 from src.telegram.client import TelegramClient
 from src.utils.logger import logger
 
@@ -243,6 +243,9 @@ class PollingLoop:
 
                 bot_def = self.bot_config["default"]
                 svc_conf = self.config["services"].get(svc_name, {})
+
+                # store the raw user prompt in session memory
+                add_memory(chat_id, "last_prompt", msg["text"])
 
                 # now just:
                 model, temperature, maxtoken = get_effective_llm_params(chat_id, bot_def, svc_conf)

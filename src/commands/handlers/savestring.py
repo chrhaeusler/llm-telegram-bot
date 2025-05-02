@@ -2,6 +2,7 @@
 
 import os
 import time
+from pathlib import Path
 from typing import Any, List
 
 from src.commands.commands_registry import register_command
@@ -25,12 +26,13 @@ async def savestring_handler(session: Any, message: dict[str, Any], args: List[s
         await session.send_message("⚠️ Usage: /savestr [filename] <text>")
         return
 
+    ts = time.strftime("%Y-%m-%d_%H-%M-%S")
     # Check if first word looks like a filename
     if len(raw) >= 2 and raw[0].endswith((".txt", ".log", ".md")):
-        filename = raw[0]
+        filename = Path(raw[0]).name
+        filename = f"{ts}_{filename}"
         text = " ".join(raw[1:])
     else:
-        ts = time.strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"{ts}_saved-string.txt"
         text = " ".join(raw)
 
@@ -45,6 +47,7 @@ async def savestring_handler(session: Any, message: dict[str, Any], args: List[s
     os.makedirs(full_dir, exist_ok=True)
 
     # Ensure destination filename is unique
+    # kind of not necessary anymore because all files now get a time stamp
     base, ext = os.path.splitext(filename)
     path = os.path.join(full_dir, filename)
     counter = 1

@@ -119,7 +119,7 @@ savestring:
 # TO DO
 savelastprompt:
   usage: /slp [<filename>]
-  description: Save the last user input to file (timestamped if no name)
+  description: Save the last user prompt to file (timestamped if no name)
   args:
     - name: filename
       type: str
