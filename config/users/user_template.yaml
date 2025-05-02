@@ -1,7 +1,7 @@
 # config/users/<user-key>.yaml
 
 name:
-  nick: "Kimmey"
+  user: "Kimmey"
   first: "Kim-Jon"
   last: "Un"
   age: 29

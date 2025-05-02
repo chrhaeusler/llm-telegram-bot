@@ -1,4 +1,9 @@
-# llm-telegram-bot (WIP)
+# WIP: llm-telegram-bot
+
+## Note
+
+This readme is outdated every couple of days, so I'll stop updating it until the package
+is in beta. Anyhow: 
 
 A lightweight Python bot that proxies messages between Telegram and various LLM APIs.
 Modular, configurable, and extendable—switch services, models, temperature, and token limits on the fly.
@@ -6,10 +11,10 @@ Modular, configurable, and extendable—switch services, models, temperature, an
 ## Features
 
 - **Multi‑service support**: [Mistral AI](https://docs.mistral.ai/getting-started/models/) and [Groq: Supported models](https://console.groq.com/docs/rate-limits) (add more via config)
+- **In-chat help**: chat command `/help`
 - **Dynamic model switching**: chat commands `/models`, `/cmodel <name>`
 - **Service switching**: chat commands `/services`, `/cservice <name>`
-- **Runtime parameter tuning**: chat commands `/temperature <float>`, `/maxtokens <int>`
-- **Persistence**: save defaults (`/setasdefaults`), factory reset (`/factoryreset`), show settings (`/showsettings`)
+- **Runtime parameter tuning**: chat commands `/tempe <float>`, `/maxtokens <int>`
 - **Model listings**: chat command `/models`
 - **Model information**: chat command `/model`
 - **Graceful backoff**: idle vs active polling intervals, exponential backoff
@@ -67,5 +72,5 @@ cp config/config-template.yaml config/config.yaml
 ## Usage
 
 ```bash
-python main.py
+python -m src.telegram.poller
 ```
