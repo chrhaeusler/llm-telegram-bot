@@ -8,11 +8,14 @@ from typing import Any, Dict, List, Optional
 
 import src.commands.handlers  # noqa: F401
 from src.config_loader import config_loader
+from src.llm.dispatcher import get_service_for_name
 from src.services.service_groq import GroqService
 from src.services.service_mistral import MistralService
 from src.services.services_base import BaseLLMService
-from src.session.session_manager import add_memory, get_effective_llm_params, get_session
+from src.session.session_manager import add_memory, get_effective_llm_params, get_session, is_paused, set_service
 from src.telegram.client import TelegramClient
+
+# from src.telegram.routing import route_message
 from src.utils.logger import logger
 
 
@@ -174,6 +177,10 @@ class PollingLoop:
         1) If it's a document, fetch & download it.
         2) If it's text, route commands or send to the LLM service.
         """
+        # prevent circular import
+        from src.telegram.poller import ChatSession
+        from src.telegram.routing import route_message
+
         try:
             msg = update.get("message")
             if not msg:
@@ -181,16 +188,9 @@ class PollingLoop:
                 return
 
             chat_id = msg["chat"]["id"]
+
             # Wrap our TelegramClient + chat into a ChatSession helper
-            from src.telegram.poller import ChatSession
-
             session = ChatSession(self.client, chat_id)
-
-            # Bring in all helpers
-            from src.llm.dispatcher import get_service_for_name
-            from src.session.session_manager import get_session, is_paused, set_service
-            from src.telegram.routing import route_message
-
             state = get_session(chat_id)
 
             # ── Initialize default service if not set ─────────────────────────
@@ -251,12 +251,19 @@ class PollingLoop:
                 model, temperature, maxtoken = get_effective_llm_params(chat_id, bot_def, svc_conf)
 
                 service = get_service_for_name(svc_name, svc_conf)
+
+                # send to LLM service
                 reply = await service.send_prompt(
                     prompt=text,
                     model=model,
                     temperature=temperature,
                     maxtoken=maxtoken,
                 )
+
+                # store the reply in memory
+                add_memory(chat_id, "last_response", reply)
+
+                # send to Telegram
                 await session.send_message(reply)
 
         except Exception as e:
