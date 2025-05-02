@@ -64,12 +64,7 @@ async def char_handler(session: Any, message: dict, args: List[str]):
         await session.send_message("<b>📜 Available Characters:</b>\n" + "\n".join(lines), parse_mode="HTML")
         return
 
-    # 3. Reset (noop)
-    if action == "reset":
-        await session.send_message("🔄 Character settings reloaded from disk.")
-        return
-
-    # 4. Show
+    # 3. Show
     if action == "show":
         if len(args) < 2:
             return await session.send_message("⚠️ Usage: /char show <key_or_index>", parse_mode="HTML")
@@ -85,7 +80,7 @@ async def char_handler(session: Any, message: dict, args: List[str]):
         await session.send_message(f"<pre>{html.escape(pretty)}</pre>", parse_mode="HTML")
         return
 
-    # 5. Switch (default)
+    # 4. Switch
     sel = action
     if sel.isdigit():
         idx = int(sel) - 1
@@ -98,3 +93,8 @@ async def char_handler(session: Any, message: dict, args: List[str]):
 
     set_active_char(chat_id, sel)
     await session.send_message(f"✅ Switched character to <b>{html.escape(sel)}</b>", parse_mode="HTML")
+
+    # 5. Reset (noop)
+    if action == "reset":
+        await session.send_message("🔄 Character settings reloaded from disk.")
+        return
