@@ -72,5 +72,5 @@ cp config/config-template.yaml config/config.yaml
 ## Usage
 
 ```bash
-python -m src.telegram.poller
+./run.sh
 ```
