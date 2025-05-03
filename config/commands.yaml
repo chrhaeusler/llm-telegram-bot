@@ -102,7 +102,7 @@ defaults:
 
 # ── Save & Export ──────────────────────────────────────────────────────
 savestring:
-  usage: /savestr [<filename>] <text>
+  usage: /sstr [<filename>] <text>
   description: Save an arbitrary string locally
     • If `<filename>` (.txt, .log, .md) is provided, write into that file
     • Otherwise auto‐generate `<timestamp>_savestring.txt`
@@ -195,18 +195,3 @@ history:
     - name: arg
       type: str
       optional: true
-
-# ── Jailbreaks ───────────────────────────────────────────────────────────
-# TO DO; this command can be merged with /jb (just /jb showing all jailbreaks and /jb <number> applying it to the prompt (or just history [to be send with the future prompts)
-jailbreaks:
-  usage: /jbs
-  description: List all available jailbreak prompts
-  args: []
-
-# TO DO
-sendjailbreak:
-  usage: /jb <index>
-  description: Send a specific jailbreak prompt to the model
-  args:
-    - name: index
-      type: int

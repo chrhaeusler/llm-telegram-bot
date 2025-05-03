@@ -13,10 +13,10 @@ from src.utils.logger import logger
 logger.info("[Savestring Handler] savestring.py is being loaded")
 
 
-@register_command("/savestr")
+@register_command("/sstr")
 async def savestring_handler(session: Any, message: dict[str, Any], args: List[str]):
     """
-    /savestr [<filename>] <text>
+    /sstr [<filename>] <text>
     • If filename ends in .txt/.log/.md → use it
     • Otherwise auto-generate one using timestamp
     Saves into: <download_path>/<bot_name>/<chat_id>/<filename>
