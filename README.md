@@ -3,7 +3,7 @@
 ## Note
 
 This readme is outdated every couple of days, so I'll stop updating it until the package
-is in beta. Anyhow:
+is in beta (s. [issues.md](/issues.md) for the current state). Anyhow:
 
 A lightweight Python bot that proxies messages between Telegram and various LLM APIs.
 Modular, configurable, and extendable—switch services, models, temperature, and token limits on the fly.
