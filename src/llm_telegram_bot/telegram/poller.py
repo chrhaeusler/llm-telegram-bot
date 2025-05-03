@@ -23,9 +23,8 @@ from llm_telegram_bot.session.session_manager import (
     set_temperature,
 )
 from llm_telegram_bot.telegram.client import TelegramClient
-
-# from llm_telegram_bot.telegram.routing import route_message
 from llm_telegram_bot.utils.logger import logger
+from llm_telegram_bot.utils.message_utils import split_message
 
 
 class ChatSession:
@@ -294,8 +293,13 @@ class PollingLoop:
                 # Store the reply in memory
                 add_memory(chat_id, self.bot_name, "last_response", reply)
 
-                # Send the reply to Telegram
-                await session.send_message(reply)
+                # Send the reply to Telegram, and split into parts <4096 chars
+                # to handle Telegram's char limit
+                if len(reply) > 4096:
+                    logger.warning(f"[Poller] Splitting long reply ({len(reply)} chars) into chunks")
+
+                for part in split_message(reply):
+                    await session.send_message(part)
 
         except Exception as e:
             logger.exception(f"[PollingLoop] error in handle_update: {e}")
