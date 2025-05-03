@@ -12,24 +12,26 @@
 name = "llm-telegram-bot"
 version = "0.1.0"
 description = "A Python project integrating Telegram bot with LLM API"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Christian Olaf Häusler <your.email@example.com>"]
+packages = [{ include = "llm_telegram_bot", from = "src" }]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.11"                # Base Python version
-aiohttp = "^3.8"                # Async HTTP client (used by TelegramClient)
-python-telegram-bot = "^13.15"  # Telegram API wrappers (bump to latest patch)
-PyYAML = "^6.0"                 # YAML parsing/serialization
-pydantic = "^1.10"              # Typed settings & validation (future-proof config)
- 
+python = "^3.11"               # Base Python version
+aiohttp = "^3.8"               # Async HTTP client (used by TelegramClient)
+python-telegram-bot = "^13.15" # Telegram API wrappers (bump to latest patch)
+PyYAML = "^6.0"                # YAML parsing/serialization
+pydantic = "^2.0"             # Typed settings & validation (future-proof config)
 
-[tool.poetry.dev-dependencies]
-black = "^23.9.1"               # Code formatter
-pytest = "^7.2"                 # Test framework (upgrade for pytest-asyncio)
-pytest-asyncio = "^0.21"        # Async support for your async tests
-pytest-cov = "^4.0"             # Coverage reports
-mypy = "^1.5.1"                 # Static typing checks
-ruff = "^0.0.321"               # Linting & import sorting (upgrade to latest)
+
+[tool.poetry.group.dev.dependencies]
+black = { version = "^23.9.1", allows-prereleases = false } # Code formatter
+isort = "^5.12"
+pytest = "^7.2"                                             # Test framework (upgrade for pytest-asyncio)
+pytest-asyncio = "^0.21"                                    # Async support for your async tests
+pytest-cov = "^4.0"                                         # Coverage reports
+mypy = "^1.5.1"                                             # Static typing checks
+ruff = "^0.11.8"                                            # Linting & import sorting (upgrade to latest)
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -67,4 +69,4 @@ indent-style = "space"
 [tool.black]
 line-length = 120
 target-version = ["py311"]
-skip-string-normalization = true  # Keep double quotes if possible
+skip-string-normalization = true # Keep double quotes if possible

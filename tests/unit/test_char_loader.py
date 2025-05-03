@@ -1,5 +1,5 @@
 import pytest
-from src.char_loader import get_all_characters, get_character
+from llm_telegram_bot.char_loader import get_all_characters, get_character
 
 
 def test_char_loader_finds_yaml_files(tmp_path, monkeypatch):

@@ -4,15 +4,15 @@ import importlib
 import pkgutil
 import pytest
 
-from src.commands.commands_loader import load_commands_yaml
-from src.commands.commands_registry import is_command_implemented
+from llm_telegram_bot.commands.commands_loader import load_commands_yaml
+from llm_telegram_bot.commands.commands_registry import is_command_implemented
 
 # ── Step 1: Import all handler modules so their @register_command fire ──
-import src.commands.handlers  # base package
+import llm_telegram_bot.commands.handlers  # base package
 
 
 def import_all_handlers():
-    pkg = importlib.import_module("src.commands.handlers")
+    pkg = importlib.import_module("src.llm_telegram_bot.commands.handlers")
     prefix = pkg.__name__ + "."
     for _finder, module_name, _ispkg in pkgutil.iter_modules(pkg.__path__):
         importlib.import_module(f"{prefix}{module_name}")

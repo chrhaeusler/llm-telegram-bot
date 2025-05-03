@@ -1,12 +1,12 @@
 # run with "PYTHONPATH=. python3 tests/test_telegram_client.py"
 import asyncio
 
-from src.config_loader import config_loader
-from src.telegram.client import TelegramClient
+from llm_telegram_bot.config.config_loader import load_config
+from llm_telegram_bot.telegram.client import TelegramClient
 
 
 async def main():
-    config = config_loader()
+    config = load_config()
     download_path = config["telegram"]["download_path"]
     bot_config = config["telegram"]["bot_1"]
     bot_name = bot_config["name"]

@@ -186,4 +186,3 @@ config/chars
 !config/chars/char_template.yaml
 config/users
 !config/users/user_template.yaml
-

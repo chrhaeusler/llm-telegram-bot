@@ -2,9 +2,9 @@
 
 import pytest
 
-from src.config_loader import config_loader
-from src.services.service_groq import GroqService
-from src.services.service_mistral import MistralService
+from llm_telegram_bot.config.config_loader import load_config
+from llm_telegram_bot.services.service_groq import GroqService
+from llm_telegram_bot.services.service_mistral import MistralService
 
 
 @pytest.mark.asyncio
@@ -21,7 +21,7 @@ async def test_llm_service_endpoint(service_class, service_name, model_name):
     return a non‐empty string for a simple prompt.
     """
     # load your unified YAML config
-    cfg = config_loader()
+    cfg = load_config()
 
     # pull out just this service’s config
     svc_conf = cfg["services"].get(service_name)

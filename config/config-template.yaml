@@ -44,12 +44,12 @@ telegram:
     handle: "@botshandle1_bot"
     token: "12345678:AAFoxxxxn0hwA-2TVSxxxNf4c"
     chat_id: 291254423
-    
+
     # Chatbot-specific behavior
     logging_enabled: true # Whether to log messages to console
     history_enabled: true # Whether to save conversation to file
     history_file: "chat_history.log"
-    command_prefix: "/" # Slash command prefix (e.g. /help)    
+    command_prefix: "/" # Slash command prefix (e.g. /help)
     polling_active_period: 600 # after this many seconds of inactivity back off from polling_interval_active to polling_interval_idle
     polling_interval_active: 2 # bot-specific override of global default
     polling_interval_idle: 120 # increment waiting intervall after this is reached
@@ -70,7 +70,7 @@ telegram:
     handle: "@botshandle2_bot"
     token: "12345678:AAFoxxxxn0hwA-2TVSxxxNf4c"
     chat_id: 291254423
-    
+
     # Chatbot-specific behavior
     logging_enabled: true
     history_enabled: true

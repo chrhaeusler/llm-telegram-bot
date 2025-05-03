@@ -4,17 +4,17 @@ import pytest
 import importlib
 import pkgutil
 
-from src.commands.commands_registry import clear_registry
-from src.telegram.routing import route_message
+from llm_telegram_bot.commands.commands_registry import clear_registry
+from llm_telegram_bot.telegram.routing import route_message
 
 # ------------------------------------------------------------------
 # Helpers to import all handler modules so @register_command runs
 # ------------------------------------------------------------------
-import src.commands.handlers  # ensures the handlers package is loaded
+import llm_telegram_bot.commands.handlers  # ensures the handlers package is loaded
 
 
 def import_all_handlers():
-    pkg = src.commands.handlers
+    pkg = llm_telegram_bot.commands.handlers
     prefix = pkg.__name__ + "."
     for _, module_name, _ in pkgutil.iter_modules(pkg.__path__):
         importlib.import_module(f"{prefix}{module_name}")
@@ -72,9 +72,9 @@ async def test_free_text_invokes_llm(monkeypatch):
         active_service = "dummy"
         messaging_paused = False
 
-    monkeypatch.setattr('src.session.session_manager.get_session', lambda cid: S())
+    monkeypatch.setattr('src.llm_telegram_bot.session.session_manager.get_session', lambda cid: S())
     # Stub config_loader: dummy service has model "M0"
-    monkeypatch.setattr('src.config_loader.config_loader', lambda: {'services': {'dummy': {'model': 'M0'}}})
+    monkeypatch.setattr('src.llm_telegram_bot.config.config_loader.load_config', lambda: {'services': {'dummy': {'model': 'M0'}}})
 
     async def fake_llm(text, model, temp, mt):
         called['args'] = (text, model, temp, mt)
@@ -104,7 +104,7 @@ async def test_pause_blocks_free_text(monkeypatch):
         active_service = None
         messaging_paused = True
 
-    monkeypatch.setattr('src.session.session_manager.get_session', lambda cid: S2())
+    monkeypatch.setattr('src.llm_telegram_bot.session.session_manager.get_session', lambda cid: S2())
 
     called = False
 
