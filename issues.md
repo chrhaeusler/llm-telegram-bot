@@ -115,31 +115,32 @@
 
 ---
 
-## Phase 1 – Core Foundations & “Simple” Commands ✅ *(done except tests)*
+## Phase 1 – Core Foundations & “Simple” Commands ✅ _(done except tests)_
 
 - [x] Ensure `src/commands/handlers/*.py` are imported in poller so `@register_command` runs.
 - [x] Treat `/start` as alias for `/bot` in `routing.py`.
 
 **Help & view commands:**
+
 - [x] /help, /bots, /bot, /models, /status
 
 **Set/override commands:**
+
 - [x] /temp, /tokens, /service, /model
 
 **File I/O commands:**
+
 - [x] /savestr, /slp, /slr
 
 **Unit tests:**
+
 - [ ] For each handler: no-arg, valid-arg, invalid-arg.
 
 ---
 
-## Phase 2 – Session Manager & State Isolation ✅ *(code complete)*
+## Phase 2 – Session Manager & State Isolation ✅ _(code complete)_
 
-- [x] Refactored `session_manager.py` to:
-  - Initialize default service/model
-  - Accept bot identifier via parameter
-  - Maintain per-bot, per-chat_id state
+- [x] Refactored `session_manager.py` to: Initialize default service/model; Accept bot identifier via parameter; Maintain per-bot, per-chat_id state
 - [ ] Unit tests for all session state behaviors
 
 ---
@@ -157,7 +158,7 @@
 
 ---
 
-## Phase 4 – Logging & Formatting 🟡 *(in progress)*
+## Phase 4 – Logging & Formatting 🟡 _(in progress)_
 
 - [ ] Enhance `send_message` logs (chat_id, duration, preview)
 - [x] Use HTML formatting (escape utils in place)
@@ -166,7 +167,7 @@
 
 ---
 
-## Phase 5 – CLI Bot & Documentation 🟡 *(just started)*
+## Phase 5 – CLI Bot & Documentation 🟡 _(just started)_
 
 - [x] Add `run.sh` launcher to project root
 - [ ] Build CLI runner (mirror Telegram routing)

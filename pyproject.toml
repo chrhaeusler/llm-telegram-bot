@@ -14,6 +14,7 @@ version = "0.1.0"
 description = "A Python project integrating Telegram bot with LLM API"
 authors = ["Christian Olaf Häusler <your.email@example.com>"]
 packages = [{ include = "llm_telegram_bot", from = "src" }]
+include = ["src/llm_telegram_bot/py.typed"]
 license = "MIT"
 
 [tool.poetry.dependencies]
@@ -21,7 +22,7 @@ python = "^3.11"               # Base Python version
 aiohttp = "^3.8"               # Async HTTP client (used by TelegramClient)
 python-telegram-bot = "^13.15" # Telegram API wrappers (bump to latest patch)
 PyYAML = "^6.0"                # YAML parsing/serialization
-pydantic = "^2.0"             # Typed settings & validation (future-proof config)
+pydantic = "^2.0"              # Typed settings & validation (future-proof config)
 
 
 [tool.poetry.group.dev.dependencies]
