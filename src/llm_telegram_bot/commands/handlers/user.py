@@ -65,3 +65,14 @@ async def user_handler(session: Any, message: dict, args: List[str]):
     # 3) Commit selection
     set_active_user(session.chat_id, bot_name, choice)
     await session.send_message(f"✅ Switched user to `{choice}`")
+
+    # Alias: `/users` → list users
+    @register_command("/users")
+    async def users_alias(session: Any, message: dict, args: List[str]):
+        """
+        Alias for `/user list`
+        """
+        # reuse the main handler, forcing the "list" subcommand
+        from llm_telegram_bot.commands.handlers.user import user_handler
+
+        await user_handler(session, message, ["list"])

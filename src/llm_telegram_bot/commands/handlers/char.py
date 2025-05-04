@@ -65,3 +65,11 @@ async def char_handler(session: Any, message: dict, args: List[str]):
     # 3) Commit selection
     set_active_char(session.chat_id, bot_name, choice)
     await session.send_message(f"✅ Switched character to `{choice}`")
+
+    # Alias: `/chars` → list characters
+    @register_command("/chars")
+    async def chars_alias(session: Any, message: dict, args: List[str]):
+        # Force the “list” action
+        from llm_telegram_bot.commands.handlers.char import char_handler
+
+        await char_handler(session, message, ["list"])
