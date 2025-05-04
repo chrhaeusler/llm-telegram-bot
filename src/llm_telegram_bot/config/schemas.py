@@ -1,6 +1,6 @@
 # src/config/schemas.py
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -48,7 +48,15 @@ class BotConfig(BaseModel):
     command_prefix: str = Field(..., min_length=1)
     logging_enabled: bool
     history_enabled: bool
-    history_file: str
+    history_flush_count: int = Field(
+        default=10, gt=0, description="Number of messages to buffer before flushing to disk"
+    )
+    jailbreak: Union[int, bool] = Field(
+        default=False, description="Index or flag of standard jailbreak prompt to insert"
+    )
+    history_file: str = Field(
+        ..., description="Filename template for history JSON, supports {{user.name}}, {{char.name}} etc."
+    )
 
     default: BotDefaults
 
@@ -64,7 +72,8 @@ class TelegramConfig(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def gather_and_validate_bots(cls, values: dict) -> dict:
+    # def gather_and_validate_bots(cls, values: dict) -> dict:
+    def gather_and_validate_bots(cls, values: dict[str, Any]) -> dict[str, Any]:
         """
         Pre-model build hook: collect bot_* entries into `bots`
         and inject shared paths.

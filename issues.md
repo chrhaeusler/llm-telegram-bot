@@ -193,4 +193,7 @@
 - [ ] CI green: pre-commit, pytest, mypy
 - [ ] Smoke-tests: TelegramClient + LLM end-to-end
 - [ ] Tag & publish v0.1-alpha
+- [ ] SQLite for history storage (vector or graph databse out of scope)
 - [ ] Plan v0.2 (memory agents, DB, LangChain, etc.)
+- [ ] Implement speech-to-text and text-to-speech models
+- [ ] Implement image analysis (pixtral)
