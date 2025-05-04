@@ -1,6 +1,6 @@
 # src/session/session_manager.py
 
-import datetime
+import asyncio
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -26,27 +26,104 @@ class Session:
         self.bot_name: str = bot_name
         self.active_bot: Optional[str] = None
         self.messaging_paused: bool = False
+
         # Service & Model
         self.active_service: Optional[str] = None
         self.active_model: Optional[str] = None
         self.model_config: ModelConfig = ModelConfig()
+
         # Char, Scenario, User
         self.active_char: Optional[str] = None
         self.active_scenario: Optional[str] = None
         self.active_user: Optional[str] = None
+
+        # Cached config data
+        # I commented this out because it does not seem to do anything
+        # why did we put it in in the first place?
+        # self.active_char_data: Optional[dict] = None
+        # self.active_user_data: Optional[dict] = None
+
         # History: TO DO: take bot configuration, if existing
         self.history_on: bool = False
         self.history_buffer: list[dict] = []
+
         # Jailbreak
         self.jailbreak: Optional[int] = None  # or bool if you switched to that
+
         # Memory
         self.memory: Dict[str, List[Any]] = {}
+
+        # start periodic flush in background
+        # (we must be running inside an asyncio loop)
+        self._flush_task = asyncio.create_task(self._periodic_flush())
 
     def pause(self) -> None:
         self.messaging_paused = True
 
     def resume(self) -> None:
         self.messaging_paused = False
+
+    async def _periodic_flush(self):
+        """
+        Background task to flush history every 10 minutes.
+        """
+        while True:
+            await asyncio.sleep(600)  # 10 minutes
+            try:
+                if self.history_on and self.history_buffer:
+                    self.flush_history_to_disk()
+            except Exception as e:
+                logger.exception(f"[Session {self.chat_id}] Periodic flush failed: {e}")
+
+    def flush_history_to_disk(self) -> None:
+        """
+        Write self.history_buffer out to a timestamped JSON file
+        under histories/<bot_name>/<chat_id>/ and then clear the buffer.
+        """
+        history_dir = Path("histories") / self.bot_name / str(self.chat_id)
+        history_dir.mkdir(parents=True, exist_ok=True)
+
+        history_file = history_dir / f"{self.active_user}_with_{self.active_char}.json"
+
+        existing_data = {}
+        if history_file.exists():
+            with history_file.open("r", encoding="utf-8") as f:
+                try:
+                    existing_data = json.load(f)
+                except json.JSONDecodeError:
+                    existing_data = {}
+
+        # Merge existing history
+        old_history = existing_data.get("history_buffer", [])
+        merged_history = old_history + self.history_buffer
+
+        data = {
+            "active_service": self.active_service,
+            "active_model": self.active_model,
+            "active_char": self.active_char,
+            "active_user": self.active_user,
+            "jailbreak": self.jailbreak,
+            "history_on": self.history_on,
+            "history_buffer": merged_history,
+        }
+
+        try:
+            with history_file.open("w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                logger.debug(f"[Session {self.chat_id}] History flushed to {history_file}")
+
+        except Exception as e:
+            logger.exception(f"[Session {self.chat_id}] Error flushing history: {e}")
+
+        # clear in-memory buffe
+        self.history_buffer.clear()
+
+        def close(self):
+            """
+            Cancel background tasks (if you tear down sessions).
+            """
+            if hasattr(self, "_flush_task"):
+                self._flush_task.cancel()
 
 
 # ────────────────────────────────────────────────────
@@ -283,26 +360,3 @@ def get_memory(chat_id: int, bot_name: str) -> Dict[str, List[Any]]:
 def add_memory(chat_id: int, bot_name: str, bucket: str, value: Any) -> None:
     session = get_session(chat_id, bot_name)
     session.memory.setdefault(bucket, []).append(value)
-
-
-def flush_history_to_disk(self, bot_name: str):
-    hist_dir = Path("histories") / bot_name / str(self.chat_id)
-    hist_dir.mkdir(parents=True, exist_ok=True)
-
-    ts = datetime.datetime.utcnow().isoformat(timespec="seconds")
-    fn = hist_dir / f"{ts}.json"
-
-    # assemble meta + messages
-    payload = {
-        "meta": {
-            "char": {"name": self.active_char},
-            "user": {"name": self.active_user},
-            "started_at": ts,
-        },
-        "messages": self.history_buffer,
-    }
-    with open(fn, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
-
-    # clear buffer
-    self.history_buffer.clear()

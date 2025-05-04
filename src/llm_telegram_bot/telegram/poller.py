@@ -205,7 +205,7 @@ class PollingLoop:
         # prevent circular import
         from llm_telegram_bot.telegram.poller import ChatSession
         from llm_telegram_bot.telegram.routing import route_message
-        from llm_telegram_bot.utils.message_utils import build_full_prompt, iso_ts
+        from llm_telegram_bot.utils.message_utils import build_full_prompt
 
         try:
             msg = update.get("message")
@@ -287,12 +287,24 @@ class PollingLoop:
                 # 3) Also store the sent prompt for debugging
                 add_memory(chat_id, bot_name, "last_prompt_full", full_prompt)
 
-                # 4) Determine effective LLM parameters
+                # 4) Append to history buffer (with local timestamp)
+                ts = time.strftime("%Y-%m-%d_%H-%M-%S")
+                entry = {
+                    "who": state.active_user,
+                    "ts": ts,
+                    "text": user_text,
+                    "prompt": full_prompt,
+                }
+
+                # add prompt to history buffer
+                state.history_buffer.append(entry)
+
+                # 5) Determine effective LLM parameters
                 model, temperature, maxtoken = get_effective_llm_params(
                     chat_id=chat_id, bot_name=bot_name, bot_default=bot_def, svc_conf=svc_conf
                 )
 
-                # 5) Instantiate service and send the prompt
+                # 6) Instantiate service and send the prompt
                 service = get_service_for_name(svc_name, svc_conf)
                 # Send to LLM
                 reply = await service.send_prompt(
@@ -302,7 +314,30 @@ class PollingLoop:
                     maxtoken=maxtoken,
                 )
 
-                # 6) Record the raw LLM response
+                # 4) Append to history buffer (with local timestamp)
+                entry = {
+                    "who": state.active_char,
+                    "ts": ts,
+                    "text": reply,
+                    "prompt": "",
+                }
+
+                # add response to history buffer
+                state.history_buffer.append(entry)
+
+                if len(state.history_buffer) >= self.bot_config.history_flush_count:
+                    try:
+                        state.flush_history_to_disk()
+                    except Exception as e:
+                        logger.exception(f"Error flushing history: {e}")
+
+                # flush every prompt and response
+                # try:
+                #     state.flush_history_to_disk()
+                # except Exception as e:
+                #     logger.exception(f"Error flushing history: {e}")
+
+                # x) OUTDATED Record the raw LLM response
                 add_memory(chat_id, bot_name, "last_response", reply)
 
                 # 7) Send back, splitting long messages
@@ -310,12 +345,6 @@ class PollingLoop:
                     logger.warning(f"[PollingLoop] Splitting reply of {len(reply)} chars")
                 for chunk in split_message(reply):
                     await session.send_message(chunk)
-
-                # 8) Append to history buffer (with local timestamp)
-                entry = {"who": "user", "ts": iso_ts(), "text": user_text, "prompt": full_prompt}
-                state.history_buffer.append(entry)
-                if len(state.history_buffer) >= self.bot_config.history_flush_count:
-                    state.flush_history_to_disk(bot_name)
 
         except Exception as e:
             logger.exception(f"[PollingLoop] error in handle_update: {e}")

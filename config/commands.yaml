@@ -178,15 +178,11 @@ memory:
 # ── History ───────────────────────────────────────────────────────────────
 # TO DO
 history:
-  usage: /history <on|off|files|sum|extract|new|save|load> [arg]
+  usage: /h <on|off|list||flush|load> [arg]
   description: >
     Manage chat history (per char+scenario):
       • on/off:   toggle logging
-      • files:    list saved histories
-      • sum:      summarize chat & confirm replacing history
-      • extract:  extract key facts → memory
-      • new <t>:  replace history with text <t>
-      • save <f>: save current history to file <f>
+      • flush:    list saved histories
       • load <v>: load saved history by index or name
   args:
     - name: action
@@ -195,7 +191,7 @@ history:
     - name: arg
       type: str
       optional: true
-      
+
 # ── Jailbreaks ───────────────────────────────────────────────────────────────
 # TO DO
 jailbreak:

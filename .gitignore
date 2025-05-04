@@ -178,6 +178,7 @@ cython_debug/
 00-vscode-workspace.code-workspace
 config/config.yaml
 ignore
+histories/*
 tmp
 
 # Chars and Users

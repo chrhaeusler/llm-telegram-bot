@@ -8,15 +8,15 @@ from llm_telegram_bot.utils.logger import logger
 logger.info("[History Handler] history.py loaded")
 
 
-@register_command("/history")
+@register_command("/h")
 async def history_handler(session: Any, message: dict, args: List[str]):
     """
     /history on|off|files|load|new
       • on:    turn logging on
       • off:   turn logging off & flush
-      • files: list saved history files
+      • list: list saved history files
       • load:  load a file into context
-      • new:   flush & start a new file
+      • flush: flush
     """
     sess = get_session(session.chat_id, session.client.bot_name)
     bot = session.client.bot_name
@@ -37,7 +37,7 @@ async def history_handler(session: Any, message: dict, args: List[str]):
 
     if cmd == "off":
         sess.history_on = False
-        sess.flush_history_to_disk(bot)
+        sess.flush_history_to_disk()
         return await session.send_message(f"{header}\n✅ History logging disabled & flushed.", parse_mode="HTML")
 
     # List files; create alias "/histories" for that
@@ -49,16 +49,16 @@ async def history_handler(session: Any, message: dict, args: List[str]):
         if not files:
             return await session.send_message(f"{header}\n⚠️ No history files found.", parse_mode="HTML")
         listing = "\n".join(files)
-        return await session.send_message(f"{header}\n<b>Files:</b>\n{listing}", parse_mode="HTML")
+        return await session.send_message(f"{header}\n<b>Files:</b>\n<code>{listing}</code>", parse_mode="HTML")
 
     # will need to switch char and user depending on the loaded file
     if cmd == "load":
         session.send_message(f"{header}\n⚠️ /history load not implemented yet.", parse_mode="HTML")
 
     # is this necessary? imo, this should be "save" to manually trigger updating the file
-    if cmd == "new":
-        sess.flush_history_to_disk(bot)
+    if cmd == "flush":
+        sess.flush_history_to_disk()
         sess.history_on = True
-        return await session.send_message(f"{header}\n✅ Started new history file.", parse_mode="HTML")
+        return await session.send_message(f"{header}\n✅ History appended to file.", parse_mode="HTML")
 
     return await session.send_message(f"{header}\n⚠️ Unknown subcommand: {cmd}", parse_mode="HTML")
