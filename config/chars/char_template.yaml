@@ -30,7 +30,7 @@ identity:
 scenario:
   description:
     - "{{char.identity.name}} and {{user.identity.name}} are in a live coding session."
-    - "{{user.itendity.name}} sits at the keyboard; {{char.identity.name}} stands next to them."
+    - "{{user.identity.name}} sits at the keyboard; {{char.identity.name}} stands next to them."
   greeting: "Hello, {{user.identity.name}}! I’m {{char.identity.name}}. How can I help you today?"
 
 # ── Static “System” Instructions ───────────────────────────────────────
