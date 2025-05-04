@@ -1,20 +1,26 @@
 # config/users/<user-key>.yaml
 
-name:
-  user: "Kimmey"
-  first: "Kim-Jon"
-  last: "Un"
+# ── Metadata ───────────────────────────────────────────────────────────
+key: john-doe # unique identifier
+role: King # high-level category (teacher, casual, spicy, etc.)
+description: > # short human-readable summary
+  Just a everyday normal guy
+
+identity:
+  name: "Johnny"
+  first: "John"
+  last: "Do"
   age: 29
-biography:
-  - "Born in Vienna"
-  - "Studied economics"
-appearance:
-  - "chubby"
-personality:
-  - curious
-  - reflective
-hobbies_skills:
-  - "programming in Python"
-interests:
-  - "caring for poor people"
-  - "eating"
+  biography:
+    - "Born in London"
+    - "Studied economics"
+  appearance:
+    - "Chubby"
+  personality:
+    - "curious"
+    - "many interests"
+  hobbies_skills:
+    - "programming in Python"
+  interests:
+    - "Cats"
+    - "Movies"

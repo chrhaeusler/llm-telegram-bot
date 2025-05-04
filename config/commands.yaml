@@ -195,3 +195,15 @@ history:
     - name: arg
       type: str
       optional: true
+      
+# ── Jailbreaks ───────────────────────────────────────────────────────────────
+# TO DO
+jailbreak:
+  usage: /jb <on|off|list> [arg]
+  description: >
+    no description yet; is supposed to show info for jailbreak ig /jb, switch to a jailbreak if, for example, /jb 1 to that (index jb)
+
+jailbreaks:
+  usage: /jbs
+  description: >
+    same as /jb list

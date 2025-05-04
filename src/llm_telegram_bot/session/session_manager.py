@@ -1,6 +1,9 @@
 # src/session/session_manager.py
 
+import datetime
+import json
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from llm_telegram_bot.config.config_loader import load_config
@@ -22,12 +25,20 @@ class Session:
         self.bot_name: str = bot_name
         self.active_bot: Optional[str] = None
         self.messaging_paused: bool = False
+        # Service & Model
         self.active_service: Optional[str] = None
         self.active_model: Optional[str] = None
         self.model_config: ModelConfig = ModelConfig()
+        # Char, Scenario, User
         self.active_char: Optional[str] = None
         self.active_scenario: Optional[str] = None
         self.active_user: Optional[str] = None
+        # History: TO DO: take bot configuration, if existing
+        self.history_on: bool = False
+        self.history_buffer: list[dict] = []
+        # Jailbreak
+        self.jailbreak: Optional[int] = None  # or bool if you switched to that
+        # Memory
         self.memory: Dict[str, List[Any]] = {}
 
     def pause(self) -> None:
@@ -63,10 +74,16 @@ def get_session(chat_id: int, bot_name: str) -> Session:
         bot_conf = telegram_cfg.bots.get(bot_name)
 
         if bot_conf and bot_conf.chat_id == chat_id:
+            # seed LLM defaults
             session.active_service = bot_conf.default.service
             session.active_model = bot_conf.default.model
+            # seed persona & user
             session.active_char = bot_conf.char
             session.active_user = bot_conf.user
+            # seed history toggle from config
+            session.history_on = bot_conf.history_enabled
+            # seed jailbreak from toggle
+            session.jailbreak = bot_conf.jailbreak
 
         _sessions[session_key] = session
 
@@ -240,3 +257,26 @@ def get_memory(chat_id: int, bot_name: str) -> Dict[str, List[Any]]:
 def add_memory(chat_id: int, bot_name: str, bucket: str, value: Any) -> None:
     session = get_session(chat_id, bot_name)
     session.memory.setdefault(bucket, []).append(value)
+
+
+def flush_history_to_disk(self, bot_name: str):
+    hist_dir = Path("histories") / bot_name / str(self.chat_id)
+    hist_dir.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.datetime.utcnow().isoformat(timespec="seconds")
+    fn = hist_dir / f"{ts}.json"
+
+    # assemble meta + messages
+    payload = {
+        "meta": {
+            "char": {"name": self.active_char},
+            "user": {"name": self.active_user},
+            "started_at": ts,
+        },
+        "messages": self.history_buffer,
+    }
+    with open(fn, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+
+    # clear buffer
+    self.history_buffer.clear()

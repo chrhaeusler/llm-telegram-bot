@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 
 import llm_telegram_bot.commands.handlers  # noqa: F401
 from llm_telegram_bot.config.config_loader import load_config
+from llm_telegram_bot.config.persona_loader import load_char_config, load_user_config
 from llm_telegram_bot.config.schemas import BotConfig, RootConfig
 from llm_telegram_bot.llm.dispatcher import get_service_for_name
 from llm_telegram_bot.services.service_groq import GroqService
@@ -192,11 +193,12 @@ class PollingLoop:
         """
         Called for every incoming update.
         1) If it's a document, fetch & download it.
-        2) If it's text, route commands or send to the LLM service.
+        2) If it's text, route commands or send to the LLM service (with history, jailbreak, and splitting).
         """
         # prevent circular import
         from llm_telegram_bot.telegram.poller import ChatSession
         from llm_telegram_bot.telegram.routing import route_message
+        from llm_telegram_bot.utils.message_utils import build_full_prompt, iso_ts
 
         try:
             msg = update.get("message")
@@ -205,18 +207,16 @@ class PollingLoop:
                 return
 
             chat_id = msg["chat"]["id"]
+            bot_name = self.bot_name
 
             # Wrap our TelegramClient + chat into a ChatSession helper
-            session = ChatSession(self.client, chat_id, self.bot_name)  # Pass bot_name here
-            state = get_session(chat_id, self.bot_name)
+            session = ChatSession(self.client, chat_id, bot_name)
+            state = get_session(chat_id, bot_name)
 
             # ── Initialize default service if not set ─────────────────────────
             if state.active_service is None:
-                # Use the configured factory default service, or fallback to the first service defined
-                default_svc = self.config.factorydefault.service
-                if default_svc is None:
-                    default_svc = next(iter(self.config.services.keys()), None)
-                set_service(chat_id, default_svc, self.bot_name)  # Pass bot_name
+                default_svc = self.config.factorydefault.service or next(iter(self.config.services.keys()), None)
+                set_service(chat_id, default_svc, bot_name)
 
             # ── Document Handling ───────────────────────────────────────────────
             if "document" in msg:
@@ -231,83 +231,94 @@ class PollingLoop:
                 else:
                     logger.error(f"[PollingLoop] get_file failed: {details}")
                     await session.send_message(f"❌ Could not retrieve '{file_name}'")
-                return  # skip further processing
+                return
 
             # ── Text Handling ──────────────────────────────────────────────────
             if "text" in msg:
-                text = msg["text"].strip()
+                user_text = msg["text"].strip()
 
                 # Slash‐command?
-                # error: "Unexpected keyword argument "session" for "route_message""
-                if text.startswith("/"):
+                if user_text.startswith("/"):
                     await route_message(
-                        session=session,
-                        message=msg,
-                        llm_call=None,  # ignored for commands
-                        model="",  # ignored
-                        temperature=0.0,  # ignored
-                        maxtoken=0,  # ignored
-                        # bot_name=self.bot_name,  # Pass bot_name here
+                        session=session, message=msg, llm_call=None, model="", temperature=0.0, maxtoken=0
                     )
                     return
 
                 # Paused?
-                if is_paused(chat_id, self.bot_name):
+                if is_paused(chat_id, bot_name):
                     logger.info(f"[PollingLoop] Messaging paused for {chat_id}, skipping LLM")
                     return
 
                 svc_name = state.active_service
                 if svc_name is None:
-                    raise ValueError("No active service is selected")
+                    raise ValueError("No active service selected")
 
                 bot_def = self.bot_config.default
                 svc_conf = self.config.services.get(svc_name)
                 if svc_conf is None:
                     raise ValueError(f"Service config for '{svc_name}' not found")
 
-                # store the raw user prompt in session memory
-                add_memory(chat_id, self.bot_name, "last_prompt", msg["text"])
+                # 1) Record raw prompt in session memory
+                add_memory(chat_id, bot_name, "last_prompt", user_text)
 
-                # Resolve model parameters
+                # 2) Build full LLM prompt (inc. jailbreak, history, user/char context)
+                logger.debug(f"char={type(state.active_char)}, user={type(state.active_user)}")
+
+                # without char context yet
+                user_data = load_user_config(state.active_user)
+                # can now see user
+                char_data = load_char_config(state.active_char, user_data)
+                # reload with full context
+                user_data = load_user_config(state.active_user, char_data)
+
+                full_prompt = build_full_prompt(
+                    char=char_data,
+                    user=user_data,
+                    jailbreak=state.jailbreak,
+                    history=state.history_buffer,
+                    user_text=user_text,
+                )
+
+                logger.debug(f"[Prompt] Final prompt to LLM:\n{full_prompt}")
+
+                # 3) Also store the sent prompt for debugging
+                add_memory(chat_id, bot_name, "last_prompt_full", full_prompt)
+
+                # 4) Determine effective LLM parameters
                 model, temperature, maxtoken = get_effective_llm_params(
-                    chat_id=chat_id,
-                    bot_name=self.bot_name,
-                    bot_default=bot_def,
-                    svc_conf=svc_conf,
+                    chat_id=chat_id, bot_name=bot_name, bot_default=bot_def, svc_conf=svc_conf
                 )
 
-                # Get the appropriate service instance
-                service = get_service_for_name(
-                    service_name=svc_name,
-                    config=svc_conf,
-                )
-
-                # Send prompt to the LLM
+                # 5) Instantiate service and send the prompt
+                service = get_service_for_name(svc_name, svc_conf)
+                # Send to LLM
                 reply = await service.send_prompt(
-                    prompt=text,
+                    prompt=full_prompt,
                     model=model,
                     temperature=temperature,
                     maxtoken=maxtoken,
                 )
 
-                # Store the reply in memory
-                add_memory(chat_id, self.bot_name, "last_response", reply)
+                # 6) Record the raw LLM response
+                add_memory(chat_id, bot_name, "last_response", reply)
 
-                # Send the reply to Telegram, and split into parts <4096 chars
-                # to handle Telegram's char limit
+                # 7) Send back, splitting long messages
                 if len(reply) > 4096:
-                    logger.warning(f"[Poller] Splitting long reply ({len(reply)} chars) into chunks")
+                    logger.warning(f"[PollingLoop] Splitting reply of {len(reply)} chars")
+                for chunk in split_message(reply):
+                    await session.send_message(chunk)
 
-                for part in split_message(reply):
-                    await session.send_message(part)
+                # 8) Append to history buffer (with local timestamp)
+                entry = {"who": "user", "ts": iso_ts(), "text": user_text, "prompt": full_prompt}
+                state.history_buffer.append(entry)
+                if len(state.history_buffer) >= self.bot_config.history_flush_count:
+                    state.flush_history_to_disk(bot_name)
 
         except Exception as e:
             logger.exception(f"[PollingLoop] error in handle_update: {e}")
-            # best-effort fallback message
+            # best-effort fallback
             try:
-                fallback = ChatSession(
-                    self.client, update["message"]["chat"]["id"], self.bot_name
-                )  # Pass bot_name here
+                fallback = ChatSession(self.client, update["message"]["chat"]["id"], bot_name)
                 await fallback.send_message(f"❌ Error processing update: {e}")
             except:
                 pass

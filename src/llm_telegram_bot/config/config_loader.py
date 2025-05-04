@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -11,6 +12,12 @@ from llm_telegram_bot.utils.logger import logger
 # Constants
 CONFIG_YAML = "config/config.yaml"
 MODELS_INFO_JSON = "config/models_info.json"
+
+
+def load_jailbreaks() -> dict:
+    path = Path(__file__).resolve().parents[3] / "config" / "jailbreaks.yaml"
+    with path.open("r", encoding="utf-8") as f:
+        return yaml.safe_load(f).get("jailbreaks", {})
 
 
 def load_model_info(json_path: str = MODELS_INFO_JSON) -> dict[str, Any]:
