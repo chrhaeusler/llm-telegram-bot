@@ -20,7 +20,7 @@ async def user_handler(session: Any, message: dict, args: List[str]):
     /user [list|show|drop|<name>|<index>]
     Manage the active user YAML for this bot.
     """
-    bot_name = session.client.bot_name
+    bot_name = session.bot_name
     # Directory where user yamls live
     users_dir = Path("config") / "users"
 
@@ -28,8 +28,17 @@ async def user_handler(session: Any, message: dict, args: List[str]):
     files = sorted([f.stem for f in users_dir.glob("*.yaml") if f.is_file()])
     if not args or args[0].lower() == "show":
         current = get_active_user(session.chat_id, bot_name)
-        text = f"🔍 Current user: `{current}`" if current else "⚠️ No user selected."
-        await session.send_message(text)
+        # logging
+        logger.debug(f"Current active char: {current}")
+        logger.debug(f"Active char data: {session.active_user_data}")
+        if current and session.active_user_data:
+            char_data = session.active_user_data
+            name = char_data.get("identity", {}).get("name", "(unknown)")
+            role = char_data.get("role", "(unknown)")
+            text = f"🔍 Current user:\n<b>Name:</b> {name}\n<b>Role:</b> {role}\n<b>File:</b> <code>{users_dir}/{current}.yaml</code>"
+            await session.send_message(text, parse_mode="HTML")
+        else:
+            await session.send_message("⚠️ No character selected.")
         return
 
     cmd = args[0].lower()
@@ -42,6 +51,7 @@ async def user_handler(session: Any, message: dict, args: List[str]):
             await session.send_message("\n".join(lines), parse_mode="HTML")
         return
 
+    # TO DO: this does not work
     if cmd == "drop":
         set_active_user(session.chat_id, bot_name, None)
         await session.send_message("✅ User selection cleared.")

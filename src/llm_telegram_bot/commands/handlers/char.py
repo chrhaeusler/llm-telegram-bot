@@ -11,40 +11,51 @@ from llm_telegram_bot.session.session_manager import (
 from llm_telegram_bot.utils.logger import logger
 
 # Log that the char handler is being loaded
-logger.info("[Char Handler] char.py is being loaded")
+logger.info("[char Handler] char.py is being loaded")
 
 
 @register_command("/char")
 async def char_handler(session: Any, message: dict, args: List[str]):
     """
     /char [list|show|drop|<name>|<index>]
-    Manage the active character YAML for this bot.
+    Manage the active char YAML for this bot.
     """
-    bot_name = session.client.bot_name
-    # Directory where character yamls live
+    bot_name = session.bot_name
+    # Directory where char yamls live
     chars_dir = Path("config") / "chars"
 
     # 1) List available char names
     files = sorted([f.stem for f in chars_dir.glob("*.yaml") if f.is_file()])
+
     if not args or args[0].lower() == "show":
         current = get_active_char(session.chat_id, bot_name)
-        text = f"🔍 Current character: `{current}`" if current else "⚠️ No character selected."
-        await session.send_message(text)
+        # logging
+        logger.debug(f"Current active char: {current}")
+        logger.debug(f"Active char data: {session.active_char_data}")
+        if current and session.active_char_data:
+            char_data = session.active_char_data
+            name = char_data.get("identity", {}).get("name", "(unknown)")
+            role = char_data.get("role", "(unknown)")
+            text = f"🔍 Current character:\n<b>Name:</b> {name}\n<b>Role:</b> {role}\n<b>File:</b> <code>{chars_dir}/{current}.yaml</code>"
+            await session.send_message(text, parse_mode="HTML")
+        else:
+            await session.send_message("⚠️ No character selected.")
         return
 
     cmd = args[0].lower()
 
     if cmd == "list":
         if not files:
-            await session.send_message("⚠️ No character files found.")
+            await session.send_message("⚠️ No Char files found.")
         else:
-            lines = ["<b>Available characters:</b>"] + [f"{i+1}. {n}" for i, n in enumerate(files)]
+            lines = ["<b>Available chars:</b>"] + [f"{i+1}. {n}" for i, n in enumerate(files)]
             await session.send_message("\n".join(lines), parse_mode="HTML")
         return
 
+    # TO DO: this does not work
     if cmd == "drop":
         set_active_char(session.chat_id, bot_name, None)
-        await session.send_message("✅ Character selection cleared.")
+        await session.send_message("✅ Char selection cleared.")
         return
 
     # 2) Switch by index
@@ -59,17 +70,20 @@ async def char_handler(session: Any, message: dict, args: List[str]):
         if cmd in files:
             choice = cmd
         else:
-            await session.send_message(f"⚠️ Character not found: {cmd}")
+            await session.send_message(f"⚠️ Char not found: {cmd}")
             return
 
     # 3) Commit selection
     set_active_char(session.chat_id, bot_name, choice)
-    await session.send_message(f"✅ Switched character to `{choice}`")
+    await session.send_message(f"✅ Switched Char to `{choice}`")
 
-    # Alias: `/chars` → list characters
+    # Alias: `/chars` → list chars
     @register_command("/chars")
     async def chars_alias(session: Any, message: dict, args: List[str]):
-        # Force the “list” action
+        """
+        Alias for `/char list`
+        """
+        # reuse the main handler, forcing the "list" subcommand
         from llm_telegram_bot.commands.handlers.char import char_handler
 
         await char_handler(session, message, ["list"])

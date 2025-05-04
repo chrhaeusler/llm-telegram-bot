@@ -8,7 +8,6 @@ from typing import Any, Dict, Optional
 
 import llm_telegram_bot.commands.handlers  # noqa: F401
 from llm_telegram_bot.config.config_loader import load_config
-from llm_telegram_bot.config.persona_loader import load_char_config, load_user_config
 from llm_telegram_bot.config.schemas import BotConfig, RootConfig
 from llm_telegram_bot.llm.dispatcher import get_service_for_name
 from llm_telegram_bot.services.service_groq import GroqService
@@ -38,8 +37,8 @@ class ChatSession:
     def __init__(self, client: TelegramClient, chat_id: int, bot_name: str):
         self.client = client
         self.chat_id = chat_id
-        self.bot_name = bot_name  # Add bot_name here
-        self._session = get_session(chat_id, bot_name)  # Pass bot_name
+        self.bot_name = bot_name
+        self._session = get_session(chat_id, bot_name)
 
     async def send_message(self, text: str, *, parse_mode: str = "MarkdownV2", **kwargs) -> None:
         # ensure client knows which chat
@@ -59,6 +58,14 @@ class ChatSession:
     @property
     def messaging_paused(self):
         return self._session.messaging_paused
+
+    @property
+    def active_char_data(self):
+        return self._session.active_char_data
+
+    @property
+    def active_user_data(self):
+        return self._session.active_user_data
 
 
 class PollingLoop:
@@ -264,12 +271,8 @@ class PollingLoop:
                 # 2) Build full LLM prompt (inc. jailbreak, history, user/char context)
                 logger.debug(f"char={type(state.active_char)}, user={type(state.active_user)}")
 
-                # without char context yet
-                user_data = load_user_config(state.active_user)
-                # can now see user
-                char_data = load_char_config(state.active_char, user_data)
-                # reload with full context
-                user_data = load_user_config(state.active_user, char_data)
+                char_data = session.active_char_data or {}
+                user_data = session.active_user_data or {}
 
                 full_prompt = build_full_prompt(
                     char=char_data,

@@ -2,7 +2,7 @@
 
 # ── Metadata ───────────────────────────────────────────────────────────
 key: john-doe # unique identifier
-role: King # high-level category (teacher, casual, spicy, etc.)
+role: Friend # high-level category (teacher, casual, spicy, etc.)
 description: > # short human-readable summary
   Just a everyday normal guy
 

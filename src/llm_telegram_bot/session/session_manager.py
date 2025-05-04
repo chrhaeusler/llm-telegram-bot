@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from llm_telegram_bot.config.config_loader import load_config
+from llm_telegram_bot.config.persona_loader import load_char_config, load_user_config
 from llm_telegram_bot.config.schemas import BotDefaults, RootConfig, ServiceConfig
 from llm_telegram_bot.utils.logger import logger
 
@@ -77,13 +78,25 @@ def get_session(chat_id: int, bot_name: str) -> Session:
             # seed LLM defaults
             session.active_service = bot_conf.default.service
             session.active_model = bot_conf.default.model
-            # seed persona & user
+
+            # seed history toggle & jailbreak
+            session.history_on = bot_conf.history_enabled
+            session.jailbreak = bot_conf.jailbreak
+
+            # seed persona & user keys
             session.active_char = bot_conf.char
             session.active_user = bot_conf.user
-            # seed history toggle from config
-            session.history_on = bot_conf.history_enabled
-            # seed jailbreak from toggle
-            session.jailbreak = bot_conf.jailbreak
+
+            # now load their full configs once
+            if session.active_char:
+                session.active_char_data = load_char_config(session.active_char, None)
+            else:
+                session.active_char_data = None
+
+            if session.active_user:
+                session.active_user_data = load_user_config(session.active_user, session.active_char_data)
+            else:
+                session.active_user_data = None
 
         _sessions[session_key] = session
 
@@ -213,9 +226,16 @@ def get_active_bot(chat_id: int, bot_name: str) -> Optional[str]:
 # Character Management
 def set_active_char(chat_id: int, bot_name: str, char_key: Optional[str]) -> None:
     """
-    Set or clear (if None) the active character for this chat+bot.
+    Set or clear (if None) the active character for this chat+bot,
+    and immediately reload its full config into session.active_char_data.
     """
-    get_session(chat_id, bot_name).active_char = char_key
+    sess = get_session(chat_id, bot_name)
+    sess.active_char = char_key
+    if char_key:
+        # reload full char config (pass along current user_data for rendering)
+        sess.active_char_data = load_char_config(char_key, sess.active_user_data)
+    else:
+        sess.active_char_data = None
 
 
 def get_active_char(chat_id: int, bot_name: str) -> Optional[str]:
@@ -228,9 +248,15 @@ def get_active_char(chat_id: int, bot_name: str) -> Optional[str]:
 # User Management (new)
 def set_active_user(chat_id: int, bot_name: str, user_key: Optional[str]) -> None:
     """
-    Set or clear (if None) the active user for this chat+bot.
+    Set or clear (if None) the active user for this chat+bot,
+    and immediately reload its full config into session.active_user_data.
     """
-    get_session(chat_id, bot_name).active_user = user_key
+    sess = get_session(chat_id, bot_name)
+    sess.active_user = user_key
+    if user_key:
+        sess.active_user_data = load_user_config(user_key, sess.active_char_data)
+    else:
+        sess.active_user_data = None
 
 
 def get_active_user(chat_id: int, bot_name: str) -> Optional[str]:

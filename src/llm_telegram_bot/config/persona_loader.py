@@ -15,12 +15,6 @@ _char_cache: Dict[str, Dict[str, Any]] = {}
 _user_cache: Dict[str, Dict[str, Any]] = {}
 
 
-logging.basicConfig(
-    level=logging.DEBUG,  # <-- Make sure it's DEBUG
-    format="%(asctime)s %(levelname)s %(message)s",
-)
-
-
 def _load_yaml(path: Path) -> Dict[str, Any]:
     try:
         with path.open("r", encoding="utf-8") as f:
