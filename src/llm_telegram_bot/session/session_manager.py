@@ -27,6 +27,7 @@ class Session:
         self.model_config: ModelConfig = ModelConfig()
         self.active_char: Optional[str] = None
         self.active_scenario: Optional[str] = None
+        self.active_user: Optional[str] = None
         self.memory: Dict[str, List[Any]] = {}
 
     def pause(self) -> None:
@@ -64,6 +65,8 @@ def get_session(chat_id: int, bot_name: str) -> Session:
         if bot_conf and bot_conf.chat_id == chat_id:
             session.active_service = bot_conf.default.service
             session.active_model = bot_conf.default.model
+            session.active_char = bot_conf.char
+            session.active_user = bot_conf.user
 
         _sessions[session_key] = session
 
@@ -190,15 +193,37 @@ def get_active_bot(chat_id: int, bot_name: str) -> Optional[str]:
     return None
 
 
-# Persona (Character) Management
-def set_active_char(chat_id: int, bot_name: str, char_key: str) -> None:
+# Character Management
+def set_active_char(chat_id: int, bot_name: str, char_key: Optional[str]) -> None:
+    """
+    Set or clear (if None) the active character for this chat+bot.
+    """
     get_session(chat_id, bot_name).active_char = char_key
 
 
 def get_active_char(chat_id: int, bot_name: str) -> Optional[str]:
+    """
+    Return the active character key, or None if not set.
+    """
     return get_session(chat_id, bot_name).active_char
 
 
+# User Management (new)
+def set_active_user(chat_id: int, bot_name: str, user_key: Optional[str]) -> None:
+    """
+    Set or clear (if None) the active user for this chat+bot.
+    """
+    get_session(chat_id, bot_name).active_user = user_key
+
+
+def get_active_user(chat_id: int, bot_name: str) -> Optional[str]:
+    """
+    Return the active user key, or None if not set.
+    """
+    return get_session(chat_id, bot_name).active_user
+
+
+# Scenario Management
 def set_active_scenario(chat_id: int, bot_name: str, scenario_key: str) -> None:
     get_session(chat_id, bot_name).active_scenario = scenario_key
 
