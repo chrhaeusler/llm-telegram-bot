@@ -119,22 +119,10 @@
 
 - [x] Ensure `src/commands/handlers/*.py` are imported in poller so `@register_command` runs.
 - [x] Treat `/start` as alias for `/bot` in `routing.py`.
-
-**Help & view commands:**
-
-- [x] /help, /bots, /bot, /models, /status
-
-**Set/override commands:**
-
-- [x] /temp, /tokens, /service, /model
-
-**File I/O commands:**
-
-- [x] /savestr, /slp, /slr
-
-**Unit tests:**
-
-- [ ] For each handler: no-arg, valid-arg, invalid-arg.
+- [x] Help & view commands: `/help`, `/bot(s)`, `/model(s)`, `/status`
+- [x] Set/override commands: `/temp`, `/tokens`, `/service`, `/model`
+- [x] File I/O commands: `/savestr`, `/slp`, `/slr`
+- [ ] Unit tests for each handler: no-arg, valid-arg, invalid-arg.
 
 ---
 
@@ -146,29 +134,38 @@
 
 ---
 
-## Phase 3 – Persona (Char/User) & Memory
+## Phase 3 – Persona (Char/User) & History
 
-- [ ] Abstract loader for character/user YAMLs
+- [x] Abstract loader for character/user YAMLs
+- [x] implement `/history on|off|flush|save|load`
 - [x] Implement `/char`, `/char list`, `/char <name>`
-- [ ] /char reset
-- [ ] Implement user_loader.py and /user commands
-- [ ] /memory show/update/clear
-- [ ] /history + /undo commands
-- [ ] Integrate active character + memory into routing
+- [x] Implement `config/persona_loader.py`
+- [x] implement `/user` and `/char` commands
+- [x] Integrate active character and user into routing
+- [ ] draw and use all infos from char configuration and user files (background, skills, interests, personality etc.)
 - [ ] Unit tests for all commands
 
 ---
 
-## Phase 4 – Logging & Formatting 🟡 _(in progress)_
+## Phase 4 – History Summarization 🟡 _(in progress)_
 
-- [ ] Enhance `send_message` logs (chat_id, duration, preview)
+- [ ] integrate `summarize_history(history_buffer)`
+- [ ] sliding‐window message summarization logic
+- [ ] expose `/sum [params]` to tune sentence‐counts and window size
+- [ ] pick a lightweight summarizer (Sumy/SpaCy) and wire it into `build_full_prompt()`
+
+---
+
+## Phase 5 – Logging & Formatting 🟡 _(in progress)_
+
+- [x] Enhance `send_message` logs (chat_id, duration, preview)
 - [x] Use HTML formatting (escape utils in place)
 - [x] Added `telegram_splitter.py` for 4096-char limit
 - [ ] CLI-mode flag to skip HTML escapes
 
 ---
 
-## Phase 5 – CLI Bot & Documentation 🟡 _(just started)_
+## Phase 6 – CLI Bot & Documentation 🟡 _(just started)_
 
 - [x] Add `run.sh` launcher to project root
 - [ ] Build CLI runner (mirror Telegram routing)
@@ -178,18 +175,18 @@
 
 ---
 
-## Phase 6 – Nice-to-Have Commands
+## Phase 7 – Nice-to-Have Commands
 
 - [ ] /jb (automatic jailbreak prompts)
 - [ ] /setdefaults
 - [ ] /defaults
 - [ ] /reset (to factory defaults)
-- [ ] Polish /undo
+- [ ] /undo
 - [ ] Add more quality-of-life commands
 
 ---
 
-## Phase 7 – Release Preparation
+## Phase 8 – Release Preparation
 
 - [ ] CI green: pre-commit, pytest, mypy
 - [ ] Smoke-tests: TelegramClient + LLM end-to-end

@@ -125,24 +125,20 @@ class Session:
         if not self.active_char or not self.active_user:
             raise ValueError("Cannot load history without both char and user loaded.")
 
-        # Format filename using template from config
-        try:
-            filename = self.history_file_template.format(user=self.active_user, char=self.active_char)
-        except Exception as e:
-            logger.error(f"Error formatting history file template: {e}")
-            raise
+        history_dir = Path("histories") / self.bot_name / str(self.chat_id)
+        history_dir.mkdir(parents=True, exist_ok=True)
 
-        path = Path("histories") / self.bot_name / str(self.bot_name) / filename
+        history_file = history_dir / f"{self.active_user}_with_{self.active_char}.json"
 
-        if not path.exists():
-            raise FileNotFoundError(f"History file not found: {path}")
+        logger.info(f"[History] Loading from: {history_file}")
 
-        logger.info(f"[History] Loading from: {path}")
+        with history_file.open("r", encoding="utf-8") as f:
+            # self.history_buffer = json.load(f)
+            loaded_data = json.load(f)
+            self.history_buffer = loaded_data.get('history_buffer', [])
+            print(self.history_buffer)
 
-        with path.open("r", encoding="utf-8") as f:
-            self.history_buffer = json.load(f)
-
-        return str(path)
+        return str(history_file)
 
     def close(self):
         """

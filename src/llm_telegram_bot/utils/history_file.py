@@ -1,5 +1,11 @@
 # src/utils/history_file.py
 
+# TO DO: obsolete now
+# All of its logic (templating the filename and wrapping dicts as AttrDict) has been
+# upstreamed into
+# Session.flush_history_to_disk and
+# Session.load_history_from_disk methods
+
 from typing import Any, Union
 
 from jinja2 import Template
@@ -13,15 +19,6 @@ class AttrDict(dict[str, Any]):
             return AttrDict(value) if isinstance(value, dict) else value
         except KeyError:
             raise AttributeError(f"Missing attribute '{item}' in AttrDict")
-
-
-# def render_history_filename(template: str, user_data: dict, char_data: dict) -> str:
-#     """
-#     Renders the history filename from template using attribute-access dictionaries.
-#     """
-#     user = AttrDict(user_data)
-#     char = AttrDict(char_data)
-#     return template.format(user=user, char=char)
 
 
 def render_history_filename(template_str: str, user_data: AttrDict, char_data: AttrDict) -> str:

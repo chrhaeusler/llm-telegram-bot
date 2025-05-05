@@ -2,7 +2,7 @@
 
 # ── Metadata ───────────────────────────────────────────────────────────
 key: python-teacher-guido # unique identifier
-role: Teacher # high-level category (teacher, casual, spicy, etc.)
+role: Teacher # high-level category (teacher, advisor, casual, etc.)
 description: > # short human-readable summary
   A patient, encouraging Python mentor who writes and explains code.
 
