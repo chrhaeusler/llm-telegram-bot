@@ -5,17 +5,17 @@
 │   └── cli-chatbot.py                # [ ] CLI entrypoint (Phase 5) – stub, not implemented yet
 ├── config
 │   ├── chars
-│   │   ├── char_template.yaml        # [ ] Character YAML template (Phase 3)
-│   │   └── lara-aimi-kimura.yaml     # [ ] Example character definition (Phase 3)
+│   │   └── char_template.yaml        # [x] Character YAML template (Phase 3)
+│   │
 │   ├── commands.yaml                 # [x] Command definitions (used by `/help`, registry)
 │   ├── config-template.yaml          # [ ] Template for config.yaml (needs update)
 │   ├── config.yaml                   # [x] Active bot & LLM settings (loaded & validated)
 │   ├── models_info.json              # [x] Model metadata (used by `/models`, `/model`)
 │   └── users
-│       └── user_template.yaml        # [ ] User profile YAML template (Phase 3)
-├── issues.md                         # [ ] High-level issues & notes
+│       └── user_template.yaml        # [x] User profile YAML template (Phase 3)
+├── issues.md                         # [x] High-level issues & notes
 ├── LICENSE                           # [x] Project license
-├── logs                              # [ ] Runtime logs (auto-generated)
+├── logs                              # [x] Runtime logs (auto-generated)
 ├── poetry.lock                       # [x] Locked dependencies
 ├── pyproject.toml                    # [x] Project metadata & tools (poetry, black, ruff, mypy)
 ├── README.md                         # [ ] Usage & installation docs (Phase 5)
@@ -25,15 +25,15 @@
 ├── src
 │   ├── __init__.py
 │   └── llm_telegram_bot
-│       ├── char_loader.py            # [ ] Load/validate character YAMLs (Phase 3)
+│       ├── char_loader.py            # [x] Load/validate character YAMLs (Phase 3)
 │       ├── commands
 │       │   ├── commands_loader.py    # [x] YAML → CommandInfo objects
 │       │   ├── commands_registry.py  # [x] Decorator & registry for handlers
 │       │   ├── handlers
 │       │   │   ├── bot.py            # [x] `/bot` handler
 │       │   │   ├── bots.py           # [x] `/bots` handler
-│       │   │   ├── char.py           # [ ] `/char` handler (Phase 3)
-│       │   │   ├── chars.py          # [ ] `/chars` alias (Phase 3)
+│       │   │   ├── char.py           # [x] `/char` handler (Phase 3)
+│       │   │   ├── chars.py          # [x] `/chars` alias (Phase 3)
 │       │   │   ├── defaults.py       # [ ] `/defaults` (Phase 6)
 │       │   │   ├── help.py           # [x] `/help` handler
 │       │   │   ├── history.py        # [ ] `/history` (Phase 3)
@@ -191,7 +191,7 @@
 - [ ] CI green: pre-commit, pytest, mypy
 - [ ] Smoke-tests: TelegramClient + LLM end-to-end
 - [ ] Tag & publish v0.1-alpha
-- [ ] SQLite for history storage (vector or graph databse out of scope)
+- [ ] SQLite for history storage (vector or graph database out of scope)
 - [ ] Plan v0.2 (memory agents, DB, LangChain, etc.)
 - [ ] Implement speech-to-text and text-to-speech models
 - [ ] Implement image analysis (pixtral)
