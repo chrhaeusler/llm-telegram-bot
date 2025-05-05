@@ -34,7 +34,7 @@ def _render_templates(data: Any, context: Dict[str, Any]) -> Any:
         try:
             return Template(data).render(**context)
         except Exception as e:
-            logger.warning(f"Template render error: {e} in '{data}'")
+            logger.debug(f"Template render error: {e} in '{data}'")
             return data
     else:
         logger.debug(f"Rendering string: {data} with context keys: {list(context.keys())}")

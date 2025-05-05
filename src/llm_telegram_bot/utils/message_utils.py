@@ -1,10 +1,13 @@
 # src/llm-telegram-bot/utils/message_utils.py
 
 import datetime
+import logging
 from typing import Union
 
 from llm_telegram_bot.config.config_loader import load_jailbreaks
 from llm_telegram_bot.templates.jinja import render_template
+
+logger = logging.getLogger(__name__)
 
 
 def iso_ts() -> str:
@@ -51,15 +54,19 @@ def build_full_prompt(
     summary_enabled: bool = True,
 ) -> str:
 
-    # 1. Load jailbreak prompt
-    jailbreak_prompt = ""
+    # 1. Load & render jailbreak prompt (any Jinja errors get caught & skipped)
+    rendered_jb = ""
     if isinstance(jailbreak, str):
-        jailbreak_data = load_jailbreaks().get(jailbreak)
-        if jailbreak_data:
-            jailbreak_prompt = jailbreak_data.get("prompt", "")
-
-    print(render_template.__code__.co_varnames)
-    rendered_jb = render_template(jailbreak_prompt, char=char, user=user)
+        jb = load_jailbreaks().get(jailbreak, {})
+        prompt_tpl = jb.get("prompt", "").strip()
+        if prompt_tpl:
+            try:
+                # only attempt render if we actually have dicts
+                if isinstance(char, dict) and isinstance(user, dict):
+                    rendered_jb = render_template(prompt_tpl, char=char, user=user)
+            except Exception as e:
+                logger.warning(f"[Prompt] Skipping jailbreak render: {e}")
+                rendered_jb = ""
 
     # 2. Optional blocks
     full_prompt = ""
