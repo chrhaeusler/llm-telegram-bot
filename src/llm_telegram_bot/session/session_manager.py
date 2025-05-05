@@ -136,7 +136,6 @@ class Session:
             # self.history_buffer = json.load(f)
             loaded_data = json.load(f)
             self.history_buffer = loaded_data.get('history_buffer', [])
-            print(self.history_buffer)
 
         return str(history_file)
 

@@ -67,7 +67,6 @@ async def history_handler(session: Any, message: dict, args: List[str]):
         if not sess.history_buffer:
             return await session.send_message("⚠️ No new history to flush.")
         path = sess.flush_history_to_disk()
-        print(path)
         return await session.send_message(f"{header}\n✅ History flushed to <code>{path}</code>.", parse_mode="HTML")
 
     if cmd == "load":
