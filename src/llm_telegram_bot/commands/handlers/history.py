@@ -1,8 +1,14 @@
+# src/commands/handlers/history.py
+
+from html import escape
 from pathlib import Path
 from typing import Any, List
 
 from llm_telegram_bot.commands.commands_registry import register_command
-from llm_telegram_bot.session.session_manager import get_session
+from llm_telegram_bot.session.session_manager import (
+    get_session,
+)
+from llm_telegram_bot.utils.history_file import render_history_filename
 from llm_telegram_bot.utils.logger import logger
 
 logger.info("[History Handler] history.py loaded")
@@ -11,22 +17,25 @@ logger.info("[History Handler] history.py loaded")
 @register_command("/h")
 async def history_handler(session: Any, message: dict, args: List[str]):
     """
-    /history on|off|files|load|new
+    /h on|off|files|load|flush
       • on:    turn logging on
       • off:   turn logging off & flush
-      • list:  list saved history files
+      • files: list saved history files
       • load:  load a file into context
-      • flush/save: flush history to file
+      • flush: flush/write history to file now
     """
-    sess = get_session(session.chat_id, session.client.bot_name)
-    bot = session.client.bot_name
+    sess = get_session(session.chat_id, session.bot_name)
+    bot = session.bot_name
 
     # Always show current state first
-    status = "✅ ON" if sess.history_on else "⏸️ OFF"
-    header = f"<b>History:</b> {status}"
+    status = "on ✅" if sess.history_on else "off ⏸️"
+    header = f"<b>History:</b> is {status}"
+
     if not args:
+        usage = escape("/h <on|off|files|load|flush>")
         return await session.send_message(
-            f"{header}\n⚠️ Usage: /history &lt;on|off|files|load|new&gt;", parse_mode="HTML"
+            f"{header}\n⚠️ Usage: {usage}",
+            parse_mode="HTML",
         )
 
     cmd = args[0].lower()
@@ -37,11 +46,13 @@ async def history_handler(session: Any, message: dict, args: List[str]):
 
     if cmd == "off":
         sess.history_on = False
-        sess.flush_history_to_disk()
-        return await session.send_message(f"{header}\n✅ History logging disabled & flushed.", parse_mode="HTML")
+        path = sess.flush_history_to_disk()
+        return await session.send_message(
+            f"{header}\n✅ History logging disabled & flushed to <code>{path}</code>.",
+            parse_mode="HTML",
+        )
 
-    # List files; create alias "/histories" for that
-    if cmd == "list":
+    if cmd == "files":
         d = Path("histories") / bot / str(session.chat_id)
         if not d.exists():
             return await session.send_message(f"{header}\n⚠️ No history directory found.", parse_mode="HTML")
@@ -51,18 +62,33 @@ async def history_handler(session: Any, message: dict, args: List[str]):
         listing = "\n".join(files)
         return await session.send_message(f"{header}\n<b>Files:</b>\n<code>{listing}</code>", parse_mode="HTML")
 
-    # will need to switch char and user depending on the loaded file
     if cmd == "load":
-        session.send_message(f"{header}\n⚠️ /history load not implemented yet.", parse_mode="HTML")
+        # Attempt load of the single expected file
+        print(repr(sess.active_user_data))
+        print(repr(sess.active_char_data))
+        try:
 
-    # flush / save (manually)
-    if cmd == "flush" or cmd == "save":
+            path = render_history_filename(
+                sess.history_file_template,
+                user_data=sess.active_user_data,
+                char_data=sess.active_char_data,
+            )
+            print(path)
+            return await session.send_message(
+                f"{header}\n✅ Loaded history from <code>{path}</code>.", parse_mode="HTML"
+            )
+        except FileNotFoundError:
+            return await session.send_message(f"{header}\n⚠️ No history file to load.", parse_mode="HTML")
+        except Exception as e:
+            logger.exception("[/h load] Failed to load history")
+            return await session.send_message(f"{header}\n❌ Could not load history: {e}", parse_mode="HTML")
+
+    if cmd in ("flush", "save"):
         if not sess.history_on:
             return await session.send_message("⚠️ History is disabled.")
         if not sess.history_buffer:
             return await session.send_message("⚠️ No new history to flush.")
         path = sess.flush_history_to_disk()
-        return await session.send_message(f"✅ History flushed to <code>{path}</code>", parse_mode="HTML")
-        # return await session.send_message(f"{header}\n✅ History appended to file.", parse_mode="HTML")
+        return await session.send_message(f"{header}\n✅ History flushed to <code>{path}</code>.", parse_mode="HTML")
 
     return await session.send_message(f"{header}\n⚠️ Unknown subcommand: {cmd}", parse_mode="HTML")

@@ -44,6 +44,7 @@ class Session:
         # History: TO DO: take bot configuration, if existing
         self.history_on: bool = False
         self.history_buffer: list[dict] = []
+        self.history_file_template: str = ""
 
         # Jailbreak
         self.jailbreak: Optional[int] = None  # or bool if you switched to that
@@ -119,6 +120,30 @@ class Session:
 
         return history_file
 
+    def load_history_from_disk(self) -> str:
+        """Load history from disk for the current char/user combo into sess.history_buffer."""
+        if not self.active_char or not self.active_user:
+            raise ValueError("Cannot load history without both char and user loaded.")
+
+        # Format filename using template from config
+        try:
+            filename = self.history_file_template.format(user=self.active_user, char=self.active_char)
+        except Exception as e:
+            logger.error(f"Error formatting history file template: {e}")
+            raise
+
+        path = Path("histories") / self.bot_name / str(self.bot_name) / filename
+
+        if not path.exists():
+            raise FileNotFoundError(f"History file not found: {path}")
+
+        logger.info(f"[History] Loading from: {path}")
+
+        with path.open("r", encoding="utf-8") as f:
+            self.history_buffer = json.load(f)
+
+        return str(path)
+
     def close(self):
         """
         Cancel background tasks (if you tear down sessions).
@@ -164,6 +189,11 @@ def get_session(chat_id: int, bot_name: str) -> Session:
             # seed persona & user keys
             session.active_char = bot_conf.char
             session.active_user = bot_conf.user
+
+            session.history_file_template = (
+                bot_conf.history_file
+                or "{{user.identity.name}}_{{user.role}}_with_{{char.identity.name}}_{{char.role}}.json"
+            )
 
             # now load their full configs once
             if session.active_char:

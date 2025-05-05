@@ -5,7 +5,7 @@
 # config/commands.yaml
 # Defines all slash commands: usage, description, and (optionally) args.
 
-# ── Help & Status ────────────────────────────────────────────────────────
+# ── Help & Status ────────────────────────────────────────────────────────────
 help:
   usage: /help
   description: Show this help message with available commands
@@ -16,13 +16,9 @@ status:
   description: Check whether the current bot, service, model, etc. are usable
   args: []
 
-# TO DO
-undo:
-  usage: /undo
-  description: Undo the last configuration change (e.g. model/service)
-  args: []
 
-# ── Bots & Services ─────────────────────────────────────────────────────
+
+# ── Bots & Services ──────────────────────────────────────────────────────────
 bots:
   usage: /bots
   description: Lists (enabled) configured bots
@@ -56,7 +52,7 @@ service:
       optional: true
       description: Name or index of the service to switch to
 
-# ── Models ────────────────────────────────────────────────────────────────
+# ── Models ───────────────────────────────────────────────────────────────────
 models:
   usage: /models
   description: List all models for the current service
@@ -84,6 +80,120 @@ temperature:
     - name: temperature
       type: float
 
+# ── Save & Export ────────────────────────────────────────────────────────────
+savestring:
+  usage: /sstr [<filename>] <text>
+  description: Save an arbitrary string locally
+    • If `<filename>` (.txt, .log, .md) is provided, write into that file
+    • Otherwise auto‐generate `<timestamp>_savestring.txt`
+  args:
+    - name: filename
+      type: str
+      optional: true
+      description: Destination filename
+    - name: text
+      type: str
+      optional: false
+      description: The text to save
+
+savelastprompt:
+  usage: /slp [<filename>]
+  description: Save the last user prompt to file (timestamped if no name)
+  args:
+    - name: filename
+      type: str
+      optional: true
+
+savelastresponse:
+  usage: /slr [--ask|<filename>]
+  description: >
+    • Save the last model response.
+    • If “--ask”, prompt for a filename;
+    • else use provided name (or timestamp).
+  args:
+    - name: ask
+      flag: --ask
+      type: bool
+      optional: true
+    - name: filename
+      type: str
+      optional: true
+
+# ── User(s) & char(s)─────────────────────────────────────────────────────────
+users:
+  usage: /users
+  description: list available users
+  args: []
+
+user:
+  usage: /user <list|<int>||show|update> [<value>]
+  description: >
+    Manage characters & scenarios:
+      • show:   show current user's name & role
+      • list:   list available users (= /users)
+      • <int>:  switch to that user
+      • drop:   drop user config
+
+chars:
+  usage: /chars
+  description: list available chars
+  args: []
+
+char:
+  usage: /char <list|<int>||show|update> [<value>]
+  description: >
+    Manage characters & scenarios:
+      • show:   show current char's name & role
+      • list:   list available chars (= /chars)
+      • <int>:  switch to that char
+      • drop:   drop char config (=blank LLM)
+
+# TO DO: not implemented yet; might be obsolete anyway
+memory:
+  usage: /memory <show|update> [<value>]
+  description: >
+    Manage session memory:
+      • show:    display all memory buckets
+      • update:  add or replace a memory entry
+  args:
+    - name: action
+      type: str
+      choices: [show, update]
+    - name: value
+      type: str
+      optional: true
+
+# ── History ──────────────────────────────────────────────────────────────────
+history:
+  usage: /h <on|off|files|load|flush>
+  description: >
+    Manage chat history (per char+user):
+      • on:     enable logging
+      • off:    disable logging & flush
+      • files:  list saved history files
+      • load:   load saved history into context
+      • flush:  manually flush history to disk
+  args:
+    - name: action
+      type: str
+      choices: [on, off, files, load, flush]
+    - name: arg
+      type: str
+      optional: true
+
+# ── Jailbreaks ───────────────────────────────────────────────────────────────
+# TO DO
+jailbreak:
+  usage: /jb <on|off|list> [arg]
+  description: >
+    not implemented yet (show info for jailbreak ig /jb, switch to a jailbreak if, for example, /jb 1 to that (index jb)
+
+jailbreaks:
+  usage: /jbs
+  description: >
+    same as /jb list
+
+# ── Save & restore settings───────────────────────────────────────────────────  
 # TO DO
 setdefaults:
   usage: /setdefaults
@@ -100,106 +210,8 @@ defaults:
       choices: [global]
       optional: true
 
-# ── Save & Export ──────────────────────────────────────────────────────
-savestring:
-  usage: /sstr [<filename>] <text>
-  description: Save an arbitrary string locally
-    • If `<filename>` (.txt, .log, .md) is provided, write into that file
-    • Otherwise auto‐generate `<timestamp>_savestring.txt`
-  args:
-    - name: filename
-      type: str
-      optional: true
-      description: Destination filename
-    - name: text
-      type: str
-      optional: false
-      description: The text to save
-
 # TO DO
-savelastprompt:
-  usage: /slp [<filename>]
-  description: Save the last user prompt to file (timestamped if no name)
-  args:
-    - name: filename
-      type: str
-      optional: true
-
-# TO DO
-savelastresponse:
-  usage: /slr [--ask|<filename>]
-  description: >
-    • Save the last model response.
-    • If “--ask”, prompt for a filename;
-    • else use provided name (or timestamp).
-  args:
-    - name: ask
-      flag: --ask
-      type: bool
-      optional: true
-    - name: filename
-      type: str
-      optional: true
-
-# ── Roleplay & Memory Commands ────────────────────────────────────────────
-# Note: each char already has a scenario bound to it; we also need to add a /user command similarly to the /char command because we have json files with configuration for char + its scenario and for differen user (i.e. its name + role)
-
-# TO DO
-char:
-  usage: /char <list|switch|show|update> [<value>]
-  description: >
-    Manage characters & scenarios:
-      • list:   list available chars + their scenarios
-      • show:   show current (or indexed) char+scenario details
-      • reset:  reload char from its YAML file
-      • switch: switch to given char (by name or index)
-  args:
-    - name: action
-      type: str
-      choices: [list, switch, show, reset]
-    - name: value
-      type: str
-      optional: true
-
-memory:
-  usage: /memory <show|update> [<value>]
-  description: >
-    Manage session memory:
-      • show:    display all memory buckets
-      • update:  add or replace a memory entry
-  args:
-    - name: action
-      type: str
-      choices: [show, update]
-    - name: value
-      type: str
-      optional: true
-
-# ── History ───────────────────────────────────────────────────────────────
-# TO DO
-history:
-  usage: /h <on|off|list||flush|load> [arg]
-  description: >
-    Manage chat history (per char+scenario):
-      • on/off:   toggle logging
-      • flush:    list saved histories
-      • load <v>: load saved history by index or name
-  args:
-    - name: action
-      type: str
-      choices: [on, off, files, sum, extract, new, save, load]
-    - name: arg
-      type: str
-      optional: true
-
-# ── Jailbreaks ───────────────────────────────────────────────────────────────
-# TO DO
-jailbreak:
-  usage: /jb <on|off|list> [arg]
-  description: >
-    no description yet; is supposed to show info for jailbreak ig /jb, switch to a jailbreak if, for example, /jb 1 to that (index jb)
-
-jailbreaks:
-  usage: /jbs
-  description: >
-    same as /jb list
+undo:
+  usage: /undo
+  description: Undo the last configuration change (e.g. model/service)
+  args: []
