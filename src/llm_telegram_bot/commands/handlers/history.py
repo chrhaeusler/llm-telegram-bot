@@ -14,9 +14,9 @@ async def history_handler(session: Any, message: dict, args: List[str]):
     /history on|off|files|load|new
       • on:    turn logging on
       • off:   turn logging off & flush
-      • list: list saved history files
+      • list:  list saved history files
       • load:  load a file into context
-      • flush: flush
+      • flush/save: flush history to file
     """
     sess = get_session(session.chat_id, session.client.bot_name)
     bot = session.client.bot_name
@@ -55,10 +55,14 @@ async def history_handler(session: Any, message: dict, args: List[str]):
     if cmd == "load":
         session.send_message(f"{header}\n⚠️ /history load not implemented yet.", parse_mode="HTML")
 
-    # is this necessary? imo, this should be "save" to manually trigger updating the file
-    if cmd == "flush":
-        sess.flush_history_to_disk()
-        sess.history_on = True
-        return await session.send_message(f"{header}\n✅ History appended to file.", parse_mode="HTML")
+    # flush / save (manually)
+    if cmd == "flush" or cmd == "save":
+        if not sess.history_on:
+            return await session.send_message("⚠️ History is disabled.")
+        if not sess.history_buffer:
+            return await session.send_message("⚠️ No new history to flush.")
+        path = sess.flush_history_to_disk()
+        return await session.send_message(f"✅ History flushed to <code>{path}</code>", parse_mode="HTML")
+        # return await session.send_message(f"{header}\n✅ History appended to file.", parse_mode="HTML")
 
     return await session.send_message(f"{header}\n⚠️ Unknown subcommand: {cmd}", parse_mode="HTML")

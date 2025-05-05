@@ -333,6 +333,9 @@ class PollingLoop:
                 # add response to history buffer
                 state.history_buffer.append(entry)
 
+                # we flush now based on time intervall (600 seconds;
+                # s. session_manger.py "async def _periodic_flush(self)")
+                # but let's be sure:
                 if len(state.history_buffer) >= self.bot_config.history_flush_count:
                     try:
                         state.flush_history_to_disk()

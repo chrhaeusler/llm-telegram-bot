@@ -73,7 +73,7 @@ class Session:
             except Exception as e:
                 logger.exception(f"[Session {self.chat_id}] Periodic flush failed: {e}")
 
-    def flush_history_to_disk(self) -> None:
+    def flush_history_to_disk(self) -> Path:
         """
         Write self.history_buffer out to a timestamped JSON file
         under histories/<bot_name>/<chat_id>/ and then clear the buffer.
@@ -110,18 +110,21 @@ class Session:
                 json.dump(data, f, indent=2, ensure_ascii=False)
                 logger.debug(f"[Session {self.chat_id}] History flushed to {history_file}")
 
+            # clear in-memory buffe
+            self.history_buffer.clear()
+
         except Exception as e:
             logger.exception(f"[Session {self.chat_id}] Error flushing history: {e}")
+            return history_file
 
-        # clear in-memory buffe
-        self.history_buffer.clear()
+        return history_file
 
-        def close(self):
-            """
-            Cancel background tasks (if you tear down sessions).
-            """
-            if hasattr(self, "_flush_task"):
-                self._flush_task.cancel()
+    def close(self):
+        """
+        Cancel background tasks (if you tear down sessions).
+        """
+        if hasattr(self, "_flush_task"):
+            self._flush_task.cancel()
 
 
 # ────────────────────────────────────────────────────
