@@ -45,9 +45,17 @@ async def user_handler(session: Any, message: dict, args: List[str]):
 
     if cmd == "list":
         if not files:
-            await session.send_message("⚠️ No user files found.")
+            await session.send_message("⚠️ No User files found.")
         else:
-            lines = ["<b>Available users:</b>"] + [f"{i+1}. {n}" for i, n in enumerate(files)]
+            lines = ["<b>Available users:</b>"]
+            active_user = session.active_user
+
+            for i, name in enumerate(files):
+                if name == active_user:
+                    lines.append(f"<b>{i+1}. {name}</b>👈")
+                else:
+                    lines.append(f"{i+1}. {name}")
+
             await session.send_message("\n".join(lines), parse_mode="HTML")
         return
 
@@ -75,14 +83,3 @@ async def user_handler(session: Any, message: dict, args: List[str]):
     # 3) Commit selection
     set_active_user(session.chat_id, bot_name, choice)
     await session.send_message(f"✅ Switched user to `{choice}`")
-
-    # Alias: `/users` → list users
-    @register_command("/users")
-    async def users_alias(session: Any, message: dict, args: List[str]):
-        """
-        Alias for `/user list`
-        """
-        # reuse the main handler, forcing the "list" subcommand
-        from llm_telegram_bot.commands.handlers.user import user_handler
-
-        await user_handler(session, message, ["list"])

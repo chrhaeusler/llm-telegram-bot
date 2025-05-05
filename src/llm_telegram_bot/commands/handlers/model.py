@@ -54,10 +54,11 @@ async def model_handler(session: Any, message: dict, args: List[str]) -> None:
             f"<b>Jailbreak:</b> {info.rank_jail}\n",
             f"+ {info.strengths}",
             f"- {info.weaknesses}\n",
-            f"<b>Details:</b> {info.details}",
+            f"<b>Details:</b> {info.details}\n",
         ]
         if info.jailbreaks:
             lines.append("<b>Jailbreaks:</b> " + ", ".join(info.jailbreaks))
+        lines.append(f"\n<b>{target_model}</b> 👈")
         return lines
 
     # 1) No args: Show current model info

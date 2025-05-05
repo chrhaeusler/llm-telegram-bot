@@ -38,10 +38,8 @@ class Session:
         self.active_user: Optional[str] = None
 
         # Cached config data
-        # I commented this out because it does not seem to do anything
-        # why did we put it in in the first place?
-        # self.active_char_data: Optional[dict] = None
-        # self.active_user_data: Optional[dict] = None
+        self.active_char_data: Optional[dict] = None
+        self.active_user_data: Optional[dict] = None
 
         # History: TO DO: take bot configuration, if existing
         self.history_on: bool = False

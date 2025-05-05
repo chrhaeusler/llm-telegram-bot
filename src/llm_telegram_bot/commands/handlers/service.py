@@ -12,6 +12,7 @@ logger.info("[Service Handler] service.py is being loaded")
 
 
 @register_command("/service")
+@register_command("/services")  # Alias for /service list
 async def service_handler(session: Any, message: dict[str, Any], args: List[str]) -> None:
     """
     /service [<name>|<index>]
@@ -21,18 +22,23 @@ async def service_handler(session: Any, message: dict[str, Any], args: List[str]
         chat_id = session.chat_id
         bot_name = session.bot_name
         cfg = load_config()
-        services_conf = cfg.services  # Accessing services directly
+        services_conf = cfg.services
 
         if not services_conf:
             await session.send_message("⚠️ No services configured.")
             return
 
+        service_names = list(services_conf.keys())
+        current = session.active_service
+
         # Show current service and available options
-        if not args:
-            current = session_manager.get_service(chat_id, bot_name)
-            lines = [f"<b>Current: {current or 'None'}</b>", "Available:"]
-            for i, name in enumerate(services_conf.keys(), 1):
-                lines.append(f"{i}. {name}")
+        if not args or (args and args[0].lower() == "list"):
+            lines = ["<b>Available services:</b>"]
+            for i, name in enumerate(service_names, 1):
+                if name == current:
+                    lines.append(f"<b>{i}. {name}</b> 👈")
+                else:
+                    lines.append(f"{i}. {name}")
             await session.send_message("\n".join(lines), parse_mode="HTML")
             return
 

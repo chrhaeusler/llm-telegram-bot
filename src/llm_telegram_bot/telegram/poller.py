@@ -60,6 +60,14 @@ class ChatSession:
         return self._session.messaging_paused
 
     @property
+    def active_char(self) -> Optional[str]:
+        return self._session.active_char
+
+    @property
+    def active_user(self) -> Optional[str]:
+        return self._session.active_user
+
+    @property
     def active_char_data(self):
         return self._session.active_char_data
 
