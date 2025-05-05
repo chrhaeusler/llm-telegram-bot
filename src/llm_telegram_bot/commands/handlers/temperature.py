@@ -16,6 +16,7 @@ logger.info("[Temperature Handler] temperature.py is being loaded")
 
 
 @register_command("/temp")
+@register_command("/temperatur")
 async def temperature_handler(session: Any, message: Dict[str, Any], args: List[str]) -> None:
     """
     /temperature [<value>]

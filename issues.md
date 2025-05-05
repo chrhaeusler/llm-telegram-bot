@@ -6,7 +6,6 @@
 ├── config
 │   ├── chars
 │   │   └── char_template.yaml        # [x] Character YAML template (Phase 3)
-│   │
 │   ├── commands.yaml                 # [x] Command definitions (used by `/help`, registry)
 │   ├── config-template.yaml          # [ ] Template for config.yaml (needs update)
 │   ├── config.yaml                   # [x] Active bot & LLM settings (loaded & validated)
@@ -96,7 +95,7 @@
 │       ├── test_config_loader.py   # [x] Config loader validation
 │       ├── test_models_info_schema.py # [x] Models_info schema tests
 │       └── test_routing.py         # [x] Routing edge-case tests
-└── tmp                              # [x] Temporary files & downloads
+└── tmp                             # [x] Temporary files & downloads
 ```
 
 # Roadmap (Updated 2025-05-03)
@@ -191,7 +190,7 @@
 - [ ] CI green: pre-commit, pytest, mypy
 - [ ] Smoke-tests: TelegramClient + LLM end-to-end
 - [ ] Tag & publish v0.1-alpha
-- [ ] SQLite for history storage (vector or graph database out of scope)
-- [ ] Plan v0.2 (memory agents, DB, LangChain, etc.)
+- [ ] SQLite for history storage (vector or graph database are out of scope)
 - [ ] Implement speech-to-text and text-to-speech models
 - [ ] Implement image analysis (pixtral)
+- [ ] memory agents, DB, LangChain, etc.

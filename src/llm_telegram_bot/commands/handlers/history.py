@@ -14,6 +14,7 @@ logger.info("[History Handler] history.py loaded")
 
 
 @register_command("/h")
+@register_command("/history")
 async def history_handler(session: Any, message: dict, args: List[str]):
     """
     /h on|off|files|load|flush

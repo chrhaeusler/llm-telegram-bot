@@ -15,6 +15,7 @@ logger.info("[Savestring Handler] savestring.py is being loaded")
 
 
 @register_command("/sstr")
+@register_command("/savestr")
 async def savestring_handler(session: Any, message: dict[str, Any], args: List[str]) -> None:
     """
     /sstr [<filename>] <text>
