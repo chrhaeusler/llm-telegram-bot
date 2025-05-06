@@ -91,16 +91,13 @@ class HistoryManager:
             f"N0={self.N0}, N1={self.N1}, K={self.K}, caps=(T0={self.T0_cap},T1={self.T1_cap},T2={self.T2_cap})"
         )
 
-    def add_user_message(self, text: str, tokens_original: int) -> None:
-        logger.debug(f"[HistoryManager] add_user_message → tier0.append(text={text!r})")
-        # TODO: compute tokens_compressed via your gradient function
-        msg = Message(text=text, tokens_original=tokens_original, tokens_compressed=tokens_original)
+    def add_prompt_message(self, msg: Message) -> None:
+        logger.debug(f"[HistoryManager] add_user_message → tier0.append({msg!r})")
         self.tier0.append(msg)
         self._maybe_promote()
 
-    def add_bot_message(self, text: str, tokens_original: int) -> None:
-        logger.debug(f"[HistoryManager] add_bot_message → tier0.append(text={text!r})")
-        msg = Message(text=text, tokens_original=tokens_original, tokens_compressed=tokens_original)
+    def add_bot_message(self, msg: Message) -> None:
+        logger.debug(f"[HistoryManager] add_bot_message → tier0.append({msg!r})")
         self.tier0.append(msg)
         self._maybe_promote()
 
@@ -135,7 +132,7 @@ class HistoryManager:
     # (Optional) expose a method to fetch everything you’ll inject into your prompt:
     def get_all_context(self) -> Dict[str, Deque]:
         return {
-            "tier0": self.tier0,
-            "tier1": self.tier1,
-            "tier2": self.tier2,
+            "tier0": self.tier0,  # Deque[Message]
+            "tier1": self.tier1,  # Deque[Summary]
+            "tier2": self.tier2,  # Deque[MegaSummary]
         }

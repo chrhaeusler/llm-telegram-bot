@@ -6,13 +6,15 @@ import os
 import time
 from typing import Any, Dict, Optional
 
+from langdetect import LangDetectException, detect
+
 import llm_telegram_bot.commands.handlers  # noqa: F401
 from llm_telegram_bot.config.config_loader import load_config
 from llm_telegram_bot.config.schemas import BotConfig, RootConfig
 from llm_telegram_bot.llm.dispatcher import get_service_for_name
 from llm_telegram_bot.services.service_groq import GroqService
 from llm_telegram_bot.services.service_mistral import MistralService
-from llm_telegram_bot.session.history_manager import HistoryManager
+from llm_telegram_bot.session.history_manager import HistoryManager, Message
 from llm_telegram_bot.session.session_manager import (
     add_memory,
     get_effective_llm_params,
@@ -26,6 +28,7 @@ from llm_telegram_bot.session.session_manager import (
 from llm_telegram_bot.telegram.client import TelegramClient
 from llm_telegram_bot.utils.logger import logger
 from llm_telegram_bot.utils.message_utils import split_message
+from llm_telegram_bot.utils.token_utils import count_tokens
 
 
 class ChatSession:
@@ -40,19 +43,6 @@ class ChatSession:
         self.chat_id = chat_id
         self.bot_name = bot_name
         self._session = get_session(chat_id, bot_name)
-
-        # — our new history manager —
-        # you can tweak N0, N1, K, caps here or pull from config later
-        self.history_mgr = HistoryManager(
-            bot_name=bot_name,
-            chat_id=chat_id,
-            N0=10,  # max raw msgs before  tier-1 promotion
-            N1=20,  # max summaries before tier-2 promotion
-            K=5,  # how many summaries to batch into mega
-            T0_cap=100,
-            T1_cap=50,
-            T2_cap=200,
-        )
 
     async def send_message(self, text: str, *, parse_mode: str = "MarkdownV2", **kwargs) -> None:
         # ensure client knows which chat
@@ -148,6 +138,19 @@ class PollingLoop:
             self.llm_service = MistralService(config=svc_conf)
         else:
             raise ValueError(f"Unsupported service '{svc_name}'")
+
+        # History Manager —
+        # you can tweak N0, N1, K, caps here or pull from config later
+        self.history_mgr = HistoryManager(
+            bot_name=bot_name,
+            chat_id=self.chat_id,
+            N0=10,  # max raw msgs before  tier-1 promotion
+            N1=20,  # max summaries before tier-2 promotion
+            K=5,  # how many summaries to batch into mega
+            T0_cap=100,
+            T1_cap=50,
+            T2_cap=200,
+        )
 
         # Set the active service and model for this bot's chat session
         set_service(self.chat_id, self.bot_name, bot_cfg.default.service)
@@ -279,6 +282,15 @@ class PollingLoop:
                     logger.info(f"[PollingLoop] Messaging paused for {chat_id}, skipping LLM")
                     return
 
+                # Language?
+                try:
+                    lang = detect(user_text)
+                    logger.debug(f"[History] Detected language for user input as {lang}: {user_text}")
+                except LangDetectException:
+                    lang = "unknown"
+                    logger.warning(f"[History] Could not detect language for user input: {user_text}")
+
+                # Setup routing
                 svc_name = state.active_service
                 if svc_name is None:
                     raise ValueError("No active service selected")
@@ -287,12 +299,6 @@ class PollingLoop:
                 svc_conf = self.config.services.get(svc_name)
                 if svc_conf is None:
                     raise ValueError(f"Service config for '{svc_name}' not found")
-
-                # 1) Record raw prompt in session memory
-                add_memory(chat_id, bot_name, "last_prompt", user_text)
-
-                # 2) Build full LLM prompt (inc. jailbreak, history, user/char context)
-                logger.debug(f"char={type(state.active_char)}, user={type(state.active_user)}")
 
                 char_data = session.active_char_data or {}
                 user_data = session.active_user_data or {}
@@ -308,19 +314,41 @@ class PollingLoop:
                 logger.debug(f"[Prompt] Final prompt to LLM:\n{full_prompt}")
 
                 # 3) Also store the sent prompt for debugging
+                # add_memory(chat_id, bot_name, "last_prompt", user_text)
                 add_memory(chat_id, bot_name, "last_prompt_full", full_prompt)
 
                 # 4) Append to history buffer (with local timestamp)
                 ts = time.strftime("%Y-%m-%d_%H-%M-%S")
-                entry = {
-                    "who": state.active_user,
-                    "ts": ts,
-                    "text": user_text,
-                    "prompt": full_prompt,
+                prompt_entry = {
+                    "who": state.active_user,  # user key
+                    "ts": ts,  # timestamp
+                    "lang": lang,  # detected language
+                    "text": user_text,  # raw user text
+                    "prompt": full_prompt,  # what we actually sent LLM
                 }
 
-                # add prompt to history buffer
-                state.history_buffer.append(entry)
+                # add_memory(chat_id, bot_name, "last_prompt_full", prompt_entry)
+                state.history_buffer.append(prompt_entry)
+
+                # Count tokens of the full prompt (not just user_text!)
+                tokens = count_tokens(full_prompt)
+                logger.debug(f"[Tokens] Full prompt has {tokens} tokens")
+
+                # wrap into our Message dataclass
+                prompt_msg = Message(
+                    text=full_prompt,
+                    tokens_original=tokens,
+                    tokens_compressed=tokens,  # for now we don’t compress yet
+                )
+
+                # Save to tier-0
+                self.history_mgr.add_prompt_message(prompt_msg)
+
+                # Optional: Warn user if near limit
+                if tokens > 3500:
+                    await session.send_message(
+                        f"⚠️ Prompt is getting long ({tokens} tokens).\n" "Consider clearing history."
+                    )
 
                 # 5) Determine effective LLM parameters
                 model, temperature, maxtoken = get_effective_llm_params(
@@ -337,17 +365,19 @@ class PollingLoop:
                     maxtoken=maxtoken,
                 )
 
-                # 4) Append to history buffer (with local timestamp)
-                entry = {
+                # History Buffer
+                reply_entry = {
                     "who": state.active_char,
-                    "ts": ts,
+                    "ts": time.strftime("%Y-%m-%d_%H-%M-%S"),
+                    "lang": lang,
                     "text": reply,
-                    "prompt": "",
+                    "prompt": "",  # we only store it for completeness
                 }
 
-                # add response to history buffer
-                state.history_buffer.append(entry)
+                # History Buffer (old implementation)
+                state.history_buffer.append(reply_entry)
 
+                # Flush in buffer to file
                 # we flush now based on time intervall (600 seconds;
                 # s. session_manger.py "async def _periodic_flush(self)")
                 # but let's be sure:
@@ -364,7 +394,19 @@ class PollingLoop:
                 #     logger.exception(f"Error flushing history: {e}")
 
                 # x) OUTDATED Record the raw LLM response
-                add_memory(chat_id, bot_name, "last_response", reply)
+                # add_memory(chat_id, bot_name, "last_response", reply)
+
+                # History Manager
+                try:
+                    lang = detect(user_text)
+                    logger.debug(f"[History] Detected language for reply as {lang}: {reply}")
+                except LangDetectException:
+                    lang = "unknown"
+                    logger.warning(f"[History] Could not detect language for response: {reply}")
+
+                tokens = count_tokens(reply)
+                reply_msg = Message(text=reply, tokens_original=tokens, tokens_compressed=tokens)
+                self.history_mgr.add_bot_message(reply_msg)
 
                 # 7) Send back, splitting long messages
                 if len(reply) > 4096:
