@@ -9,6 +9,7 @@ from llm_telegram_bot.session.session_manager import (
     set_active_char,
 )
 from llm_telegram_bot.utils.logger import logger
+from llm_telegram_bot.utils.message_utils import split_message
 
 # Log that the char handler is being loaded
 logger.info("[char Handler] char.py is being loaded")
@@ -24,7 +25,7 @@ async def char_handler(session: Any, message: dict, args: List[str]):
     # Directory where char yamls live
     chars_dir = Path("config") / "chars"
 
-    # 1) List available char names
+    # Available char names
     files = sorted([f.stem for f in chars_dir.glob("*.yaml") if f.is_file()])
 
     if not args or args[0].lower() == "show":
@@ -37,13 +38,20 @@ async def char_handler(session: Any, message: dict, args: List[str]):
             name = char_data.get("identity", {}).get("name", "(unknown)")
             role = char_data.get("role", "(unknown)")
             text = f"🔍 Current character:\n<b>Name:</b> {name}\n<b>Role:</b> {role}\n<b>File:</b> <code>{chars_dir}/{current}.yaml</code>"
+
+            if len(text) > 4096:
+                logger.warning(f"[Char Handler] Splitting description of {current}")
+
+                for chunk in split_message(text):
+                    await session.send_message(chunk, parse_mode="HTML")
+
             await session.send_message(text, parse_mode="HTML")
         else:
             await session.send_message("⚠️ No character selected.")
         return
 
     cmd = args[0].lower()
-
+    # List
     if cmd == "list":
         if not files:
             await session.send_message("⚠️ No Char files found.")

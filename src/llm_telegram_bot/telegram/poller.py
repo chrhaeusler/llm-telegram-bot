@@ -162,7 +162,7 @@ class PollingLoop:
         self._running = False
 
     async def run(self) -> None:
-        logger.info(f"[PollingLoop] Starting poll loop for '{self.bot_name}'")
+        logger.info(f"[Poller: Loop] Starting poll loop for '{self.bot_name}'")
         while self._running:
             try:
                 updates = await self._get_updates_with_retries()
@@ -176,7 +176,7 @@ class PollingLoop:
                     self.last_event_time = time.time()
                     if self.current_interval != self.polling_interval_active:
                         logger.info(
-                            f"[PollingLoop] Activity → switching to active interval {self.polling_interval_active}s"
+                            f"[Poller: Loop] Activity → switching to active interval {self.polling_interval_active}s"
                         )
                     self.current_interval = self.polling_interval_active
 
@@ -192,17 +192,17 @@ class PollingLoop:
                                 "%Y-%m-%d %H:%M:%S"
                             )
                             logger.info(
-                                f"[PollingLoop] No activity for {int(idle)}s (last at {last_seen}), backing off to {new_int}s"
+                                f"[Poller: Loop] No activity for {int(idle)}s (last at {last_seen}), backing off to {new_int}s"
                             )
                         self.current_interval = new_int
 
                 await asyncio.sleep(self.current_interval)
 
             except asyncio.CancelledError:
-                logger.info("[PollingLoop] Cancelled by shutdown signal.")
+                logger.info("[Poller: Loop] Cancelled by shutdown signal.")
                 break
             except Exception:
-                logger.exception("[PollingLoop] Unexpected error, sleeping idle interval")
+                logger.exception("[Poller: Loop] Unexpected error, sleeping idle interval")
                 await asyncio.sleep(self.polling_interval_idle)
 
     async def _get_updates_with_retries(self) -> Dict[str, Any]:
@@ -211,12 +211,12 @@ class PollingLoop:
         while attempts < max_attempts:
             attempts += 1
             try:
-                # logger.debug(f"[PollingLoop] getUpdates attempt {attempts}")
+                # logger.debug(f"[Poller: Loop] getUpdates attempt {attempts}")
                 return await self.client.get_updates(offset=self.last_update_id)
             except Exception as e:
-                logger.error(f"[PollingLoop] get_updates failed ({attempts}/{max_attempts}): {e}")
+                logger.error(f"[Poller: Loop] get_updates failed ({attempts}/{max_attempts}): {e}")
                 if attempts >= max_attempts:
-                    logger.error("[PollingLoop] All retries failed, returning {{'ok': False}}")
+                    logger.error("[Poller: Loop] All retries failed, returning {{'ok': False}}")
                     return {"ok": False}
                 await asyncio.sleep(delay)
         return {"ok": False}
@@ -236,7 +236,7 @@ class PollingLoop:
         try:
             msg = update.get("message")
             if not msg:
-                logger.debug("[PollingLoop] update with no message, skipping")
+                logger.debug("[Poller: Loop] update with no message, skipping")
                 return
 
             chat_id = msg["chat"]["id"]
@@ -255,14 +255,14 @@ class PollingLoop:
             if "document" in msg:
                 file_id = msg["document"]["file_id"]
                 file_name = msg["document"]["file_name"]
-                logger.info(f"[PollingLoop] Document → {file_name} (id={file_id})")
+                logger.info(f"[Poller: Loop] Document → {file_name} (id={file_id})")
 
                 details = await self.client.get_file(file_id)
                 if details.get("ok") and "result" in details:
                     path = details["result"]["file_path"]
                     await self.client.download_file(file_path=path, original_name=file_name)
                 else:
-                    logger.error(f"[PollingLoop] get_file failed: {details}")
+                    logger.error(f"[Poller: Loop] get_file failed: {details}")
                     await session.send_message(f"❌ Could not retrieve '{file_name}'")
                 return
 
@@ -279,16 +279,17 @@ class PollingLoop:
 
                 # Paused?
                 if is_paused(chat_id, bot_name):
-                    logger.info(f"[PollingLoop] Messaging paused for {chat_id}, skipping LLM")
+                    logger.info(f"[Poller: Loop] Messaging paused for {chat_id}, skipping LLM")
                     return
 
                 # Language?
                 try:
                     lang = detect(user_text)
-                    logger.debug(f"[History] Detected language for user input as {lang}: {user_text}")
+                    logger.debug(f"[Poller: History] Detected language for user input as {lang}")
+                    logger.debug(f"[Poller: History] User text: {user_text}")
                 except LangDetectException:
                     lang = "unknown"
-                    logger.warning(f"[History] Could not detect language for user input: {user_text}")
+                    logger.warning(f"[Poller: History] Could not detect language for user input: {user_text}")
 
                 # Setup routing
                 svc_name = state.active_service
@@ -311,7 +312,11 @@ class PollingLoop:
                     user_text=user_text,
                 )
 
-                logger.debug(f"[Prompt] Final prompt to LLM:\n{full_prompt}")
+                # Count tokens of the full prompt (not just user_text!)
+                tokens = count_tokens(full_prompt)
+                logger.debug(f"[Poller: Tokens] Full prompt has {tokens} tokens")
+
+                logger.debug(f"[Poller: Prompt] Final prompt to LLM:\n{full_prompt}")
 
                 # 3) Also store the sent prompt for debugging
                 # add_memory(chat_id, bot_name, "last_prompt", user_text)
@@ -329,10 +334,6 @@ class PollingLoop:
 
                 # add_memory(chat_id, bot_name, "last_prompt_full", prompt_entry)
                 state.history_buffer.append(prompt_entry)
-
-                # Count tokens of the full prompt (not just user_text!)
-                tokens = count_tokens(full_prompt)
-                logger.debug(f"[Tokens] Full prompt has {tokens} tokens")
 
                 # wrap into our Message dataclass
                 prompt_msg = Message(
@@ -393,29 +394,29 @@ class PollingLoop:
                 # except Exception as e:
                 #     logger.exception(f"Error flushing history: {e}")
 
-                # x) OUTDATED Record the raw LLM response
-                # add_memory(chat_id, bot_name, "last_response", reply)
+                tokens = count_tokens(reply)
+                reply_msg = Message(text=reply, tokens_original=tokens, tokens_compressed=tokens)
+                self.history_mgr.add_bot_message(reply_msg)
+                logger.debug(f"[Poller: Tokens] Reply has {tokens} tokens")
 
                 # History Manager
                 try:
-                    lang = detect(user_text)
-                    logger.debug(f"[History] Detected language for reply as {lang}: {reply}")
+                    lang = detect(reply)
+                    logger.debug(f"[History] Detected language for reply as {lang}")
+                    logger.debug(f"[History] LLM Reply: {reply}")
+
                 except LangDetectException:
                     lang = "unknown"
                     logger.warning(f"[History] Could not detect language for response: {reply}")
 
-                tokens = count_tokens(reply)
-                reply_msg = Message(text=reply, tokens_original=tokens, tokens_compressed=tokens)
-                self.history_mgr.add_bot_message(reply_msg)
-
-                # 7) Send back, splitting long messages
+                # Send Reply to telegram back, but split long messages
                 if len(reply) > 4096:
-                    logger.warning(f"[PollingLoop] Splitting reply of {len(reply)} chars")
+                    logger.warning(f"[Poller: Loop] Splitting reply of {len(reply)} char")
                 for chunk in split_message(reply):
                     await session.send_message(chunk)
 
         except Exception as e:
-            logger.exception(f"[PollingLoop] error in handle_update: {e}")
+            logger.exception(f"[Poller: Loop] error in handle_update: {e}")
             # best-effort fallback
             try:
                 fallback = ChatSession(self.client, update["message"]["chat"]["id"], bot_name)

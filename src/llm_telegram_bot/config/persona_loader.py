@@ -74,6 +74,7 @@ def get_character(char_key: str) -> Optional[Dict[str, Any]]:
     data = _load_yaml(path)
     if data:
         _char_cache[char_key] = data
+
     return data
 
 

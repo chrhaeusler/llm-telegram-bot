@@ -130,7 +130,7 @@ class TelegramClient:
                 elapsed = time.time() - start
 
                 if resp.status == 200 and data.get("ok", False):
-                    logger.debug(f"[send_message] Sent to {self.chat_id} in {elapsed:.2f}s: {clean!r}")
+                    # logger.debug(f"[send_message] Sent to {self.chat_id} in {elapsed:.2f}s: {clean!r}")
                     return data
                 else:
                     error = data.get("description", f"HTTP {resp.status}")

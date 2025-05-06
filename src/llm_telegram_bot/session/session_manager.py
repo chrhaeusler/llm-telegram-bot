@@ -190,16 +190,23 @@ def get_session(chat_id: int, bot_name: str) -> Session:
                 or "{{user.identity.name}}_{{user.role}}_with_{{char.identity.name}}_{{char.role}}.json"
             )
 
-            # now load their full configs once
-            if session.active_char:
-                session.active_char_data = load_char_config(session.active_char, None)
-            else:
-                session.active_char_data = None
+            # load their full configs once
+            # eager‐load char
+            # if session.active_char:
+            #     # session.active_char_data = load_char_config(session.active_char, None)
+            #     session.active_char_data = load_char_config(bot_conf.char, load_user_config(bot_conf.user, None))
+            # else:
+            #     session.active_char_data = None
 
-            if session.active_user:
-                session.active_user_data = load_user_config(session.active_user, session.active_char_data)
-            else:
-                session.active_user_data = None
+            # if session.active_user:
+            #     session.active_user_data = load_user_config(session.active_user, session.active_char_data)
+            # else:
+            #     session.active_user_data = None
+
+            # eager‐load both configs with full context
+            user_data = load_user_config(session.active_user, None) or {}
+            session.active_char_data = load_char_config(session.active_char, user_data) or {}
+            session.active_user_data = load_user_config(session.active_user, session.active_char_data) or {}
 
         _sessions[session_key] = session
 
@@ -335,10 +342,10 @@ def set_active_char(chat_id: int, bot_name: str, char_key: Optional[str]) -> Non
     sess = get_session(chat_id, bot_name)
     sess.active_char = char_key
     if char_key:
-        # reload full char config (pass along current user_data for rendering)
-        sess.active_char_data = load_char_config(char_key, sess.active_user_data)
+        user_data = sess.active_user_data or {}
+        sess.active_char_data = load_char_config(char_key, user_data) or {}
     else:
-        sess.active_char_data = None
+        sess.active_char_data = {}
 
 
 def get_active_char(chat_id: int, bot_name: str) -> Optional[str]:
@@ -357,9 +364,9 @@ def set_active_user(chat_id: int, bot_name: str, user_key: Optional[str]) -> Non
     sess = get_session(chat_id, bot_name)
     sess.active_user = user_key
     if user_key:
-        sess.active_user_data = load_user_config(user_key, sess.active_char_data)
+        sess.active_user_data = load_user_config(user_key, sess.active_char_data) or {}
     else:
-        sess.active_user_data = None
+        sess.active_user_data = {}
 
 
 def get_active_user(chat_id: int, bot_name: str) -> Optional[str]:
