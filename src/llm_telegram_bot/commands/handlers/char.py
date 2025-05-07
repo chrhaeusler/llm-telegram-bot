@@ -35,9 +35,9 @@ async def char_handler(session: Any, message: dict, args: List[str]):
         logger.debug(f"Active char data: {session.active_char_data}")
         if current and session.active_char_data:
             char_data = session.active_char_data
-            name = char_data.get("identity", {}).get("name", "(unknown)")
+            char_name = char_data.get("identity", {}).get("name", "(unknown)")
             role = char_data.get("role", "(unknown)")
-            text = f"🔍 Current character:\n<b>Name:</b> {name}\n<b>Role:</b> {role}\n<b>File:</b> <code>{chars_dir}/{current}.yaml</code>"
+            text = f"🔍 Current character:\n<b>Name:</b> {char_name}\n<b>Role:</b> {role}\n<b>File:</b> <code>{chars_dir}/{current}.yaml</code>"
 
             if len(text) > 4096:
                 logger.warning(f"[Char Handler] Splitting description of {current}")
@@ -68,7 +68,7 @@ async def char_handler(session: Any, message: dict, args: List[str]):
             await session.send_message("\n".join(lines), parse_mode="HTML")
         return
 
-    # TO DO: this does not work
+    # Drop char (char = NONE)
     if cmd == "drop":
         set_active_char(session.chat_id, bot_name, None)
         await session.send_message("✅ Char selection cleared.")

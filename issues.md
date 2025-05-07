@@ -124,7 +124,7 @@
 - [x] File I/O commands: `/savestr`, `/slp`, `/slr`
 - [ ] go through the commands: rely less config file but on session parameters to reduce disk I/O
 - [ ] Unit tests for each handler: no-arg, valid-arg, invalid-arg.
-- [ ] let `/bot` and `/status`show if history is on or off, and parameters for history summarization
+- [ ] let `/bot` and `/status`show parameters for history summarization
 
 ---
 
