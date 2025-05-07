@@ -151,6 +151,7 @@
 
 ## Phase 4 – History Summarization 🟡 _(in progress)_
 
+- [ ] switch from couting words as tokens to tiktoken
 - [ ] integrate `summarize_history(history_buffer)`
 - [ ] sliding‐window message summarization logic
 - [ ] expose `/sum [params]` to tune sentence‐counts and window size

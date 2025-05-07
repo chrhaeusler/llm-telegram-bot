@@ -28,7 +28,7 @@ from llm_telegram_bot.session.session_manager import (
 from llm_telegram_bot.telegram.client import TelegramClient
 from llm_telegram_bot.utils.logger import logger
 from llm_telegram_bot.utils.message_utils import split_message
-from llm_telegram_bot.utils.token_utils import count_tokens
+from llm_telegram_bot.utils.token_utils import count_tokens_simple
 
 
 class ChatSession:
@@ -313,7 +313,7 @@ class PollingLoop:
                 )
 
                 # Count tokens of the full prompt (not just user_text!)
-                tokens = count_tokens(full_prompt)
+                tokens = count_tokens_simple(full_prompt)
                 logger.debug(f"[Poller: Tokens] Full prompt has {tokens} tokens")
 
                 logger.debug(f"[Poller: Prompt] Final prompt to LLM:\n{full_prompt}")
@@ -394,7 +394,7 @@ class PollingLoop:
                 # except Exception as e:
                 #     logger.exception(f"Error flushing history: {e}")
 
-                tokens = count_tokens(reply)
+                tokens = count_tokens_simple(reply)
                 reply_msg = Message(text=reply, tokens_original=tokens, tokens_compressed=tokens)
                 self.history_mgr.add_bot_message(reply_msg)
                 logger.debug(f"[Poller: Tokens] Reply has {tokens} tokens")
