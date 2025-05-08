@@ -33,9 +33,11 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Message:
-    text: str
-    tokens_original: int
-    tokens_compressed: int
+    ts: str
+    who: str  # who spoke: the user‐key or char‐key
+    text: str  # raw or compressed text
+    tokens_original: int  # count before compression
+    tokens_compressed: int  # count after compression
 
 
 @dataclass
@@ -63,9 +65,9 @@ class HistoryManager:
         bot_name: str,
         chat_id: int,
         *,
-        N0: int = 10,
-        N1: int = 20,
-        K: int = 5,
+        N0: int = 10,  # max raw messages before promoting to tier1
+        N1: int = 20,  # max summaries before promoting to tier2
+        K: int = 5,  # how many summaries to batch into one mega
         T0_cap: int = 100,
         T1_cap: int = 50,
         T2_cap: int = 200,
@@ -74,9 +76,9 @@ class HistoryManager:
         self.chat_id = chat_id
 
         # tier sizes and caps
-        self.N0 = N0  # max raw messages before promoting to tier1
-        self.N1 = N1  # max summaries before promoting to tier2
-        self.K = K  # how many summaries to batch into one mega
+        self.N0 = N0
+        self.N1 = N1
+        self.K = K
         self.T0_cap = T0_cap
         self.T1_cap = T1_cap
         self.T2_cap = T2_cap
@@ -91,13 +93,22 @@ class HistoryManager:
             f"N0={self.N0}, N1={self.N1}, K={self.K}, caps=(T0={self.T0_cap},T1={self.T1_cap},T2={self.T2_cap})"
         )
 
-    def add_prompt_message(self, msg: Message) -> None:
-        logger.debug(f"[HistoryManager] add_user_message → tier0.append({msg!r})")
+    def add_user_message(self, msg: Message) -> None:
+        """
+        Add a Message originating from the user into tier-0,
+        then trigger any necessary promotions to higher tiers.
+        """
+        logger.debug(f"[HistoryManager] add_user_message → who={msg.who!r}, tokens={msg.tokens_original}")
+        logger.debug(f"[HistoryManager] add_user_message → {msg.who!r}@{msg.ts}, {msg.tokens_original} toks")
         self.tier0.append(msg)
         self._maybe_promote()
 
     def add_bot_message(self, msg: Message) -> None:
-        logger.debug(f"[HistoryManager] add_bot_message → tier0.append({msg!r})")
+        """
+        Add a Message originating from the bot (LLM reply) into tier-0,
+        then trigger any necessary promotions to higher tiers.
+        """
+        logger.debug(f"[HistoryManager] add_bot_message → {msg.who!r}@{msg.ts}, {msg.tokens_original} toks")
         self.tier0.append(msg)
         self._maybe_promote()
 

@@ -1,11 +1,12 @@
-# src/llm-telegram-bot/utils/message_utils.py
+# src/llm_telegram_bot/utils/message_utils.py
 
 import datetime
 import logging
-from typing import Union
+from typing import Any, Dict, List, Union
 
 from llm_telegram_bot.config.config_loader import load_jailbreaks
 from llm_telegram_bot.templates.jinja import render_template
+from llm_telegram_bot.utils.logger import logger
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ def split_message(text: str, limit: int = 4096) -> list[str]:
     Splits a long message into chunks suitable for Telegram (max 4096 chars).
     Attempts to split at paragraph or sentence boundaries if possible.
     """
-    chunks = []
+    chunks: List[str] = []
     while len(text) > limit:
         # Try to split at the last newline before limit
         split_index = text.rfind("\n", 0, limit)
@@ -37,48 +38,79 @@ def split_message(text: str, limit: int = 4096) -> list[str]:
     return chunks
 
 
-# Fallback implementation — you can improve this later
+# ─── History Summarization Utilities ─────────────────────────────────────
+
+
 def summarize_history(history: list[dict]) -> str:
+    """
+    Fallback summarizer: take the last 5 entries and format them as 'who: text'.
+    """
     lines = [f"{entry['who']}: {entry['text']}" for entry in history if 'who' in entry and 'text' in entry]
     return "\n".join(lines[-5:]) if lines else "No summary available."
 
 
+# ─── Full Prompt Builder ─────────────────────────────────────────────────
+
+
 def build_full_prompt(
-    char: dict,
-    user: dict,
+    char: dict[str, Any],
+    user: dict[str, Any],
     jailbreak: Union[int, str, bool],
-    history: list[dict],
+    context: Dict[str, List[Any]],  # {'overview': [...], 'midterm': [...], 'recent': [...]}
     user_text: str,
     *,
     system_enabled: bool = True,
-    summary_enabled: bool = True,
 ) -> str:
+    """
+    Assemble the LLM prompt in five stages:
+      1) Rendered jailbreak / system instructions
+      2) [OVERVIEW] (Tier-2 aggregated summaries)
+      3) [SUMMARY] (Tier-1 intermediate summaries)
+      4) [RECENT] (Tier-0 raw or lightly-compressed messages)
+      5) [PROMPT] user's current message
+    """
 
-    # 1. Load & render jailbreak prompt (any Jinja errors get caught & skipped)
+    # 1) Render jailbreak/system block
     rendered_jb = ""
     if isinstance(jailbreak, str):
         jb = load_jailbreaks().get(jailbreak, {})
-        prompt_tpl = jb.get("prompt", "").strip()
-        if prompt_tpl:
+        tpl = jb.get("prompt", "").strip()
+        if tpl and isinstance(char, dict) and isinstance(user, dict):
             try:
-                # only attempt render if we actually have dicts
-                if isinstance(char, dict) and isinstance(user, dict):
-                    rendered_jb = render_template(prompt_tpl, char=char, user=user)
+                rendered_jb = render_template(tpl, char=char, user=user)
             except Exception as e:
                 logger.warning(f"[Prompt] Skipping jailbreak render: {e}")
-                rendered_jb = ""
 
-    # 2. Optional blocks
-    full_prompt = ""
+    parts: List[str] = []
+    if system_enabled and rendered_jb:
+        parts.append(rendered_jb)
 
-    if system_enabled and rendered_jb.strip():
-        # full_prompt += f"[SYSTEM]\n{rendered_jb}\n\n"
-        full_prompt += f"{rendered_jb}\n\n"
-    if summary_enabled:
-        summary = "No summary available."  # TODO: Replace with real summary
-        full_prompt += f"[SUMMARY]\n{summary}\n\n"
+    # 2) Tier-2 OVERVIEW
+    overview = context.get("overview", [])
+    if overview:
+        parts.append("[OVERVIEW]")
+        for mega in overview:
+            parts.append(f"- {mega.text}  ({mega.tokens} toks)")
 
-    # 3. Main user prompt
-    full_prompt += f"[PROMPT]\n{user_text}"
+    # 3) Tier-1 SUMMARY
+    midterm = context.get("midterm", [])
+    if midterm:
+        parts.append("[SUMMARY]")
+        for summ in midterm:
+            parts.append(f"- {summ.text}  ({summ.tokens} toks)")
 
-    return full_prompt
+    # 4) Tier-0 RECENT MESSAGES
+    recent = context.get("recent", [])
+    if recent:
+        parts.append("[RECENT]")
+        for msg in recent:
+            who = getattr(msg, "who", "?")
+            text = getattr(msg, "text", "")
+            toks = getattr(msg, "tokens_original", 0)
+            parts.append(f"{who}: {text}")
+
+    # 5) Final user prompt
+    parts.append("[PROMPT]")
+    parts.append(user_text)
+
+    return "\n\n".join(parts)

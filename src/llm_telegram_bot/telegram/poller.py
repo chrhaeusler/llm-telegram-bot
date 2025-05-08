@@ -144,8 +144,8 @@ class PollingLoop:
         self.history_mgr = HistoryManager(
             bot_name=bot_name,
             chat_id=self.chat_id,
-            N0=10,  # max raw msgs before  tier-1 promotion
-            N1=20,  # max summaries before tier-2 promotion
+            N0=5,  # max raw msgs before  tier-1 promotion
+            N1=10,  # max summaries before tier-2 promotion
             K=5,  # how many summaries to batch into mega
             T0_cap=100,
             T1_cap=50,
@@ -284,11 +284,11 @@ class PollingLoop:
 
                 # Language?
                 try:
-                    lang = detect(user_text)
-                    logger.debug(f"[Poller: History] Detected language for user input as {lang}")
-                    logger.debug(f"[Poller: History] User text: {user_text}")
+                    language_user = detect(user_text)
+                    logger.debug(f"[Poller: History] Detected language for user input: {language_user}")
+                    # logger.debug(f"[Poller: History] User text: {user_text}")
                 except LangDetectException:
-                    lang = "unknown"
+                    language_user = "unknown"
                     logger.warning(f"[Poller: History] Could not detect language for user input: {user_text}")
 
                 # Setup routing
@@ -304,51 +304,62 @@ class PollingLoop:
                 char_data = session.active_char_data or {}
                 user_data = session.active_user_data or {}
 
+                # 1) Get context (renaming keys to match build_full_prompt expectation)
+                raw_context = self.history_mgr.get_all_context()
+                context = {
+                    "recent": raw_context.get("tier0", []),
+                    "midterm": raw_context.get("tier1", []),
+                    "overview": raw_context.get("tier2", []),
+                }
+                # logger.debug(f"[Poller: History] User text: {user_text} {context}")
+
+                # 2) Build full prompt
                 full_prompt = build_full_prompt(
                     char=char_data,
                     user=user_data,
                     jailbreak=state.jailbreak,
-                    history=state.history_buffer,
+                    context=context,
                     user_text=user_text,
                 )
 
-                # Count tokens of the full prompt (not just user_text!)
-                tokens = count_tokens_simple(full_prompt)
-                logger.debug(f"[Poller: Tokens] Full prompt has {tokens} tokens")
-
+                tokens_full_prompt = count_tokens_simple(full_prompt)
+                logger.debug(f"[Poller: Tokens] Full prompt has {tokens_full_prompt} tokens")
                 logger.debug(f"[Poller: Prompt] Final prompt to LLM:\n{full_prompt}")
 
-                # 3) Also store the sent prompt for /savelastprompt
+                # 3) Store full prompt for debugging & /savelastprompt
                 add_memory(chat_id, bot_name, "last_prompt", user_text)
                 add_memory(chat_id, bot_name, "last_prompt_full", full_prompt)
 
-                # 4) Append to history buffer (with local timestamp)
+                # 4) Append to raw history buffer
                 ts = time.strftime("%Y-%m-%d_%H-%M-%S")
                 prompt_entry = {
-                    "who": state.active_user,  # user key
-                    "ts": ts,  # timestamp
-                    "lang": lang,  # detected language
-                    "text": user_text,  # raw user text
-                    "prompt": full_prompt,  # what we actually sent LLM
+                    "who": state.active_user,
+                    "ts": ts,
+                    "lang": language_user,
+                    "text": user_text,  # 🟢 Raw user text only
+                    # "prompt": full_prompt,  # 🟢 Keep full prompt here for reference only
                 }
-
-                # add_memory(chat_id, bot_name, "last_prompt_full", prompt_entry)
                 state.history_buffer.append(prompt_entry)
 
-                # wrap into our Message dataclass
+                # Who is speaking? use a simple label or pull from identity:
+                user_label = user_data.get("identity", {}).get("name", "user")
+                # Wrap raw user input in Message (NOT the full prompt!)
+                # TO DO: We should let the Message class store the detected language of
+                # the user_text, too (as we did with our previous logic for /history)
                 prompt_msg = Message(
-                    text=full_prompt,
-                    tokens_original=tokens,
-                    tokens_compressed=tokens,  # for now we don’t compress yet
+                    ts=ts,
+                    who=user_label,
+                    text=user_text,
+                    tokens_original=tokens_full_prompt,
+                    tokens_compressed=tokens_full_prompt,
                 )
 
-                # Save to tier-0
-                self.history_mgr.add_prompt_message(prompt_msg)
+                self.history_mgr.add_user_message(prompt_msg)
 
                 # Optional: Warn user if near limit
-                if tokens > 3500:
+                if tokens_full_prompt > 3000:
                     await session.send_message(
-                        f"⚠️ Prompt is getting long ({tokens} tokens).\n" "Consider clearing history."
+                        f"⚠️ Prompt is getting long ({tokens_full_prompt} tokens).\n" "Consider clearing history."
                     )
 
                 # 5) Determine effective LLM parameters
@@ -366,11 +377,21 @@ class PollingLoop:
                     maxtoken=maxtoken,
                 )
 
+                # Detect language
+                try:
+                    language_reply = detect(reply)
+                    logger.debug(f"[History] Detected language for reply: {language_reply}")
+                    logger.debug(f"[History] LLM Reply: {reply}")
+
+                except LangDetectException:
+                    language_reply = "unknown"
+                    logger.warning(f"[History] Could not detect language for response: {reply}")
+
                 # History Buffer
                 reply_entry = {
                     "who": state.active_char,
                     "ts": time.strftime("%Y-%m-%d_%H-%M-%S"),
-                    "lang": lang,
+                    "lang": language_reply,
                     "text": reply,
                     "prompt": "",  # we only store it for completeness
                 }
@@ -397,20 +418,19 @@ class PollingLoop:
                 # except Exception as e:
                 #     logger.exception(f"Error flushing history: {e}")
 
-                tokens = count_tokens_simple(reply)
-                reply_msg = Message(text=reply, tokens_original=tokens, tokens_compressed=tokens)
+                llm_label = char_data.get("identity", {}).get("name", "llm")
+                tokens_reply = count_tokens_simple(reply)
+                reply_msg = Message(
+                    who=llm_label,
+                    text=reply,
+                    tokens_original=tokens_reply,
+                    tokens_compressed=tokens_reply,
+                    ts=ts,
+                )
+
                 self.history_mgr.add_bot_message(reply_msg)
-                logger.debug(f"[Poller: Tokens] Reply has {tokens} tokens")
 
-                # History Manager
-                try:
-                    lang = detect(reply)
-                    logger.debug(f"[History] Detected language for reply as {lang}")
-                    logger.debug(f"[History] LLM Reply: {reply}")
-
-                except LangDetectException:
-                    lang = "unknown"
-                    logger.warning(f"[History] Could not detect language for response: {reply}")
+                logger.debug(f"[Poller: Tokens] Reply has {tokens_reply} tokens")
 
                 # Send Reply to telegram back, but split long messages
                 if len(reply) > 4096:
