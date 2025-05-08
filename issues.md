@@ -131,7 +131,6 @@
 ## Phase 2 – Session Manager & State Isolation ✅ _(code complete)_
 
 - [x] Refactored `session_manager.py` to: Initialize default service/model; Accept bot identifier via parameter; Maintain per-bot, per-chat_id state
-- [ ] give bot in session attribute clear name (e.g. "General Purpose") not bot_name ("bot_1") to not always load clear name from config.yaml when saving files, histories, strings etc. to file
 - [ ] Unit tests for all session state behaviors
 
 ---
@@ -144,6 +143,7 @@
 - [x] Implement `config/persona_loader.py`
 - [x] implement `/user` and `/char` commands
 - [x] Integrate active character and user into routing
+- [x] flush history after every change of char or user.
 - [ ] draw and use all infos from char configuration and user files (background, skills, interests, personality etc.)
 - [ ] Unit tests for all commands
 

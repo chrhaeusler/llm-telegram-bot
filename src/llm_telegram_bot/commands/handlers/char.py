@@ -6,6 +6,7 @@ from typing import Any, List
 from llm_telegram_bot.commands.commands_registry import register_command
 from llm_telegram_bot.session.session_manager import (
     get_active_char,
+    get_session,
     set_active_char,
 )
 from llm_telegram_bot.utils.logger import logger
@@ -78,6 +79,7 @@ async def char_handler(session: Any, message: dict, args: List[str]):
     if cmd.isdigit():
         idx = int(cmd) - 1
         if 0 <= idx < len(files):
+            # flush history first
             choice = files[idx]
         else:
             await session.send_message(f"⚠️ Index out of range: {cmd}")
@@ -90,6 +92,9 @@ async def char_handler(session: Any, message: dict, args: List[str]):
             return
 
     # 3) Commit selection
+    # Flush history first
+    state = get_session(session.chat_id, session.bot_name)
+    state.flush_history_to_disk()
     set_active_char(session.chat_id, bot_name, choice)
     await session.send_message(f"✅ Switched Char to `{choice}`")
 

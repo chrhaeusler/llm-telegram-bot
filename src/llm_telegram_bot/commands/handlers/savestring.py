@@ -48,7 +48,8 @@ async def savestring_handler(session: Any, message: dict[str, Any], args: List[s
 
     # Use bot-level download_path, or fallback to global
     download_root = bot_conf.download_path or tg_cfg.download_path
-    full_dir = os.path.join(download_root, bot_conf.name, str(session.chat_id))
+    bot_nr = session.bot_name
+    full_dir = os.path.join(download_root, bot_nr, str(session.chat_id))
     os.makedirs(full_dir, exist_ok=True)
 
     # Ensure destination filename is unique

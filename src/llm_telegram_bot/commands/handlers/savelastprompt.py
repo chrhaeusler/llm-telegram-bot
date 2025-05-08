@@ -42,7 +42,8 @@ async def slp_handler(session: Any, message: dict, args: List[str]) -> None:
 
     # Use bot-level download_path, or fallback to global
     root = bot_conf.download_path or tg_cfg.download_path
-    outdir = os.path.join(root, bot_conf.name, str(session.chat_id))
+    bot_nr = session.bot_name
+    outdir = os.path.join(root, bot_nr, str(session.chat_id))
     os.makedirs(outdir, exist_ok=True)
     full = os.path.join(outdir, fname)
 
