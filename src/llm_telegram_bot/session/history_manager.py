@@ -23,18 +23,18 @@
 # src/llm_telegram_bot/session/history_manager.py
 
 import datetime
-import logging
 from collections import deque
 from dataclasses import dataclass
 from typing import Deque, Dict
 
-logger = logging.getLogger(__name__)
+from llm_telegram_bot.utils.logger import logger
 
 
 @dataclass
 class Message:
     ts: str
     who: str  # who spoke: the user‐key or char‐key
+    lang: str
     text: str  # raw or compressed text
     tokens_original: int  # count before compression
     tokens_compressed: int  # count after compression
@@ -98,8 +98,9 @@ class HistoryManager:
         Add a Message originating from the user into tier-0,
         then trigger any necessary promotions to higher tiers.
         """
-        logger.debug(f"[HistoryManager] add_user_message → who={msg.who!r}, tokens={msg.tokens_original}")
+        # log
         logger.debug(f"[HistoryManager] add_user_message → {msg.who!r}@{msg.ts}, {msg.tokens_original} toks")
+        # fucking do it
         self.tier0.append(msg)
         self._maybe_promote()
 
@@ -108,7 +109,9 @@ class HistoryManager:
         Add a Message originating from the bot (LLM reply) into tier-0,
         then trigger any necessary promotions to higher tiers.
         """
+        # log
         logger.debug(f"[HistoryManager] add_bot_message → {msg.who!r}@{msg.ts}, {msg.tokens_original} toks")
+        # fucking do it
         self.tier0.append(msg)
         self._maybe_promote()
 

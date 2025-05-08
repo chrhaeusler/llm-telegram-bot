@@ -16,7 +16,6 @@ from llm_telegram_bot.services.service_groq import GroqService
 from llm_telegram_bot.services.service_mistral import MistralService
 from llm_telegram_bot.session.history_manager import HistoryManager, Message
 from llm_telegram_bot.session.session_manager import (
-    add_memory,
     get_effective_llm_params,
     get_session,
     is_paused,
@@ -27,7 +26,10 @@ from llm_telegram_bot.session.session_manager import (
 )
 from llm_telegram_bot.telegram.client import TelegramClient
 from llm_telegram_bot.utils.logger import logger
-from llm_telegram_bot.utils.message_utils import split_message
+from llm_telegram_bot.utils.message_utils import (
+    build_full_prompt,
+    split_message,
+)
 from llm_telegram_bot.utils.token_utils import count_tokens_simple
 
 
@@ -36,6 +38,7 @@ class ChatSession:
     Wrapper for a chat session that provides:
       - send_message(text): handles Telegram message sending
       - access to session state like active_service, active_bot, etc.
+      - one HistoryManager per chat/bot
     """
 
     def __init__(self, client: TelegramClient, chat_id: int, bot_name: str):
@@ -43,14 +46,12 @@ class ChatSession:
         self.chat_id = chat_id
         self.bot_name = bot_name
         self._session = get_session(chat_id, bot_name)
+        self.history_mgr = self._session.history_mgr
 
     async def send_message(self, text: str, *, parse_mode: str = "MarkdownV2", **kwargs) -> None:
-        # ensure client knows which chat
         self.client.chat_id = self.chat_id
-        # forward text and parse_mode+kwargs to the client
         await self.client.send_message(text, parse_mode=parse_mode, **kwargs)
 
-    # Optional passthroughs
     @property
     def active_service(self):
         return self._session.active_service
@@ -85,6 +86,7 @@ class PollingLoop:
         self.bot_name = bot_name
         self.client = client
         self.config = config
+        # history_mgr will be lazily created once we see the first text message
 
         tg_cfg = config.telegram  # TelegramConfig
         bot_cfg: BotConfig = tg_cfg.bots.get(bot_name)
@@ -221,235 +223,143 @@ class PollingLoop:
                 await asyncio.sleep(delay)
         return {"ok": False}
 
-    async def handle_update(self, update: dict[str, Any]):
-        """
-        Called for every incoming update.
-        1) If it's a document, fetch & download it.
-        2) If it's text, route commands or send to the LLM service (with history, jailbreak, and splitting).
-        """
-        # prevent circular import
+    async def handle_update(self, update: Dict[str, Any]):
+        msg = update.get("message")
+        if not msg:
+            return
 
-        from llm_telegram_bot.telegram.poller import ChatSession
-        from llm_telegram_bot.telegram.routing import route_message
-        from llm_telegram_bot.utils.message_utils import build_full_prompt
+        chat_id = msg["chat"]["id"]
+        # Wrap into session + state
+        session = ChatSession(self.client, chat_id, self.bot_name)
+        state = get_session(chat_id, self.bot_name)
 
+        # ── Init LLM service if missing ───────────────────────
+        if state.active_service is None:
+            default = self.config.factorydefault.service or next(iter(self.config.services), None)
+            set_service(chat_id, default, self.bot_name)
+
+        # 1) documents
+        if "document" in msg:
+            return await self._handle_document(msg, session)
+
+        # 2) text
+        if "text" in msg:
+            return await self._handle_text(msg, session, state)
+
+    async def _handle_document(self, msg: Dict, session: Any):
+        file_id = msg["document"]["file_id"]
+        file_name = msg["document"]["file_name"]
+
+        # Log
+        logger.info(f"[Poller] Downloading document {file_name}")
+
+        details = await self.client.get_file(file_id)
+        if details.get("ok"):
+            await self.client.download_file(details["result"]["file_path"], file_name)
+        else:
+            await session.send_message(f"❌ Could not retrieve '{file_name}'")
+        return
+
+    async def _handle_text(self, msg: Dict, session: Any, state: Any):
+        user_text = msg["text"].strip()
+        chat_id = session.chat_id
+        bot_name = session.bot_name
+
+        # 2a) commands
+        if user_text.startswith("/"):
+            # late import avoids circularity
+            from llm_telegram_bot.telegram.routing import route_message
+
+            await route_message(session=session, message=msg, llm_call=None, model="", temperature=0, maxtoken=0)
+            return
+
+        # 2b) paused?
+        if is_paused(chat_id, bot_name):
+            return
+
+        # 2c) detect language
         try:
-            msg = update.get("message")
-            if not msg:
-                logger.debug("[Poller: Loop] update with no message, skipping")
-                return
+            language_user = detect(user_text)
+        except LangDetectException:
+            language_user = "unknown"
 
-            chat_id = msg["chat"]["id"]
-            bot_name = self.bot_name
+        # 2d) gather config + persona
+        svc_name = state.active_service
+        bot_def = self.config.factorydefault
+        svc_conf = self.config.services[svc_name]
 
-            # Wrap our TelegramClient + chat into a ChatSession helper
-            session = ChatSession(self.client, chat_id, bot_name)
-            state = get_session(chat_id, bot_name)
+        # 2e) build context dict for prompt
+        raw_ctx = session.history_mgr.get_all_context()
+        context = {
+            "recent": raw_ctx["tier0"],
+            "midterm": raw_ctx["tier1"],
+            "overview": raw_ctx["tier2"],
+        }
 
-            # ── Initialize default service if not set ─────────────────────────
-            if state.active_service is None:
-                default_svc = self.config.factorydefault.service or next(iter(self.config.services.keys()), None)
-                set_service(chat_id, default_svc, bot_name)
+        # 2f) render full prompt
+        full_prompt = build_full_prompt(
+            char=session.active_char_data or {},
+            user=session.active_user_data or {},
+            jailbreak=state.jailbreak,
+            context=context,
+            user_text=user_text,
+        )
 
-            # ── Document Handling ───────────────────────────────────────────────
-            if "document" in msg:
-                file_id = msg["document"]["file_id"]
-                file_name = msg["document"]["file_name"]
-                logger.info(f"[Poller: Loop] Document → {file_name} (id={file_id})")
+        # count tokens
+        tokens_user_text = count_tokens_simple(user_text)
+        tokens_full = count_tokens_simple(full_prompt)
+        logger.debug(f"[Poller] Full prompt hast ({tokens_full} toks)]\n{full_prompt}")
 
-                details = await self.client.get_file(file_id)
-                if details.get("ok") and "result" in details:
-                    path = details["result"]["file_path"]
-                    await self.client.download_file(file_path=path, original_name=file_name)
-                else:
-                    logger.error(f"[Poller: Loop] get_file failed: {details}")
-                    await session.send_message(f"❌ Could not retrieve '{file_name}'")
-                return
+        # 2g) record into HistoryManager
+        ts = time.strftime("%Y-%m-%d_%H-%M-%S")
 
-            # ── Text Handling ──────────────────────────────────────────────────
-            if "text" in msg:
-                user_text = msg["text"].strip()
+        prompt_msg = Message(
+            ts=ts,
+            who=state.active_user,
+            lang=language_user,
+            text=user_text,
+            tokens_original=tokens_user_text,
+            tokens_compressed=tokens_user_text,
+        )
 
-                # Slash‐command?
-                if user_text.startswith("/"):
-                    await route_message(
-                        session=session, message=msg, llm_call=None, model="", temperature=0.0, maxtoken=0
-                    )
-                    return
+        # 2h) call LLM
+        model, temp, max_tk = get_effective_llm_params(chat_id, bot_name, bot_def, svc_conf)
+        service = get_service_for_name(svc_name, svc_conf)
+        reply = await service.send_prompt(full_prompt, model=model, temperature=temp, maxtoken=max_tk)
 
-                # Paused?
-                if is_paused(chat_id, bot_name):
-                    logger.info(f"[Poller: Loop] Messaging paused for {chat_id}, skipping LLM")
-                    return
+        # detect reply language
+        try:
+            language_reply = detect(reply)
+        except LangDetectException:
+            language_reply = "unknown"
 
-                # Language?
-                try:
-                    language_user = detect(user_text)
-                    logger.debug(f"[Poller: History] Detected language for user input: {language_user}")
-                    # logger.debug(f"[Poller: History] User text: {user_text}")
-                except LangDetectException:
-                    language_user = "unknown"
-                    logger.warning(f"[Poller: History] Could not detect language for user input: {user_text}")
+        # record LLM reply
+        tokens_reply = count_tokens_simple(reply)
+        logger.debug(f"[Poller] Tokens in reply: {tokens_reply}")
 
-                # Setup routing
-                svc_name = state.active_service
-                if svc_name is None:
-                    raise ValueError("No active service selected")
+        reply_msg = Message(
+            ts=ts,
+            who=state.active_char,
+            lang=language_reply,
+            text=reply,
+            tokens_original=count_tokens_simple(reply),
+            tokens_compressed=count_tokens_simple(reply),
+        )
 
-                bot_def = self.bot_config.default
-                svc_conf = self.config.services.get(svc_name)
-                if svc_conf is None:
-                    raise ValueError(f"Service config for '{svc_name}' not found")
+        # Update History
+        # To Do: Only add this if there is no Error from the API but a message!
+        # add prompt_msg to memory
+        state.history_mgr.add_user_message(prompt_msg)
 
-                char_data = session.active_char_data or {}
-                user_data = session.active_user_data or {}
+        # add reply to memory
+        state.history_mgr.add_bot_message(reply_msg)
 
-                # 1) Get context (renaming keys to match build_full_prompt expectation)
-                raw_context = self.history_mgr.get_all_context()
-                context = {
-                    "recent": raw_context.get("tier0", []),
-                    "midterm": raw_context.get("tier1", []),
-                    "overview": raw_context.get("tier2", []),
-                }
-                # logger.debug(f"[Poller: History] User text: {user_text} {context}")
-
-                # 2) Build full prompt
-                full_prompt = build_full_prompt(
-                    char=char_data,
-                    user=user_data,
-                    jailbreak=state.jailbreak,
-                    context=context,
-                    user_text=user_text,
-                )
-
-                tokens_full_prompt = count_tokens_simple(full_prompt)
-                logger.debug(f"[Poller: Tokens] Full prompt has {tokens_full_prompt} tokens")
-                logger.debug(f"[Poller: Prompt] Final prompt to LLM:\n{full_prompt}")
-
-                # 3) Store full prompt for debugging & /savelastprompt
-                add_memory(chat_id, bot_name, "last_prompt", user_text)
-                add_memory(chat_id, bot_name, "last_prompt_full", full_prompt)
-
-                # 4) Append to raw history buffer
-                ts = time.strftime("%Y-%m-%d_%H-%M-%S")
-                prompt_entry = {
-                    "who": state.active_user,
-                    "ts": ts,
-                    "lang": language_user,
-                    "text": user_text,  # 🟢 Raw user text only
-                    # "prompt": full_prompt,  # 🟢 Keep full prompt here for reference only
-                }
-                state.history_buffer.append(prompt_entry)
-
-                # Who is speaking? use a simple label or pull from identity:
-                user_label = user_data.get("identity", {}).get("name", "user")
-                # Wrap raw user input in Message (NOT the full prompt!)
-                # TO DO: We should let the Message class store the detected language of
-                # the user_text, too (as we did with our previous logic for /history)
-                prompt_msg = Message(
-                    ts=ts,
-                    who=user_label,
-                    text=user_text,
-                    tokens_original=tokens_full_prompt,
-                    tokens_compressed=tokens_full_prompt,
-                )
-
-                self.history_mgr.add_user_message(prompt_msg)
-
-                # Optional: Warn user if near limit
-                if tokens_full_prompt > 3000:
-                    await session.send_message(
-                        f"⚠️ Prompt is getting long ({tokens_full_prompt} tokens).\n" "Consider clearing history."
-                    )
-
-                # 5) Determine effective LLM parameters
-                model, temperature, maxtoken = get_effective_llm_params(
-                    chat_id=chat_id, bot_name=bot_name, bot_default=bot_def, svc_conf=svc_conf
-                )
-
-                # 6) Instantiate service and send the prompt
-                service = get_service_for_name(svc_name, svc_conf)
-                # Send to LLM
-                reply = await service.send_prompt(
-                    prompt=full_prompt,
-                    model=model,
-                    temperature=temperature,
-                    maxtoken=maxtoken,
-                )
-
-                # Detect language
-                try:
-                    language_reply = detect(reply)
-                    logger.debug(f"[History] Detected language for reply: {language_reply}")
-                    logger.debug(f"[History] LLM Reply: {reply}")
-
-                except LangDetectException:
-                    language_reply = "unknown"
-                    logger.warning(f"[History] Could not detect language for response: {reply}")
-
-                # History Buffer
-                reply_entry = {
-                    "who": state.active_char,
-                    "ts": time.strftime("%Y-%m-%d_%H-%M-%S"),
-                    "lang": language_reply,
-                    "text": reply,
-                    "prompt": "",  # we only store it for completeness
-                }
-
-                # add for /savelastreponse
-                add_memory(chat_id, bot_name, "last_response", reply)
-
-                # History Buffer (old implementation)
-                state.history_buffer.append(reply_entry)
-
-                # Flush in buffer to file
-                # we flush now based on time intervall (600 seconds;
-                # s. session_manger.py "async def _periodic_flush(self)")
-                # but let's be sure:
-                if len(state.history_buffer) >= self.bot_config.history_flush_count:
-                    try:
-                        state.flush_history_to_disk()
-                    except Exception as e:
-                        logger.exception(f"Error flushing history: {e}")
-
-                # flush every prompt and response
-                # try:
-                #     state.flush_history_to_disk()
-                # except Exception as e:
-                #     logger.exception(f"Error flushing history: {e}")
-
-                llm_label = char_data.get("identity", {}).get("name", "llm")
-                tokens_reply = count_tokens_simple(reply)
-                reply_msg = Message(
-                    who=llm_label,
-                    text=reply,
-                    tokens_original=tokens_reply,
-                    tokens_compressed=tokens_reply,
-                    ts=ts,
-                )
-
-                self.history_mgr.add_bot_message(reply_msg)
-
-                logger.debug(f"[Poller: Tokens] Reply has {tokens_reply} tokens")
-
-                # Send Reply to telegram back, but split long messages
-                if len(reply) > 4096:
-                    logger.warning(f"[Poller: Loop] Splitting reply of {len(reply)} char")
-                for chunk in split_message(reply):
-                    await session.send_message(chunk)
-
-        except Exception as e:
-            logger.exception(f"[Poller: Loop] error in handle_update: {e}")
-            # best-effort fallback
-            try:
-                fallback = ChatSession(self.client, update["message"]["chat"]["id"], bot_name)
-                await fallback.send_message(f"❌ Error processing update: {e}")
-            except:
-                pass
+        # 2i) send back to user (with splitting)
+        for chunk in split_message(reply):
+            await session.send_message(chunk)
 
 
 if __name__ == "__main__":
-    import asyncio
     import sys
 
     async def main():

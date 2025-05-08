@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 from llm_telegram_bot.config.config_loader import load_config
 from llm_telegram_bot.config.persona_loader import load_char_config, load_user_config
 from llm_telegram_bot.config.schemas import BotDefaults, RootConfig, ServiceConfig
+from llm_telegram_bot.session.history_manager import HistoryManager
 from llm_telegram_bot.utils.logger import logger
 
 
@@ -53,7 +54,6 @@ class Session:
         self.memory: Dict[str, List[Any]] = {}
 
         # start periodic flush in background
-        # (we must be running inside an asyncio loop)
         self._flush_task = asyncio.create_task(self._periodic_flush())
 
     def pause(self) -> None:
@@ -83,6 +83,7 @@ class Session:
         history_dir.mkdir(parents=True, exist_ok=True)
 
         history_file = history_dir / f"{self.active_user}_with_{self.active_char}.json"
+        print(history_file)
 
         existing_data = {}
         if history_file.exists():
@@ -190,23 +191,21 @@ def get_session(chat_id: int, bot_name: str) -> Session:
                 or "{{user.identity.name}}_{{user.role}}_with_{{char.identity.name}}_{{char.role}}.json"
             )
 
-            # load their full configs once
-            # eager‐load char
-            # if session.active_char:
-            #     # session.active_char_data = load_char_config(session.active_char, None)
-            #     session.active_char_data = load_char_config(bot_conf.char, load_user_config(bot_conf.user, None))
-            # else:
-            #     session.active_char_data = None
-
-            # if session.active_user:
-            #     session.active_user_data = load_user_config(session.active_user, session.active_char_data)
-            # else:
-            #     session.active_user_data = None
-
-            # eager‐load both configs with full context
             user_data = load_user_config(session.active_user, None) or {}
             session.active_char_data = load_char_config(session.active_char, user_data) or {}
             session.active_user_data = load_user_config(session.active_user, session.active_char_data) or {}
+
+        # ideally pull these values from your config instead of hard-coding
+        session.history_mgr = HistoryManager(
+            bot_name=bot_name,
+            chat_id=chat_id,
+            N0=10,  # max raw msgs in tier0
+            N1=20,  # max summaries in tier1
+            K=5,  # how many tier1 to batch into a mega
+            T0_cap=100,
+            T1_cap=50,
+            T2_cap=200,
+        )
 
         _sessions[session_key] = session
 
