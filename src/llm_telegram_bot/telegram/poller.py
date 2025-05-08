@@ -318,8 +318,8 @@ class PollingLoop:
 
                 logger.debug(f"[Poller: Prompt] Final prompt to LLM:\n{full_prompt}")
 
-                # 3) Also store the sent prompt for debugging
-                # add_memory(chat_id, bot_name, "last_prompt", user_text)
+                # 3) Also store the sent prompt for /savelastprompt
+                add_memory(chat_id, bot_name, "last_prompt", user_text)
                 add_memory(chat_id, bot_name, "last_prompt_full", full_prompt)
 
                 # 4) Append to history buffer (with local timestamp)
@@ -374,6 +374,9 @@ class PollingLoop:
                     "text": reply,
                     "prompt": "",  # we only store it for completeness
                 }
+
+                # add for /savelastreponse
+                add_memory(chat_id, bot_name, "last_response", reply)
 
                 # History Buffer (old implementation)
                 state.history_buffer.append(reply_entry)
