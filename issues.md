@@ -1,4 +1,118 @@
-# Project Structure & Status
+# Roadmap (Updated 2025-05-09)
+
+---
+
+## Phase 0 – Development Infrastructure & CI
+
+- [ ] Add & configure **pre-commit** hooks (black, isort, flake8, mypy).
+- [ ] Add **mypy** typing to all public interfaces (session manager, routing, handlers).
+- [ ] Create a lightweight **CI pipeline** (GitHub Actions / GitLab CI) to run:
+  - pre-commit
+  - pytest (unit + integration)
+  - mypy
+- [ ] fix: sent pics are not correctly saved to disk
+- [ ] Add CI status badges to README.
+
+---
+
+## Phase 1 – Core Foundations & “Simple” Commands ✅ _(done except tests)_
+
+- [x] Ensure `src/commands/handlers/*.py` are imported in poller so `@register_command` runs.
+- [x] Treat `/start` as alias for `/bot` in `routing.py`.
+- [x] Help & view commands: `/help`, `/bot(s)`, `/model(s)`, `/status`
+- [x] Set/override commands: `/temp`, `/tokens`, `/service`, `/model`
+- [x] File I/O commands: `/savestr`, `/slp`, `/slr`
+
+- [ ] go through the commands: rely less on config file but on session parameters to reduce disk I/O
+- [ ] Unit tests for each handler: no-arg, valid-arg, invalid-arg.
+
+---
+
+## Phase 2 – Session Manager & State Isolation ✅ _(code complete)_
+
+- [x] Refactored `session_manager.py` to: Initialize default service/model; Accept bot identifier via parameter; Maintain per-bot, per-chat_id state
+- [ ] Unit tests for all session state behaviors
+
+---
+
+## Phase 3a - User + Char
+
+- [x] Abstract loader for character/user YAMLs
+- [x] Implement `/char`, `/char list`, `/char <name>`
+- [x] Implement `config/persona_loader.py`
+- [x] implement `/user` and `/char` commands
+- [x] Integrate active character and user into routing
+- [ ] use all infos from char & user configs (background, interests etc.)
+- [ ] Unit tests for all commands
+
+## Phase 3b - History sent to provide Memory to LLM
+
+- [x] implement `/history on|off|flush|save|load`
+- [x] flush history before a change of char or user.
+- [x] load history from file at startup
+- [ ] Unit tests for all commands
+
+---
+
+## Phase 4 – History Summarization 🟡 _(in progress)_
+
+- [x] Create `HistoryManager` with three tiers (0,1,2)
+- [ ] pick a lightweight summarizer (Sumy/SpaCy) and wire it into `build_full_prompt()`
+- [ ] sliding‐window message summarization logic
+- [ ] expose `/sum [params]` to tune sentence‐counts and window size
+- [ ] switch from couting words as tokens to tiktoken
+
+---
+
+## Phase 5 – Logging & Formatting 🟡 _(in progress)_
+
+- [x] Enhance `send_message` logs (chat_id, duration, preview)
+- [x] Use HTML formatting (escape utils in place)
+- [x] Added `telegram_splitter.py` for 4096-char limit
+- [ ] CLI-mode flag to skip HTML escapes
+
+---
+
+## Phase 6 – CLI Bot & Documentation 🟡 _(just started)_
+
+- [x] Add `run.sh` launcher to project root
+- [ ] Build CLI runner (mirror Telegram routing)
+- [ ] Render Markdown/code blocks in terminal
+- [ ] Update `README.md` with usage examples
+- [ ] Add `docs/git-workflow.md`
+
+---
+
+## Phase 7 – Nice-to-Have Commands
+
+- [ ] /jb (automatic jailbreak prompts)
+- [ ] /setdefaults
+- [ ] /defaults
+- [ ] /reset (to factory defaults)
+- [ ] /undo
+- [ ] Add more quality-of-life commands
+
+---
+
+## Phase 8 – Release Preparation
+
+- [ ] CI green: pre-commit, pytest, mypy
+- [ ] Smoke-tests: TelegramClient + LLM end-to-end
+- [ ] Tag & publish v0.1-alpha
+- [ ] SQLite for history storage
+- [ ] Out of scope as of now: Vector database or graph database
+- [ ] Implement speech-to-text and text-to-speech models
+- [ ] Implement image analysis (pixtral)
+- [ ] [other APIs](https://github.com/cheahjs/free-llm-api-resources),
+- [ ] memory agents, DB, LangChain, etc.
+
+---
+
+---
+
+# Project Structure & Status (Updated 2025-05-04)
+
+https://github.com/cheahjs/free-llm-api-resources
 
 ```bash
 ├── bin
@@ -97,105 +211,3 @@
 │       └── test_routing.py         # [x] Routing edge-case tests
 └── tmp                             # [x] Temporary files & downloads
 ```
-
-# Roadmap (Updated 2025-05-09)
-
----
-
-## Phase 0 – Development Infrastructure & CI
-
-- [ ] Add & configure **pre-commit** hooks (black, isort, flake8, mypy).
-- [ ] Add **mypy** typing to all public interfaces (session manager, routing, handlers).
-- [ ] Create a lightweight **CI pipeline** (GitHub Actions / GitLab CI) to run:
-  - pre-commit
-  - pytest (unit + integration)
-  - mypy
-- [ ] fix: sent pics are not correctly saved to disk
-- [ ] Add CI status badges to README.
-
----
-
-## Phase 1 – Core Foundations & “Simple” Commands ✅ _(done except tests)_
-
-- [x] Ensure `src/commands/handlers/*.py` are imported in poller so `@register_command` runs.
-- [x] Treat `/start` as alias for `/bot` in `routing.py`.
-- [x] Help & view commands: `/help`, `/bot(s)`, `/model(s)`, `/status`
-- [x] Set/override commands: `/temp`, `/tokens`, `/service`, `/model`
-- [x] File I/O commands: `/savestr`, `/slp`, `/slr`
-
-- [ ] go through the commands: rely less config file but on session parameters to reduce disk I/O
-- [ ] Unit tests for each handler: no-arg, valid-arg, invalid-arg.
-
----
-
-## Phase 2 – Session Manager & State Isolation ✅ _(code complete)_
-
-- [x] Refactored `session_manager.py` to: Initialize default service/model; Accept bot identifier via parameter; Maintain per-bot, per-chat_id state
-- [ ] Unit tests for all session state behaviors
-
----
-
-## Phase 3 – History & User + Char
-
-- [x] Abstract loader for character/user YAMLs
-- [x] Implement `/char`, `/char list`, `/char <name>`
-- [x] Implement `config/persona_loader.py`
-- [x] implement `/user` and `/char` commands
-- [x] Integrate active character and user into routing
-- [x] flush history after every change of char or user.
-- [x] implement `/history on|off|flush|save|load`
-- [x] load history from file at startup
-- [ ] use all infos from char &user configs (background, interests etc.)
-- [ ] Unit tests for all commands
-
----
-
-## Phase 4 – History Summarization 🟡 _(in progress)_
-
-- [x] Created `HistoryManager` with three tiers (0,1,2)
-- [ ] pick a lightweight summarizer (Sumy/SpaCy) and wire it into `build_full_prompt()`
-- [ ] sliding‐window message summarization logic
-- [ ] expose `/sum [params]` to tune sentence‐counts and window size
-- [ ] switch from couting words as tokens to tiktoken
-
----
-
-## Phase 5 – Logging & Formatting 🟡 _(in progress)_
-
-- [x] Enhance `send_message` logs (chat_id, duration, preview)
-- [x] Use HTML formatting (escape utils in place)
-- [x] Added `telegram_splitter.py` for 4096-char limit
-- [ ] CLI-mode flag to skip HTML escapes
-
----
-
-## Phase 6 – CLI Bot & Documentation 🟡 _(just started)_
-
-- [x] Add `run.sh` launcher to project root
-- [ ] Build CLI runner (mirror Telegram routing)
-- [ ] Render Markdown/code blocks in terminal
-- [ ] Update `README.md` with usage examples
-- [ ] Add `docs/git-workflow.md`
-
----
-
-## Phase 7 – Nice-to-Have Commands
-
-- [ ] /jb (automatic jailbreak prompts)
-- [ ] /setdefaults
-- [ ] /defaults
-- [ ] /reset (to factory defaults)
-- [ ] /undo
-- [ ] Add more quality-of-life commands
-
----
-
-## Phase 8 – Release Preparation
-
-- [ ] CI green: pre-commit, pytest, mypy
-- [ ] Smoke-tests: TelegramClient + LLM end-to-end
-- [ ] Tag & publish v0.1-alpha
-- [ ] SQLite for history storage (vector or graph database are out of scope)
-- [ ] Implement speech-to-text and text-to-speech models
-- [ ] Implement image analysis (pixtral)
-- [ ] memory agents, DB, LangChain, etc.
