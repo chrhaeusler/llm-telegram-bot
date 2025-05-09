@@ -26,8 +26,8 @@ async def history_handler(session: Any, message: dict, args: List[str]):
     bot_name = session.bot_name
 
     # Header with current state
-    status = "on ✅" if sess.history_on else "off ⏸️"
-    header = f"<b>History:</b> is {status}"
+    status = "✅ on" if sess.history_on else "⏸️ off"
+    header = f"<b>History:</b> {status}"
 
     # No args → show usage
     if not args:
@@ -123,7 +123,7 @@ async def history_handler(session: Any, message: dict, args: List[str]):
         path = sess.flush_history_to_disk()
         # (optionally, implement mgr.flush() later to write out tier1/tier2)
         return await session.send_message(
-            f"{header}\n✅ History flushed to <code>{path}</code>.",
+            f"{header}\n✅ flushed to <code>{path}</code>.",
             parse_mode="HTML",
         )
 

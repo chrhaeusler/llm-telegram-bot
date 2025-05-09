@@ -122,9 +122,10 @@
 - [x] Help & view commands: `/help`, `/bot(s)`, `/model(s)`, `/status`
 - [x] Set/override commands: `/temp`, `/tokens`, `/service`, `/model`
 - [x] File I/O commands: `/savestr`, `/slp`, `/slr`
+
 - [ ] go through the commands: rely less config file but on session parameters to reduce disk I/O
 - [ ] Unit tests for each handler: no-arg, valid-arg, invalid-arg.
-- [ ] let `/bot` and `/status`show parameters for history summarization
+
 
 ---
 
@@ -135,7 +136,7 @@
 
 ---
 
-## Phase 3 – Persona (Char/User) & History
+## Phase 3 – History & User + Char
 
 - [x] Abstract loader for character/user YAMLs
 - [x] implement `/history on|off|flush|save|load`
@@ -144,19 +145,19 @@
 - [x] implement `/user` and `/char` commands
 - [x] Integrate active character and user into routing
 - [x] flush history after every change of char or user.
-- [ ] draw and use all infos from char configuration and user files (background, skills, interests, personality etc.)
+- [ ] use all infos from char and user configs (background, interests, personality etc.)
 - [ ] Unit tests for all commands
 
 ---
 
 ## Phase 4 – History Summarization 🟡 _(in progress)_
 
-- [ ] switch from couting words as tokens to tiktoken
-- [ ] integrate `summarize_history(history_buffer)`
+
+- [x] Created `HistoryManager` with three tiers (0,1,2)
+- [ ] pick a lightweight summarizer (Sumy/SpaCy) and wire it into `build_full_prompt()`
 - [ ] sliding‐window message summarization logic
 - [ ] expose `/sum [params]` to tune sentence‐counts and window size
-- [ ] pick a lightweight summarizer (Sumy/SpaCy) and wire it into `build_full_prompt()`
-
+- [ ] switch from couting words as tokens to tiktoken
 ---
 
 ## Phase 5 – Logging & Formatting 🟡 _(in progress)_

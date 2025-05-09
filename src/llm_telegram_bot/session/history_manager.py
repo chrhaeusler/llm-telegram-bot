@@ -1,10 +1,4 @@
-# Responsibilities:
-# Maintain three deques/lists:
-# tier0: deque[Message]
-# tier1: deque[Summary]
-# tier2: deque[MegaSummary]
-# Expose methods:
-# add_user_message(text: str) / add_bot_message(text: str)
+# scr/llm_telegram_bot/session/history_manager.py
 #
 # Internally:
 # language detection & cleanup
@@ -90,8 +84,19 @@ class HistoryManager:
 
         logger.debug(
             f"[HistoryManager] init {bot_name}:{chat_id} → "
-            f"N0={self.N0}, N1={self.N1}, K={self.K}, caps=(T0={self.T0_cap},T1={self.T1_cap},T2={self.T2_cap})"
+            f"N0={self.N0}, N1={self.N1}, K={self.K},"
+            f"caps=(T0={self.T0_cap},T1={self.T1_cap},T2={self.T2_cap})"
         )
+
+    def token_stats(self) -> Dict[str, int]:
+        """
+        Returns the total compressed‐token count in each tier.
+        """
+        return {
+            "tier0": sum(msg.tokens_compressed for msg in self.tier0),
+            "tier1": sum(s.tokens for s in self.tier1),
+            "tier2": sum(m.tokens for m in self.tier2),
+        }
 
     def add_user_message(self, msg: Message) -> None:
         """

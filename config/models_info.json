@@ -109,6 +109,24 @@
       ],
       "details": "tailored for lower computational resources and faster inference by sacrificing depth and throughput under heavy load; minimal safety filters make it highly susceptible to jailbreaking."
     },
+    "qwen-qwq-32b": {
+      "creator": "Qwen AI",
+      "short": "32B dense model for advanced tasks.",
+      "release_year": "2024",
+      "main_purpose": "high‑throughput code generation and complex reasoning",
+      "strengths": "High performance on code and reasoning benchmarks.",
+      "weaknesses": "Resource-intensive; 8k–16k token window.",
+      "rank_power": "excellent",
+      "token_win": [8192, 16384],
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "context injection",
+        "adversarial role‑play",
+        "secret instruction chaining"
+      ],
+      "details": "strong code generation within an 8k-16k token window; excels in Python scripts, debugging, and logical reasoning tasks; overall top-tier capability; moderate safety fine‑tunes guard against trivial jailbreaks, but advanced adversarial techniques remain effective."
+    },
     "deepseek-r1-distill-llama-70b": {
       "creator": "DeepSeek",
       "short": "Distilled LLaMA‑70B for efficient inference.",
@@ -127,49 +145,13 @@
       ],
       "details": "top‑tier reasoning and coding performance; superior coding ability; moderate safety fine‑tunes guard against trivial jailbreaks, but advanced adversarial chains can still bypass its filters."
     },
-    "gemma2-9b-it": {
-      "creator": "Groq",
-      "short": "Instruction-tuned for Italian and general tasks.",
-      "release_year": "2024",
-      "token_win": [4096, 4096],
-      "main_purpose": "Italian language tasks and multilingual conversation",
-      "strengths": "Strong multilingual support with emphasis on Italian.",
-      "weaknesses": "Lower performance on code and specialized domains.",
-      "rank_power": "mid",
-      "rank_coding": "mid",
-      "rank_jail": "high",
-      "jailbreaks": [
-        "instruction inversion prompt",
-        "indirect prompt hacking",
-        "context wrapping exploits"
-      ],
-      "details": "italian-focussed and multi-lingual; handles translation, summarization, and conversation; minimal guardrails make it vulnerable to jailbreak via creative prompt manipulation and context wrapping techniques."
-    },
-    "llama-guard-3-8b": {
-      "creator": "Meta",
-      "short": "Safety‑hardened 8B LLaMA 3 variant.",
-      "release_year": "2023",
-      "main_purpose": "content moderation and safe conversational interfaces",
-      "strengths": "Built‑in content filters and moderation layers.",
-      "weaknesses": "Over‑censorship may hinder legitimate code examples.",
-      "rank_power": "mid",
-      "token_win": [4096, 4096],
-      "rank_coding": "mid",
-      "rank_jail": "low",
-      "jailbreaks": [
-        "weak chain‑of‑thought prompts",
-        "multi‑step indirect requests",
-        "supervised fine‑tuning override"
-      ],
-      "details": "designed for policy‑critical applications; strong guardrails earn it a low jailbreak rank, though very advanced adversarial sequences can sometimes bypass filters."
-    },
     "llama-3.1-8b-instant": {
       "creator": "Meta",
       "short": "Pruned & quantized LLaMA 3.1 for instant chat.",
       "release_year": "2024",
       "token_win": [4096, 4096],
-      "main_purpose": "real‑time interactive chat and quick code snippets",
-      "strengths": "Ultra‑low latency responses on consumer hardware.",
+      "main_purpose": "Real‑time chat and and conent moderation",
+      "strengths": "ultra‑low latency responses on consumer hardware.",
       "weaknesses": "Reduced parameter count limits depth of reasoning.",
       "rank_power": "mid",
       "rank_coding": "good",
@@ -180,6 +162,38 @@
         "hidden prompt injection"
       ],
       "details": "optimized for sub‑100ms responses with up to 4096 tokens makes it well‑suited for interactive chat and simple code snippets; however, its small scale yields a mid power ranking;  minimal safety layers, allowing straightforward jailbreak attacks."
+    },
+    "llama3-8b-8192": {
+      "creator": "Meta",
+      "short": "Llama-3 8B 8k window.",
+      "release_year": "202?",
+      "main_purpose": "Efficiency",
+      "strengths": "real-time chat, content summarization",
+      "weaknesses": "Reasoning",
+      "rank_power": "None",
+      "token_win": [8192, 8192],
+      "rank_coding": "None",
+      "rank_jail": "mid",
+      "jailbreaks": ["None", "None", "None"],
+      "details": "perfect for high-volume applications where both speed and cost matter. Despite its compact 8B parameter size, it maintains strong language capabilities for handling a wide range of tasks"
+    },
+    "llama3-70b-8192": {
+      "creator": "Meta",
+      "short": "Extended‑context 70B LLaMA 3 with 8k window.",
+      "release_year": "2024",
+      "main_purpose": "long‑form document analysis and large codebase reasoning",
+      "strengths": "Large context for long‑form code and documents.",
+      "weaknesses": "High memory and compute requirements.",
+      "rank_power": "excellent",
+      "token_win": [8192, 8192],
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "context splitting",
+        "indirect system prompt abuse",
+        "disguised chains of thought"
+      ],
+      "details": "ideal for building reliable conversational experiences; excels at creating high-quality content with a balance of creativity and accuracy; moderate safety measures guard against simple jailbreaks, but sophisticated prompt manipulations can still succeed."
     },
     "llama-3.3-70b-versatile": {
       "creator": "Meta",
@@ -198,24 +212,6 @@
         "masked instruction injection"
       ],
       "details": "Excels at complex reasoning, code generation, and multi‑step tasks; exceptional capacity gives it an excellent power and coding rank; moderate fine‑tunes to resist simple jailbreaks, advanced prompt layering can still succeed."
-    },
-    "llama3-70b-8192": {
-      "creator": "Meta",
-      "short": "Extended‑context 70B LLaMA 3 with 8k window.",
-      "release_year": "2024",
-      "main_purpose": "long‑form document analysis and large codebase reasoning",
-      "strengths": "Large context for long‑form code and documents.",
-      "weaknesses": "High memory and compute requirements.",
-      "rank_power": "excellent",
-      "token_win": [8192, 8192],
-      "rank_coding": "excellent",
-      "rank_jail": "mid",
-      "jailbreaks": [
-        "context splitting",
-        "indirect system prompt abuse",
-        "disguised chains of thought"
-      ],
-      "details": "ideal for large codebases, document analysis, and multi‑session chats; excellent power and at coding; moderate safety measures guard against simple jailbreaks, but sophisticated prompt manipulations can still succeed."
     },
     "meta-llama/llama-4-scout-17b-16e-instruct": {
       "creator": "Meta",
@@ -251,24 +247,6 @@
         "persona reverse psychology"
       ],
       "details": "128k token support: 131k context window, 16k prompt, 4k response; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
-    },
-    "qwen-qwq-32b": {
-      "creator": "Qwen AI",
-      "short": "32B dense model for advanced tasks.",
-      "release_year": "2024",
-      "main_purpose": "high‑throughput code generation and complex reasoning",
-      "strengths": "High performance on code and reasoning benchmarks.",
-      "weaknesses": "Resource-intensive; 8k–16k token window.",
-      "rank_power": "excellent",
-      "token_win": [8192, 16384],
-      "rank_coding": "excellent",
-      "rank_jail": "mid",
-      "jailbreaks": [
-        "context injection",
-        "adversarial role‑play",
-        "secret instruction chaining"
-      ],
-      "details": "strong code generation within an 8k-16k token window; excels in Python scripts, debugging, and logical reasoning tasks; overall top-tier capability; moderate safety fine‑tunes guard against trivial jailbreaks, but advanced adversarial techniques remain effective."
     }
   }
 }

@@ -265,7 +265,7 @@ class PollingLoop:
         chat_id = session.chat_id
         bot_name = session.bot_name
 
-        # 2a) commands
+        # Commands
         if user_text.startswith("/"):
             # late import avoids circularity
             from llm_telegram_bot.telegram.routing import route_message
@@ -273,22 +273,22 @@ class PollingLoop:
             await route_message(session=session, message=msg, llm_call=None, model="", temperature=0, maxtoken=0)
             return
 
-        # 2b) paused?
+        # Paused?
         if is_paused(chat_id, bot_name):
             return
 
-        # 2c) detect language
+        # Detect language of user input
         try:
             language_user = detect(user_text)
         except LangDetectException:
             language_user = "unknown"
 
-        # 2d) gather config + persona
+        # Gather config + persona
         svc_name = state.active_service
         bot_def = self.config.factorydefault
         svc_conf = self.config.services[svc_name]
 
-        # 2e) build context dict for prompt
+        # Build context dict for prompt
         raw_ctx = session.history_mgr.get_all_context()
         context = {
             "recent": raw_ctx["tier0"],
@@ -296,7 +296,7 @@ class PollingLoop:
             "overview": raw_ctx["tier2"],
         }
 
-        # 2f) render full prompt
+        # Render full prompt
         full_prompt = build_full_prompt(
             char=session.active_char_data or {},
             user=session.active_user_data or {},
@@ -310,7 +310,26 @@ class PollingLoop:
         tokens_full = count_tokens_simple(full_prompt)
         logger.debug(f"[Poller] Full prompt hast ({tokens_full} toks)]\n{full_prompt}")
 
-        # 2g) record into HistoryManager
+        # Send Feedback about Prompt and History
+        mgr = session.history_mgr
+        stats = mgr.token_stats()
+        caps = mgr
+
+        await session.send_message(
+            "<b>🔢 History Manager's Token Parameters</b>:\n"
+            f"• N0: {caps.N0} ({caps.T0_cap} cap)\n"
+            f"• N1: {caps.N1} ({caps.T1_cap})\n"
+            f"• K:  {caps.K}  ({caps.T2_cap})\n\n"
+            "<b>🧮 Current Context Usage</b>:\n"
+            f"• overview: {stats['tier2']}\n"
+            f"• midterm: {stats['tier1']}\n"
+            f"• recent: {stats['tier0']}\n"
+            f"• full prompt: {tokens_full}\n"
+            f"• your text: {tokens_user_text}",
+            parse_mode="HTML",
+        )
+
+        # Record into HistoryManager
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
 
         prompt_msg = Message(
@@ -322,10 +341,28 @@ class PollingLoop:
             tokens_compressed=tokens_user_text,
         )
 
-        # 2h) call LLM
-        model, temp, max_tk = get_effective_llm_params(chat_id, bot_name, bot_def, svc_conf)
+        # Get parameter for calling LLM
         service = get_service_for_name(svc_name, svc_conf)
-        reply = await service.send_prompt(full_prompt, model=model, temperature=temp, maxtoken=max_tk)
+        model, temp, max_tk = get_effective_llm_params(
+            chat_id,
+            bot_name,
+            bot_def,
+            svc_conf,
+        )
+
+        # Call LLM and guard against API errors
+        try:
+            reply = await service.send_prompt(
+                prompt=full_prompt,
+                model=model,
+                temperature=temp,
+                maxtoken=max_tk,
+            )
+        except Exception as err:
+            # report it but do NOT record it in history
+            logger.exception("[PollingLoop] LLM API error")
+            await session.send_message(f"❌ LLM error: {err}")
+            return
 
         # detect reply language
         try:
@@ -346,15 +383,11 @@ class PollingLoop:
             tokens_compressed=count_tokens_simple(reply),
         )
 
-        # Update History
-        # To Do: Only add this if there is no Error from the API but a message!
-        # add prompt_msg to memory
-        state.history_mgr.add_user_message(prompt_msg)
+        # Update History (only upon a successful reply)
+        session.history_mgr.add_user_message(prompt_msg)
+        session.history_mgr.add_bot_message(reply_msg)
 
-        # add reply to memory
-        state.history_mgr.add_bot_message(reply_msg)
-
-        # 2i) send back to user (with splitting)
+        # Send back to user (with splitting)
         for chunk in split_message(reply):
             await session.send_message(chunk)
 

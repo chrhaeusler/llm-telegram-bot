@@ -1,4 +1,4 @@
-# src/session/session_manager.py
+# src/llm_telegram_bot/session/session_manager.py
 
 import asyncio
 import json
@@ -195,7 +195,7 @@ def get_session(chat_id: int, bot_name: str) -> Session:
             session.active_char_data = load_char_config(session.active_char, user_data) or {}
             session.active_user_data = load_user_config(session.active_user, session.active_char_data) or {}
 
-        # ideally pull these values from your config instead of hard-coding
+        # TO DO: pull these values from config.yaml instead of hard-coding
         session.history_mgr = HistoryManager(
             bot_name=bot_name,
             chat_id=chat_id,

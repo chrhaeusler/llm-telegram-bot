@@ -181,10 +181,9 @@ ignore
 histories/*
 tmp
 
-# Chars and Users
+# chars
 config/chars/**
-!config/chars
 !config/chars/char_template.yaml
+# users
 config/users/**
-!config/chars
 !config/users/user_template.yaml
