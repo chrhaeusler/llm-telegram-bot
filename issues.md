@@ -138,13 +138,14 @@
 ## Phase 3 – History & User + Char
 
 - [x] Abstract loader for character/user YAMLs
-- [x] implement `/history on|off|flush|save|load`
 - [x] Implement `/char`, `/char list`, `/char <name>`
 - [x] Implement `config/persona_loader.py`
 - [x] implement `/user` and `/char` commands
 - [x] Integrate active character and user into routing
 - [x] flush history after every change of char or user.
-- [ ] use all infos from char and user configs (background, interests, personality etc.)
+- [x] implement `/history on|off|flush|save|load`
+- [x] load history from file at startup
+- [ ] use all infos from char &user configs (background, interests etc.)
 - [ ] Unit tests for all commands
 
 ---

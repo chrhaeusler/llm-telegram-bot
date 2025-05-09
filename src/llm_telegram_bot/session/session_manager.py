@@ -211,17 +211,42 @@ def get_session(chat_id: int, bot_name: str) -> Session:
             session.active_char_data = load_char_config(session.active_char, user_data) or {}
             session.active_user_data = load_user_config(session.active_user, session.active_char_data) or {}
 
-        # TO DO: pull these values from config.yaml instead of hard-coding
-        # session.history_mgr = HistoryManager(
-        #     bot_name=bot_name,
-        #     chat_id=chat_id,
-        #     N0=10,  # max raw msgs in tier0
-        #     N1=20,  # max summaries in tier1
-        #     K=5,  # how many tier1 to batch into a mega
-        #     T0_cap=100,
-        #     T1_cap=50,
-        #     T2_cap=200,
-        # )
+            # TO DO: pull these values from config.yaml instead of hard-coding
+            # session.history_mgr = HistoryManager(
+            #     bot_name=bot_name,
+            #     chat_id=chat_id,
+            #     N0=10,  # max raw msgs in tier0
+            #     N1=20,  # max summaries in tier1
+            #     K=5,  # how many tier1 to batch into a mega
+            #     T0_cap=100,
+            #     T1_cap=50,
+            #     T2_cap=200,
+            # )
+
+            try:
+                # this populates session.history_buffer but returns the path string
+                _ = session.load_history_from_disk()
+
+                # now session.history_buffer is a list of dicts
+                for entry in session.history_buffer:
+                    from llm_telegram_bot.session.history_manager import Message
+
+                    session.history_mgr.tier0.append(
+                        Message(
+                            ts=entry["ts"],
+                            who=entry["who"],
+                            lang=entry.get("lang", "unknown"),
+                            text=entry["text"],
+                            tokens_original=entry.get("tokens_original", 0),
+                            tokens_compressed=entry.get("tokens_compressed", entry.get("tokens_original", 0)),
+                        )
+                    )
+                logger.info(
+                    f"[Session {session.chat_id}] Loaded " f"{len(session.history_buffer)} history entries on startup"
+                )
+            except FileNotFoundError:
+                # no prior history file, start fresh
+                pass
 
         _sessions[session_key] = session
 
