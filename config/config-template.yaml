@@ -21,22 +21,13 @@ services:
     timeout: 30 # seconds
     retries: 3
 
-# Hard reset values when resetting a bot to defaults (via /freset)
-factorydefault:
-  service: groq
-  model: compound-beta
-  temperature: 0.7
-  maxtoken: 4096
-  polling_interval_active: 10
-  polling_interval_idle: 120
-
 # Config for Telegram & its Bots
 telegram:
+  download_path: "tmp" # Files stored under <download_path>/<bot>/<chat_id>
+  chat_history_path: "tmp" # History stored under <chat_history_path>/<bot>/<chat_id>
   polling_active_period: 300 # after this many seconds of inactivity back off from polling_interval_active to polling_interval_idle
   polling_interval_active: 2 # Global default (if not set per bot)
   polling_interval_idle: 120 # Global default (if not set per bot)
-  download_path: "tmp" # Files stored under <download_path>/<bot>/<chat_id>
-  chat_history_path: "tmp" # History stored under <chat_history_path>/<bot>/<chat_id>
 
   bot_1:
     enabled: true
@@ -45,24 +36,35 @@ telegram:
     token: "12345678:AAFoxxxxn0hwA-2TVSxxxNf4c"
     chat_id: 291254423
 
+    char: char_template # the default char to load
+    user: user_template # the default user to load
+
     # Chatbot-specific behavior
+    command_prefix: "/" # Slash command prefix (e.g. /help)
     logging_enabled: true # Whether to log messages to console
     history_enabled: true # Whether to save conversation to file
-    history_file: "chat_history.log"
-    command_prefix: "/" # Slash command prefix (e.g. /help)
-    polling_active_period: 600 # after this many seconds of inactivity back off from polling_interval_active to polling_interval_idle
-    polling_interval_active: 2 # bot-specific override of global default
-    polling_interval_idle: 120 # increment waiting intervall after this is reached
+    history_flush_count: 5
+    jailbreak: "ultimate_freeform" # the standard jailbreak to use (false = off)
+    history_file: "{{user.identity.name}}_{{user.role}}_with_{{char.identity.name}}_{{char.role}}.json"
 
-    # LLM default config for this bot
+    # LLM default config for this bots
     default:
-      service: groq # the bots default serice!
-      model: meta-llama/llama-4-maverick-17b-128e-instruct # the bots default model
+      service: groq
+      model: llama-3.1-8b-instant
       temperature: 0.7
       maxtoken: 4096
-      top_p: 0.9              # nucleus sampling
-      frequency_penalty: 0.5   # penalization of frequent tokens
-      presence_penalty: 0.5    # penalization of previously mentioned tokens
+      top_p: 0.9 # New parameter for controlling the nucleus sampling
+      frequency_penalty: 0.5 # New parameter for controlling the model's penalization of frequent tokens
+      presence_penalty: 0.5 # New parameter for controlling the model's penalization of previously mentioned tokens
+
+    # per‐bot tiered history parameters:
+    history_tiers:
+      N0: 10 # number of raw messages to keep in Tier-0
+      N1: 20 # number of summaries to keep in Tier-1
+      K: 5 # how many Tier-1 entries to batch into Tier-2
+      T0_cap: 100 # max tokens for Tier-0 summaries
+      T1_cap: 50 # max tokens for Tier-1 summaries
+      T2_cap: 200 # max tokens for Tier-2 (mega) summaries
 
   bot_2:
     enabled: true
@@ -71,21 +73,51 @@ telegram:
     token: "12345678:AAFoxxxxn0hwA-2TVSxxxNf4c"
     chat_id: 291254423
 
-    # Chatbot-specific behavior
-    logging_enabled: true
-    history_enabled: true
-    history_file: "chat_history.log"
-    command_prefix: "/" # Slash command prefix (e.g. /help)
-    polling_active_period: 600 # after this many seconds of inactivity back off from polling_interval_active to polling_interval_idle
+	polling_active_period: 600 # after this many seconds of inactivity back off from polling_interval_active to polling_interval_idle
     polling_interval_active: 2 # bot-specific override of global default
     polling_interval_idle: 120 # increment waiting intervall after this is reached
 
-    # LLM default config for this bots
+    char: char_template
+    user: user_template
+
+    # Chatbot-specific behavior
+    command_prefix: "/" # Slash command prefix (e.g. /help)
+    logging_enabled: true # Whether to log messages to console
+    history_enabled: true # Whether to save conversation to file
+    history_flush_count: 5
+    jailbreak: "ultimate_freeform" # the standard jailbreak to use (false = off)
+    history_file: "{{user.identity.name}}_{{user.role}}_with_{{char.identity.name}}_{{char.role}}.json"
+
+    # LLM default config for this bot
     default:
-      service: groq
-      model: compound-beta
+      service: groq # the bots default serice!
+      model: meta-llama/llama-4-maverick-17b-128e-instruct # the bots default model
       temperature: 0.7
       maxtoken: 4096
-      top_p: 0.9              # New parameter for controlling the nucleus sampling
-      frequency_penalty: 0.5   # New parameter for controlling the model's penalization of frequent tokens
-      presence_penalty: 0.5    # New parameter for controlling the model's penalization of previously mentioned tokens
+      top_p: 0.9 # nucleus sampling
+      frequency_penalty: 0.5 # penalization of frequent tokens
+      presence_penalty: 0.5 # penalization of previously mentioned tokens
+
+    # per‐bot tiered history parameters:
+    history_tiers:
+      N0: 10 # number of raw messages to keep in Tier-0
+      N1: 20 # number of summaries to keep in Tier-1
+      K: 5 # how many Tier-1 entries to batch into Tier-2
+      T0_cap: 100 # max tokens for Tier-0 summaries
+      T1_cap: 50 # max tokens for Tier-1 summaries
+      T2_cap: 200 # max tokens for Tier-2 (mega) summaries
+
+# Hard reset values when resetting a bot to defaults (via /reset)
+factorydefault:
+  service: groq
+  model: compound-beta
+  temperature: 1
+  maxtoken: 4096
+  top_p: 0.9 # nucleus sampling
+  frequency_penalty: 0.5 # penalization of frequent tokens
+  presence_penalty: 0.5 # penalization of previously mentioned tokens
+
+  command_prefix: "/" # Slash command prefix (e.g. /help)
+  logging_enabled: true # Whether to log messages to console
+  history_enabled: true # Whether to save conversation to file
+  history_file: "chat_history.log"

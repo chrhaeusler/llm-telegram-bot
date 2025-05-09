@@ -55,7 +55,7 @@ async def history_handler(session: Any, message: dict, args: List[str]):
         )
 
     # ─── FILES ────────────────────────────────────────────────────────────
-    if cmd == "files":
+    if cmd in ("files", "list"):
         d = Path("histories") / bot / str(session.chat_id)
         if not d.exists():
             return await session.send_message(f"{header}\n⚠️ No history directory found.", parse_mode="HTML")
