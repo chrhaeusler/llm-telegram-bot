@@ -98,7 +98,7 @@
 └── tmp                             # [x] Temporary files & downloads
 ```
 
-# Roadmap (Updated 2025-05-03)
+# Roadmap (Updated 2025-05-09)
 
 ---
 
@@ -126,7 +126,6 @@
 - [ ] go through the commands: rely less config file but on session parameters to reduce disk I/O
 - [ ] Unit tests for each handler: no-arg, valid-arg, invalid-arg.
 
-
 ---
 
 ## Phase 2 – Session Manager & State Isolation ✅ _(code complete)_
@@ -152,12 +151,12 @@
 
 ## Phase 4 – History Summarization 🟡 _(in progress)_
 
-
 - [x] Created `HistoryManager` with three tiers (0,1,2)
 - [ ] pick a lightweight summarizer (Sumy/SpaCy) and wire it into `build_full_prompt()`
 - [ ] sliding‐window message summarization logic
 - [ ] expose `/sum [params]` to tune sentence‐counts and window size
 - [ ] switch from couting words as tokens to tiktoken
+
 ---
 
 ## Phase 5 – Logging & Formatting 🟡 _(in progress)_

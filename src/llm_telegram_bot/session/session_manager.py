@@ -25,35 +25,50 @@ class Session:
     def __init__(self, chat_id: int, bot_name: str):
         self.chat_id: int = chat_id
         self.bot_name: str = bot_name
+
+        # ── Messaging state ──────────────────────────────
         self.active_bot: Optional[str] = None
         self.messaging_paused: bool = False
 
-        # Service & Model
+        # ── Service & Model ──────────────────────────────
         self.active_service: Optional[str] = None
         self.active_model: Optional[str] = None
         self.model_config: ModelConfig = ModelConfig()
 
-        # Char, Scenario, User
+        # ── Persona & Scenario ────────────────────────────
         self.active_char: Optional[str] = None
         self.active_scenario: Optional[str] = None
         self.active_user: Optional[str] = None
-
-        # Cached config data
         self.active_char_data: Optional[dict] = None
         self.active_user_data: Optional[dict] = None
 
-        # History: TO DO: take bot configuration, if existing
+        # ── Legacy history buffer (for `/history`) ────────
         self.history_on: bool = False
         self.history_buffer: list[dict] = []
-        self.history_file_template: str = ""
 
-        # Jailbreak
-        self.jailbreak: Optional[int] = None  # or bool if you switched to that
+        # ── Jailbreak toggle ──────────────────────────────
+        self.jailbreak: Optional[int] = None
 
-        # Memory
+        # ── Ephemeral memory ──────────────────────────────
         self.memory: Dict[str, List[Any]] = {}
 
-        # start periodic flush in background
+        # ── Tiered history manager (hard-coded for now) ───
+        #   N0 = max raw msgs before promoting to tier1
+        #   N1 = max summaries before promoting to tier2
+        #   K  = how many tier1 summaries to batch into one mega
+        #   T0/T1/T2_caps = token caps for each tier
+        self.history_mgr = HistoryManager(
+            bot_name=bot_name,
+            chat_id=chat_id,
+            N0=10,
+            N1=20,
+            K=5,
+            T0_cap=100,
+            T1_cap=50,
+            T2_cap=200,
+        )
+
+        # ── Start periodic flush every 10 minutes ─────────
         self._flush_task = asyncio.create_task(self._periodic_flush())
 
     def pause(self) -> None:
@@ -76,26 +91,27 @@ class Session:
 
     def flush_history_to_disk(self) -> Path:
         """
-        Write self.history_buffer out to a timestamped JSON file
+        Write all pending tier-0 messages out to JSON and clear them.
         under histories/<bot_name>/<chat_id>/ and then clear the buffer.
         """
         history_dir = Path("histories") / self.bot_name / str(self.chat_id)
         history_dir.mkdir(parents=True, exist_ok=True)
 
         history_file = history_dir / f"{self.active_user}_with_{self.active_char}.json"
-        print(history_file)
 
-        existing_data = {}
+        # Read previous
+        existing = {}
         if history_file.exists():
             with history_file.open("r", encoding="utf-8") as f:
                 try:
-                    existing_data = json.load(f)
+                    existing = json.load(f)
                 except json.JSONDecodeError:
-                    existing_data = {}
+                    existing = {}
 
-        # Merge existing history
-        old_history = existing_data.get("history_buffer", [])
-        merged_history = old_history + self.history_buffer
+        old = existing.get("history_buffer", [])
+        # Serialize our tier-0 messages as dicts
+        new_msgs = [msg.__dict__ for msg in self.history_mgr.tier0]
+        merged = old + new_msgs
 
         data = {
             "active_service": self.active_service,
@@ -104,7 +120,7 @@ class Session:
             "active_user": self.active_user,
             "jailbreak": self.jailbreak,
             "history_on": self.history_on,
-            "history_buffer": merged_history,
+            "history_buffer": merged,
         }
 
         try:
@@ -112,8 +128,8 @@ class Session:
                 json.dump(data, f, indent=2, ensure_ascii=False)
                 logger.debug(f"[Session {self.chat_id}] History flushed to {history_file}")
 
-            # clear in-memory buffe
-            self.history_buffer.clear()
+            # Clear the tier-0 messages we just wrote
+            self.history_mgr.tier0.clear()
 
         except Exception as e:
             logger.exception(f"[Session {self.chat_id}] Error flushing history: {e}")
@@ -196,16 +212,16 @@ def get_session(chat_id: int, bot_name: str) -> Session:
             session.active_user_data = load_user_config(session.active_user, session.active_char_data) or {}
 
         # TO DO: pull these values from config.yaml instead of hard-coding
-        session.history_mgr = HistoryManager(
-            bot_name=bot_name,
-            chat_id=chat_id,
-            N0=10,  # max raw msgs in tier0
-            N1=20,  # max summaries in tier1
-            K=5,  # how many tier1 to batch into a mega
-            T0_cap=100,
-            T1_cap=50,
-            T2_cap=200,
-        )
+        # session.history_mgr = HistoryManager(
+        #     bot_name=bot_name,
+        #     chat_id=chat_id,
+        #     N0=10,  # max raw msgs in tier0
+        #     N1=20,  # max summaries in tier1
+        #     K=5,  # how many tier1 to batch into a mega
+        #     T0_cap=100,
+        #     T1_cap=50,
+        #     T2_cap=200,
+        # )
 
         _sessions[session_key] = session
 
