@@ -321,7 +321,7 @@ class PollingLoop:
 
         prompt_msg = Message(
             ts=ts,
-            who=state.active_user,
+            who=session.active_user_data["identity"]["name"],  # state.active_user,
             lang=language_user,
             text=user_text,
             tokens_text=tokens_user_text,
@@ -364,7 +364,7 @@ class PollingLoop:
 
         reply_msg = Message(
             ts=ts,
-            who=state.active_char,
+            who=session.active_char_data["identity"]["name"],  # state.active_char,
             lang=language_reply,
             text=reply,
             tokens_text=tokens_reply,
