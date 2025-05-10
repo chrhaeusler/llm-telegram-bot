@@ -14,7 +14,7 @@ from llm_telegram_bot.config.schemas import BotConfig, RootConfig
 from llm_telegram_bot.llm.dispatcher import get_service_for_name
 from llm_telegram_bot.services.service_groq import GroqService
 from llm_telegram_bot.services.service_mistral import MistralService
-from llm_telegram_bot.session.history_manager import HistoryManager, Message
+from llm_telegram_bot.session.history_manager import Message
 from llm_telegram_bot.session.session_manager import (
     get_effective_llm_params,
     get_session,
@@ -140,19 +140,6 @@ class PollingLoop:
             self.llm_service = MistralService(config=svc_conf)
         else:
             raise ValueError(f"Unsupported service '{svc_name}'")
-
-        # History Manager —
-        # you can tweak N0, N1, K, caps here or pull from config later
-        self.history_mgr = HistoryManager(
-            bot_name=bot_name,
-            chat_id=self.chat_id,
-            N0=5,  # max raw msgs before  tier-1 promotion
-            N1=10,  # max summaries before tier-2 promotion
-            K=5,  # how many summaries to batch into mega
-            T0_cap=100,
-            T1_cap=50,
-            T2_cap=200,
-        )
 
         # Set the active service and model for this bot's chat session
         set_service(self.chat_id, self.bot_name, bot_cfg.default.service)
@@ -337,7 +324,8 @@ class PollingLoop:
             who=state.active_user,
             lang=language_user,
             text=user_text,
-            tokens_original=tokens_user_text,
+            tokens_text=tokens_user_text,
+            compressed=user_text,
             tokens_compressed=tokens_user_text,
         )
 
@@ -379,8 +367,9 @@ class PollingLoop:
             who=state.active_char,
             lang=language_reply,
             text=reply,
-            tokens_original=count_tokens_simple(reply),
-            tokens_compressed=count_tokens_simple(reply),
+            tokens_text=tokens_reply,
+            compressed=reply,
+            tokens_compressed=tokens_reply,
         )
 
         # Update History (only upon a successful reply)

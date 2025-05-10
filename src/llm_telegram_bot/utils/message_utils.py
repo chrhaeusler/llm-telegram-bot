@@ -106,7 +106,7 @@ def build_full_prompt(
         for msg in recent:
             who = getattr(msg, "who", "?")
             text = getattr(msg, "text", "")
-            toks = getattr(msg, "tokens_original", 0)
+            toks = getattr(msg, "tokens_text", 0)
             parts.append(f"{who}: {text}")
 
     # 5) Final user prompt

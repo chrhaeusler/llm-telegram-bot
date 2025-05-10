@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -11,6 +12,8 @@ from llm_telegram_bot.config.persona_loader import load_char_config, load_user_c
 from llm_telegram_bot.config.schemas import BotDefaults, RootConfig, ServiceConfig
 from llm_telegram_bot.session.history_manager import HistoryManager
 from llm_telegram_bot.utils.logger import logger
+
+MAX_HISTORY_BYTES = 1_000_000
 
 
 # ────────────────────────────────────────────────────
@@ -53,6 +56,7 @@ class Session:
         self.memory: Dict[str, List[Any]] = {}
 
         # ── Tiered history manager (hard-coded for now) ───
+        # TO DO: pull these values from config.yaml instead of hard-coding
         #   N0 = max raw msgs before promoting to tier1
         #   N1 = max summaries before promoting to tier2
         #   K  = how many tier1 summaries to batch into one mega
@@ -60,16 +64,18 @@ class Session:
         self.history_mgr = HistoryManager(
             bot_name=bot_name,
             chat_id=chat_id,
-            N0=10,
-            N1=20,
-            K=5,
-            T0_cap=100,
-            T1_cap=50,
-            T2_cap=200,
+            N0=11,
+            N1=22,
+            K=7,
+            T0_cap=66,
+            T1_cap=55,
+            T2_cap=222,
         )
 
-        # ── Start periodic flush every 10 minutes ─────────
-        self._flush_task = asyncio.create_task(self._periodic_flush())
+        # Start periodic flush every 10 minutes
+        # MUST be inside a running asyncio loop
+        loop = asyncio.get_event_loop()
+        self._flush_task = loop.create_task(self._periodic_flush())
 
     def pause(self) -> None:
         self.messaging_paused = True
@@ -78,42 +84,77 @@ class Session:
         self.messaging_paused = False
 
     async def _periodic_flush(self):
-        """
-        Background task to flush history every 10 minutes.
-        """
+        """Every 10 minutes, if logging is on and we have buffered entries, flush."""
+
         while True:
-            await asyncio.sleep(600)  # 10 minutes
+            logger.debug(
+                f"[Session {self.chat_id}] _periodic_flush tick (history_on={self.history_on}, tier0={len(self.history_mgr.tier0)})"
+            )
+            await asyncio.sleep(600)  # back to 10 minutes
             try:
-                if self.history_on and self.history_buffer:
+                if self.history_on and self.history_mgr.tier0:
+                    # 1) pull out everything in tier0
+                    entries = []
+                    for msg in list(self.history_mgr.tier0):
+                        entries.append(
+                            {
+                                "who": msg.who,
+                                "ts": msg.ts,
+                                "lang": msg.lang,
+                                "text": msg.text,
+                                "tokens_text": msg.tokens_text,
+                                "tokens_compressed": msg.tokens_compressed,
+                            }
+                        )
+                    # 2) prime the old history_buffer and flush
+                    self.history_buffer = entries
+                    logger.debug(f"[Session {self.chat_id}] auto-flushing {len(entries)} tier0 entries")
                     self.flush_history_to_disk()
+                    # 3) clear them out of the manager now that they're on disk
+                    self.history_mgr.tier0.clear()
             except Exception as e:
-                logger.exception(f"[Session {self.chat_id}] Periodic flush failed: {e}")
+                logger.exception(f"[Session {self.chat_id}] periodic flush failed: {e}")
 
     def flush_history_to_disk(self) -> Path:
         """
-        Write all pending tier-0 messages out to JSON and clear them.
-        under histories/<bot_name>/<chat_id>/ and then clear the buffer.
+        Rotate+append: find the highest‐version file,
+        bump if it’s over MAX_HISTORY_BYTES, merge, write back,
+        then clear only self.history_buffer.
         """
         history_dir = Path("histories") / self.bot_name / str(self.chat_id)
         history_dir.mkdir(parents=True, exist_ok=True)
 
-        history_file = history_dir / f"{self.active_user}_with_{self.active_char}.json"
+        base = f"{self.active_user}_with_{self.active_char}"
+        # regex to capture an optional “_vN”
+        pattern = re.compile(rf"^{re.escape(base)}(?:_v(\d+))?\.json$")
+        candidates = []
+        for p in history_dir.glob(f"{base}*.json"):
+            m = pattern.match(p.name)
+            if not m:
+                continue
+            ver = int(m.group(1) or 1)
+            candidates.append((ver, p))
+        if candidates:
+            candidates.sort()
+            ver, path = candidates[-1]
+            # if the latest file is too big, bump version
+            if path.stat().st_size >= MAX_HISTORY_BYTES:
+                ver += 1
+                path = history_dir / f"{base}_v{ver}.json"
+        else:
+            # first time ever
+            ver, path = 1, history_dir / f"{base}.json"
 
-        # Read previous
-        existing = {}
-        if history_file.exists():
-            with history_file.open("r", encoding="utf-8") as f:
-                try:
-                    existing = json.load(f)
-                except json.JSONDecodeError:
-                    existing = {}
+        # load existing payload if any
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            existing = {}
 
         old = existing.get("history_buffer", [])
-        # Serialize our tier-0 messages as dicts
-        new_msgs = [msg.__dict__ for msg in self.history_mgr.tier0]
-        merged = old + new_msgs
+        merged = old + self.history_buffer
 
-        data = {
+        payload = {
             "active_service": self.active_service,
             "active_model": self.active_model,
             "active_char": self.active_char,
@@ -123,38 +164,39 @@ class Session:
             "history_buffer": merged,
         }
 
-        try:
-            with history_file.open("w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-                logger.debug(f"[Session {self.chat_id}] History flushed to {history_file}")
+        # write merged back out
+        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        logger.debug(f"[Session {self.chat_id}] History flushed to {path}")
 
-            # Clear the tier-0 messages we just wrote
-            self.history_mgr.tier0.clear()
-
-        except Exception as e:
-            logger.exception(f"[Session {self.chat_id}] Error flushing history: {e}")
-            return history_file
-
-        return history_file
+        # clear only in-memory buffer
+        self.history_buffer.clear()
+        return path
 
     def load_history_from_disk(self) -> str:
-        """Load history from disk for the current char/user combo into sess.history_buffer."""
-        if not self.active_char or not self.active_user:
-            raise ValueError("Cannot load history without both char and user loaded.")
-
+        """
+        Find the highest‐version history file and load its history_buffer.
+        """
         history_dir = Path("histories") / self.bot_name / str(self.chat_id)
-        history_dir.mkdir(parents=True, exist_ok=True)
+        if not history_dir.exists():
+            raise FileNotFoundError
 
-        history_file = history_dir / f"{self.active_user}_with_{self.active_char}.json"
+        base = f"{self.active_user}_with_{self.active_char}"
+        pattern = re.compile(rf"^{re.escape(base)}(?:_v(\d+))?\.json$")
+        versions = []
+        for p in history_dir.glob(f"{base}*.json"):
+            m = pattern.match(p.name)
+            if not m:
+                continue
+            ver = int(m.group(1) or 1)
+            versions.append((ver, p))
+        if not versions:
+            raise FileNotFoundError
+        _, latest = sorted(versions)[-1]
 
-        logger.info(f"[History] Loading from: {history_file}")
-
-        with history_file.open("r", encoding="utf-8") as f:
-            # self.history_buffer = json.load(f)
-            loaded_data = json.load(f)
-            self.history_buffer = loaded_data.get('history_buffer', [])
-
-        return str(history_file)
+        data = json.loads(latest.read_text(encoding="utf-8"))
+        self.history_buffer = data.get("history_buffer", [])
+        logger.info(f"[Session {self.chat_id}] Loaded {len(self.history_buffer)} entries from {latest}")
+        return str(latest)
 
     def close(self):
         """
@@ -211,18 +253,6 @@ def get_session(chat_id: int, bot_name: str) -> Session:
             session.active_char_data = load_char_config(session.active_char, user_data) or {}
             session.active_user_data = load_user_config(session.active_user, session.active_char_data) or {}
 
-            # TO DO: pull these values from config.yaml instead of hard-coding
-            # session.history_mgr = HistoryManager(
-            #     bot_name=bot_name,
-            #     chat_id=chat_id,
-            #     N0=10,  # max raw msgs in tier0
-            #     N1=20,  # max summaries in tier1
-            #     K=5,  # how many tier1 to batch into a mega
-            #     T0_cap=100,
-            #     T1_cap=50,
-            #     T2_cap=200,
-            # )
-
             try:
                 # this populates session.history_buffer but returns the path string
                 _ = session.load_history_from_disk()
@@ -237,10 +267,12 @@ def get_session(chat_id: int, bot_name: str) -> Session:
                             who=entry["who"],
                             lang=entry.get("lang", "unknown"),
                             text=entry["text"],
-                            tokens_original=entry.get("tokens_original", 0),
-                            tokens_compressed=entry.get("tokens_compressed", entry.get("tokens_original", 0)),
-                        )
+                            tokens_text=entry.get("tokens_text", 0),
+                            compressed="",
+                            tokens_compressed=entry.get("tokens_compressed", 0),
+                        ),
                     )
+
                 logger.info(
                     f"[Session {session.chat_id}] Loaded " f"{len(session.history_buffer)} history entries on startup"
                 )

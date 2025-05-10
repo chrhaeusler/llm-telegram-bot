@@ -35,17 +35,15 @@ async def history_handler(session: Any, message: dict, args: List[str]):
 
     cmd = args[0].lower()
 
-    # ─── ON ────────────────────────────────────────────────────────────────
+    # ─── ON ───
     if cmd == "on":
         sess.history_on = True
         return await session.send_message(f"{header}\n✅ History logging enabled.", parse_mode="HTML")
 
-    # ─── OFF ───────────────────────────────────────────────────────────────
+    # ─── OFF ───
     if cmd == "off":
         sess.history_on = False
-        # flush everything existing
         path = sess.flush_history_to_disk()
-        # also clear manager tiers
         mgr.tier0.clear()
         mgr.tier1.clear()
         mgr.tier2.clear()
@@ -54,7 +52,7 @@ async def history_handler(session: Any, message: dict, args: List[str]):
             parse_mode="HTML",
         )
 
-    # ─── FILES ────────────────────────────────────────────────────────────
+    # ─── LIST FILES ───
     if cmd in ("files", "list"):
         d = Path("histories") / bot / str(session.chat_id)
         if not d.exists():
@@ -65,28 +63,35 @@ async def history_handler(session: Any, message: dict, args: List[str]):
         listing = "\n".join(files)
         return await session.send_message(f"{header}\n<b>Files:</b>\n<code>{listing}</code>", parse_mode="HTML")
 
-    # ─── LOAD ─────────────────────────────────────────────────────────────
+    # ─── LOAD ───
     if cmd == "load":
         try:
-            # load into session.buffer
+            # 1) load raw dicts into sess.history_buffer
             path = sess.load_history_from_disk()
-            # seed manager.tier0 from session.history_buffer
-            mgr.tier0.clear()
-            for entry in sess.history_buffer:
-                # reconstruct Message dataclass from dict
-                from llm_telegram_bot.session.history_manager import Message
 
+            # 2) clear out existing tiers
+            mgr.tier0.clear()
+            mgr.tier1.clear()
+            mgr.tier2.clear()
+
+            # 3) reconstruct Message objects from those dicts
+            from llm_telegram_bot.session.history_manager import Message
+
+            for entry in sess.history_buffer:
                 msg = Message(
                     ts=entry["ts"],
                     who=entry["who"],
                     lang=entry.get("lang", "unknown"),
                     text=entry["text"],
-                    tokens_original=entry.get("tokens_original", 0),
-                    tokens_compressed=entry.get("tokens_compressed", entry.get("tokens_original", 0)),
+                    tokens_text=entry.get("tokens_original", 0),
+                    compressed=entry["text"],
+                    tokens_compressed=entry.get("tokens_original", 0),
                 )
                 mgr.tier0.append(msg)
+
             return await session.send_message(
-                f"{header}\n✅ Loaded history from <code>{path}</code>.", parse_mode="HTML"
+                f"{header}\n✅ Loaded history from <code>{path}</code>.",
+                parse_mode="HTML",
             )
         except FileNotFoundError:
             return await session.send_message(f"{header}\n⚠️ No history file to load.", parse_mode="HTML")
@@ -100,22 +105,29 @@ async def history_handler(session: Any, message: dict, args: List[str]):
             return await session.send_message("⚠️ History is disabled.", parse_mode="HTML")
         if not mgr.tier0:
             return await session.send_message(f"{header}\n⚠️ No new messages to flush.", parse_mode="HTML")
-        # convert current tier0 back into session.history_buffer format
+
+        # Copy manager’s tier-0 into the session buffer
         sess.history_buffer = [
             {
-                "who": m.who,
                 "ts": m.ts,
+                "who": m.who,
                 "lang": m.lang,
                 "text": m.text,
-                "tokens_original": m.tokens_original,
-                "tokens_compressed": m.tokens_compressed,
+                "tokens_original": m.tokens_compressed,
             }
             for m in mgr.tier0
         ]
-        path = sess.flush_history_to_disk()
-        # clear manager after flush
-        mgr.tier0.clear()
-        return await session.send_message(f"{header}\n✅ History flushed to <code>{path}</code>.", parse_mode="HTML")
 
-    # ─── UNKNOWN ──────────────────────────────────────────────────────────
+        # Flush to disk (Session.flush_history_to_disk clears history_buffer)
+        path = sess.flush_history_to_disk()
+
+        # Now clear out tier-0 so you don't re-flush the same messages
+        mgr.tier0.clear()
+
+        return await session.send_message(
+            f"{header}\n✅ History flushed to <code>{path}</code>",
+            parse_mode="HTML",
+        )
+
+    # ─── UNKNOWN ───
     return await session.send_message(f"{header}\n⚠️ Unknown subcommand: {cmd}", parse_mode="HTML")

@@ -1,15 +1,44 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Set project root relative to script location
+# ── 1) Locate project root ────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Export PYTHONPATH so Python can find the src/ directory
-export PYTHONPATH="$SCRIPT_DIR/src"
+# ── 2) Ensure virtualenv exists ────────────────────────────────────────────
+if [ ! -d ".venv" ]; then
+  echo "🌱 Creating virtualenv..."
+  python3 -m venv .venv
+fi
 
-# Ensure we're using the virtual environment
+# ── 3) Activate & install deps ─────────────────────────────────────────────
 source .venv/bin/activate
-which python
+echo "🐍 Using Python at: $(which python)"
+# pip install --upgrade pip
+# pip install -r requirements.txt
 
-# Run the poller
+# ── 4) Ensure punkt is downloaded locally ───────────────────────────────────
+#    (downloads only if missing)
+NLTK_DATA_PATH="$SCRIPT_DIR/.venv/nltk_data"
+export NLTK_DATA="$NLTK_DATA_PATH"
+
+if [ ! -f "$NLTK_DATA_PATH/tokenizers/punkt/english.pickle" ]; then
+  echo "📥 Downloading NLTK punkt tokenizer..."
+  python - <<PYCODE
+import nltk, os
+nltk.data.path.append(os.environ["NLTK_DATA"])
+nltk.download("punkt", download_dir=os.environ["NLTK_DATA"], quiet=True)
+PYCODE
+fi
+
+if [ ! -f "$NLTK_DATA_PATH/tokenizers/punkt_tab/english.pickle" ]; then
+  echo "📥 Downloading NLTK punkt tokenizer..."
+  python - <<PYCODE
+import nltk, os
+nltk.data.path.append(os.environ["NLTK_DATA"])
+nltk.download("punkt_tab", download_dir=os.environ["NLTK_DATA"], quiet=True)
+PYCODE
+fi
+
+# ── 5) Run the bot ───────────────────────────────────────────────────────────
 python -m llm_telegram_bot.telegram.poller "$@"

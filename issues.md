@@ -112,8 +112,6 @@
 
 # Project Structure & Status (Updated 2025-05-04)
 
-https://github.com/cheahjs/free-llm-api-resources
-
 ```bash
 ├── bin
 │   └── cli-chatbot.py                # [ ] CLI entrypoint (Phase 5) – stub, not implemented yet

@@ -1,37 +1,26 @@
-# scr/llm_telegram_bot/session/history_manager.py
-#
-# Internally:
-# language detection & cleanup
-# Tier-0 compression (length-gradient) → Message(summary, tokens)
-# If len(tier0)>N0, demote to Tier-1 via tighter summary
-# If len(tier1)>N1, demote batch to Tier-2 mega-summary
-# get_prompt_block() → returns the concatenated block
-# Emit debug logs at each step: original token count, compressed token count, tier
-#
-# TO DO
-# Create a word counter that counts the words (most will be tokens anyway) of outgoing
-# prompt, best also per part, and provide feedback how the structure looks like when
-# above a certain threshold; possibly include automatic truncing
-
-# src/session/history_manager.py
 # src/llm_telegram_bot/session/history_manager.py
 
 import datetime
+import json
 from collections import deque
 from dataclasses import dataclass
-from typing import Deque, Dict
+from pathlib import Path
+from typing import Any, Deque, Dict
 
 from llm_telegram_bot.utils.logger import logger
+from llm_telegram_bot.utils.summarize import summarize_text
+from llm_telegram_bot.utils.token_utils import count_tokens_simple
 
 
 @dataclass
 class Message:
     ts: str
-    who: str  # who spoke: the user‐key or char‐key
+    who: str
     lang: str
-    text: str  # raw or compressed text
-    tokens_original: int  # count before compression
-    tokens_compressed: int  # count after compression
+    text: str  # the raw, unmodified message
+    tokens_text: int
+    compressed: str  # compressed text for prompt-injection
+    tokens_compressed: int
 
 
 @dataclass
@@ -59,12 +48,12 @@ class HistoryManager:
         bot_name: str,
         chat_id: int,
         *,
-        N0: int = 10,  # max raw messages before promoting to tier1
-        N1: int = 20,  # max summaries before promoting to tier2
-        K: int = 5,  # how many summaries to batch into one mega
-        T0_cap: int = 100,
-        T1_cap: int = 50,
-        T2_cap: int = 200,
+        N0: int = 9,  # max raw messages before promoting to tier1
+        N1: int = 19,  # max summaries before promoting to tier2
+        K: int = 6,  # how many summaries to batch into one mega
+        T0_cap: int = 99,
+        T1_cap: int = 49,
+        T2_cap: int = 199,
     ):
         self.bot_name = bot_name
         self.chat_id = chat_id
@@ -98,15 +87,40 @@ class HistoryManager:
             "tier2": sum(m.tokens for m in self.tier2),
         }
 
+    def _compress_t0(self, msg: Message) -> None:
+        """
+        Tier-0 “compression” that simply:
+          • if msg.tokens_text ≤ T0_cap: keep raw text
+          • else: summarize down to at most T0_cap tokens
+        """
+        L = msg.tokens_text
+        # no compression needed below cap
+        if L <= self.T0_cap:
+            msg.compressed = msg.text
+            msg.tokens_compressed = L
+        else:
+            # too long → summarize to exactly T0_cap tokens
+            summary = summarize_text(msg.text, self.T0_cap, lang=msg.lang)
+            msg.compressed = summary
+            msg.tokens_compressed = count_tokens_simple(summary)
+
     def add_user_message(self, msg: Message) -> None:
         """
         Add a Message originating from the user into tier-0,
         then trigger any necessary promotions to higher tiers.
         """
-        # log
-        logger.debug(f"[HistoryManager] add_user_message → {msg.who!r}@{msg.ts}, {msg.tokens_original} toks")
-        # fucking do it
+        # first append raw
         self.tier0.append(msg)
+
+        # NOW compress in‐place
+        self._compress_t0(msg)
+
+        # log before/after
+        logger.debug(
+            f"[HistoryManager] Tier-0 entry for {msg.who}@{msg.ts}: "
+            f"original={msg.tokens_text} compressed={msg.tokens_compressed}"
+        )
+
         self._maybe_promote()
 
     def add_bot_message(self, msg: Message) -> None:
@@ -114,10 +128,18 @@ class HistoryManager:
         Add a Message originating from the bot (LLM reply) into tier-0,
         then trigger any necessary promotions to higher tiers.
         """
-        # log
-        logger.debug(f"[HistoryManager] add_bot_message → {msg.who!r}@{msg.ts}, {msg.tokens_original} toks")
-        # fucking do it
+        # first append raw
         self.tier0.append(msg)
+
+        # NOW compress in‐place
+        self._compress_t0(msg)
+
+        # log before/after
+        logger.debug(
+            f"[HistoryManager] Tier-0 entry for {msg.who}@{msg.ts}: "
+            f"original={msg.tokens_text} compressed={msg.tokens_compressed}"
+        )
+
         self._maybe_promote()
 
     def _maybe_promote(self) -> None:
@@ -155,3 +177,52 @@ class HistoryManager:
             "tier1": self.tier1,  # Deque[Summary]
             "tier2": self.tier2,  # Deque[MegaSummary]
         }
+
+    def flush_to_disk(
+        self,
+        bot_name: str,
+        chat_id: int,
+        active_service: str,
+        active_model: str,
+        active_char: str,
+        active_user: str,
+        jailbreak: Any,
+        history_on: bool,
+    ) -> Path:
+        """
+        Write out **only** the raw, un-compressed tier-0 messages to disk
+        under histories/<bot_name>/<chat_id>/<user>_with_<char>.json,
+        then clear tier-0.
+        """
+        history_dir = Path("histories") / bot_name / str(chat_id)
+        history_dir.mkdir(parents=True, exist_ok=True)
+        history_file = history_dir / f"{active_user}_with_{active_char}.json"
+
+        # Build a list of dicts from tier0 messages:
+        raw_msgs = [
+            {
+                "ts": msg.ts,
+                "who": msg.who,
+                "lang": msg.lang,
+                "text": msg.text,  # raw text
+                "tokens_text": msg.tokens_text,
+            }
+            for msg in self.tier0
+        ]
+
+        payload = {
+            "active_service": active_service,
+            "active_model": active_model,
+            "active_char": active_char,
+            "active_user": active_user,
+            "jailbreak": jailbreak,
+            "history_on": history_on,
+            "history_buffer": raw_msgs,
+        }
+
+        with history_file.open("w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+
+        # clear only what you've just written
+        self.tier0.clear()
+        return history_file
