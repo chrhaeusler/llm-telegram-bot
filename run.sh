@@ -17,11 +17,14 @@ echo "🐍 Using Python at: $(which python)"
 # pip install --upgrade pip
 # pip install -r requirements.txt
 
-# ── 4) Ensure punkt is downloaded locally ───────────────────────────────────
-#    (downloads only if missing)
+# Ensure Python can find your src/ directory
+export PYTHONPATH="$SCRIPT_DIR/src:${PYTHONPATH:-}"
+
+# ── 4) Ensure punkt and punkt_tab are downloaded locally ───────────────────────────────────
 NLTK_DATA_PATH="$SCRIPT_DIR/.venv/nltk_data"
 export NLTK_DATA="$NLTK_DATA_PATH"
 
+# downloads punkt if missing
 if [ ! -f "$NLTK_DATA_PATH/tokenizers/punkt/english.pickle" ]; then
   echo "📥 Downloading NLTK punkt tokenizer..."
   python - <<PYCODE
@@ -31,6 +34,7 @@ nltk.download("punkt", download_dir=os.environ["NLTK_DATA"], quiet=True)
 PYCODE
 fi
 
+# download punkt_tab if missing
 if [ ! -f "$NLTK_DATA_PATH/tokenizers/punkt_tab/english.pickle" ]; then
   echo "📥 Downloading NLTK punkt tokenizer..."
   python - <<PYCODE
