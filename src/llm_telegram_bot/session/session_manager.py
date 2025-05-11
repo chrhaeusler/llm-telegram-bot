@@ -89,7 +89,7 @@ class Session:
 
     async def _periodic_flush(self):
         while True:
-            await asyncio.sleep(10)  # 10 minutes
+            await asyncio.sleep(600)  # 10 minutes
             try:
                 if self.history_on and self.history_buffer:
                     path = self.flush_history_to_disk()  # consumes history_buffer only
