@@ -57,10 +57,13 @@
 ## Phase 4 – History Summarization 🟡 _(in progress)_
 
 - [x] Create `HistoryManager` with three tiers (0,1,2)
-- [ ] pick a lightweight summarizer (Sumy/SpaCy) and wire it into `build_full_prompt()`
-- [ ] sliding‐window message summarization logic
-- [ ] expose `/sum [params]` to tune sentence‐counts and window size
+- [x] detect language and summarize previous messages; wire into `build_full_prompt()`
+- [x] sliding‐window message summarization logic
+- [x] implement tier 0, and find good parameters (e.g. 10 messages, with max 8 sentences)
 - [ ] switch from couting words as tokens to tiktoken
+- [ ] implement tier 1
+- [ ] implement tier 2
+- [ ] expose `/sum [params]` to tune sentence‐counts and window size
 
 ---
 

@@ -73,7 +73,7 @@ class Session:
             K=7,
             T0_cap=T0_SENTENCE_CAP,  # max sentences of summary
             T1_cap=3,
-            T2_cap=222,
+            T2_cap=22,
         )
 
         # Start periodic flush every 10 minutes

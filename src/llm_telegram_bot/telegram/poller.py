@@ -30,7 +30,7 @@ from llm_telegram_bot.utils.message_utils import (
     build_full_prompt,
     split_message,
 )
-from llm_telegram_bot.utils.token_utils import count_tokens_simple
+from llm_telegram_bot.utils.token_utils import count_tokens
 
 
 class ChatSession:
@@ -296,8 +296,8 @@ class PollingLoop:
         )
 
         # count tokens
-        tokens_user_text = count_tokens_simple(user_text)
-        tokens_full = count_tokens_simple(full_prompt)
+        tokens_user_text = count_tokens(user_text)
+        tokens_full = count_tokens(full_prompt)
         logger.debug(f"[Poller] Full prompt hast ({tokens_full} toks)]\n{full_prompt}")
 
         # Send Feedback about Prompt and History
@@ -370,7 +370,7 @@ class PollingLoop:
             language_reply = "unknown"
 
         # record LLM reply
-        tokens_reply = count_tokens_simple(reply)
+        tokens_reply = count_tokens(reply)
         logger.debug(f"[Poller] Tokens in reply: {tokens_reply}")
 
         reply_msg = Message(

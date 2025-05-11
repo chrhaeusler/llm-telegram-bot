@@ -9,7 +9,7 @@ from typing import Any, Deque, Dict
 
 from llm_telegram_bot.utils.logger import logger
 from llm_telegram_bot.utils.summarize import summarize_text
-from llm_telegram_bot.utils.token_utils import count_tokens_simple
+from llm_telegram_bot.utils.token_utils import count_tokens
 
 
 @dataclass
@@ -102,7 +102,7 @@ class HistoryManager:
             # too long → summarize to exactly T0_cap tokens
             summary = summarize_text(msg.text, self.T0_cap, lang=msg.lang)
             msg.compressed = summary
-            msg.tokens_compressed = count_tokens_simple(summary)
+            msg.tokens_compressed = count_tokens(summary)
 
     def add_user_message(self, msg: Message) -> None:
         """
