@@ -308,7 +308,7 @@ class PollingLoop:
         # To Do: show info about "how full" tiers are, e.g. "x of caps.N0"
         await session.send_message(
             "<b>🔢 History Manager's Token Parameters</b>:\n"
-            f"• N0: {caps.N0} ({caps.T0_cap} cap)\n"
+            f"• N0: max {caps.N0} mess; max {caps.T0_cap} sent\n"
             f"• N1: {caps.N1} ({caps.T1_cap})\n"
             f"• K:  {caps.K}  ({caps.T2_cap})\n\n"
             "<b>🧮 Current Context Usage</b>:\n"

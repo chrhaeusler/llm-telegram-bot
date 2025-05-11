@@ -16,4 +16,6 @@ def summarize_text(text: str, num_sentences: int, lang: str = "english") -> str:
     """
     parser = PlaintextParser.from_string(text, Tokenizer(lang))
     summarizer = TextRankSummarizer()
-    return " ".join(str(sentence) for sentence in summarizer(parser.document, num_sentences))
+    summary = " ".join(str(sentence) for sentence in summarizer(parser.document, num_sentences))
+
+    return summary

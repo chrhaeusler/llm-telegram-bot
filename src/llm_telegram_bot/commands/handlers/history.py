@@ -20,7 +20,7 @@ async def history_handler(session: Any, message: dict, args: List[str]):
       • off:   turn logging off & flush now
       • files: list saved history files
       • load:  load last history into context & manager
-      • flush: flush current tier-0 into disk now
+      • flush: flush current session buffer into disk now
     """
     sess = get_session(session.chat_id, session.bot_name)
     mgr = session.history_mgr
@@ -35,23 +35,21 @@ async def history_handler(session: Any, message: dict, args: List[str]):
 
     cmd = args[0].lower()
 
-    # ─── ON ───
+    # ─── ON ─────────────────────────────────────────
     if cmd == "on":
         sess.history_on = True
         return await session.send_message(f"{header}\n✅ History logging enabled.", parse_mode="HTML")
 
-    # ─── OFF ───
+    # ─── OFF ────────────────────────────────────────
     if cmd == "off":
         sess.history_on = False
-        # flush only the legacy buffer to disk
         path = sess.flush_history_to_disk()
-        # do _not_ clear your tiered manager — keep in-memory context intact
         return await session.send_message(
             f"{header}\n✅ History logging disabled & flushed to <code>{path}</code>.",
             parse_mode="HTML",
         )
 
-    # ─── LIST FILES ───
+    # ─── LIST FILES ─────────────────────────────────
     if cmd in ("files", "list"):
         d = Path("histories") / bot / str(session.chat_id)
         if not d.exists():
@@ -62,18 +60,18 @@ async def history_handler(session: Any, message: dict, args: List[str]):
         listing = "\n".join(files)
         return await session.send_message(f"{header}\n<b>Files:</b>\n<code>{listing}</code>", parse_mode="HTML")
 
-    # ─── LOAD ───
+    # ─── LOAD ────────────────────────────────────────
     if cmd == "load":
         try:
-            # 1) load raw dicts into sess.history_buffer
+            # 1) load into sess.history_buffer (list of dicts)
             path = sess.load_history_from_disk()
 
-            # 2) clear out existing tiers
+            # 2) clear out any existing in-memory tiers
             mgr.tier0.clear()
             mgr.tier1.clear()
             mgr.tier2.clear()
 
-            # 3) reconstruct Message objects from those dicts
+            # 3) reconstruct Message objects (with both raw & compressed)
             from llm_telegram_bot.session.history_manager import Message
 
             for entry in sess.history_buffer:
@@ -81,35 +79,38 @@ async def history_handler(session: Any, message: dict, args: List[str]):
                     ts=entry["ts"],
                     who=entry["who"],
                     lang=entry.get("lang", "unknown"),
-                    text=entry["text"],
-                    tokens_text=entry.get("tokens_original", 0),
-                    compressed=entry["text"],
-                    tokens_compressed=entry.get("tokens_original", 0),
+                    text=entry["text"],  # raw
+                    compressed=entry.get("compressed", entry["text"]),
+                    tokens_text=entry.get("tokens_text", 0),
+                    tokens_compressed=entry.get("tokens_compressed", entry.get("tokens_text", 0)),
                 )
                 mgr.tier0.append(msg)
 
+            # 4) drop the just-loaded buffer so it won’t re-flush on `/h flush`
+            sess.history_buffer.clear()
+
             return await session.send_message(
-                f"{header}\n✅ Loaded history from <code>{path}</code>.",
-                parse_mode="HTML",
+                f"{header}\n✅ Loaded history from <code>{path}</code>.", parse_mode="HTML"
             )
+
         except FileNotFoundError:
             return await session.send_message(f"{header}\n⚠️ No history file to load.", parse_mode="HTML")
         except Exception as e:
             logger.exception("[/h load] Failed to load history")
             return await session.send_message(f"{header}\n❌ Could not load history: {e}", parse_mode="HTML")
 
-    # ─── FLUSH / SAVE ─────────────────────────────────────────────────────
+    # ─── FLUSH / SAVE ────────────────────────────────
     if cmd in ("flush", "save"):
         if not sess.history_on:
             return await session.send_message("⚠️ History is disabled.", parse_mode="HTML")
         if not sess.history_buffer:
             return await session.send_message(f"{header}\n⚠️ No new history to flush.", parse_mode="HTML")
 
-        path = sess.flush_history_to_disk()  # clears session.history_buffer only
-        return await session.send_message(
-            f"{header}\n✅ History flushed to <code>{path}</code>",
-            parse_mode="HTML",
-        )
+        # sess.history_buffer was populated from mgr.tier0 in your handle_update
+        # and contains dicts with both "text" and "compressed" keys
+        path = sess.flush_history_to_disk()  # AND clears sess.history_buffer
 
-    # ─── UNKNOWN ───
+        return await session.send_message(f"{header}\n✅ History flushed to <code>{path}</code>.", parse_mode="HTML")
+
+    # ─── UNKNOWN ────────────────────────────────────
     return await session.send_message(f"{header}\n⚠️ Unknown subcommand: {cmd}", parse_mode="HTML")

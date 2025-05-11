@@ -10,10 +10,14 @@ from typing import Any, Dict, List, Optional
 from llm_telegram_bot.config.config_loader import load_config
 from llm_telegram_bot.config.persona_loader import load_char_config, load_user_config
 from llm_telegram_bot.config.schemas import BotDefaults, RootConfig, ServiceConfig
-from llm_telegram_bot.session.history_manager import HistoryManager
+from llm_telegram_bot.session.history_manager import HistoryManager, Message
 from llm_telegram_bot.utils.logger import logger
 
 MAX_HISTORY_BYTES = 1_000_000
+
+# yeah just, quickly testing
+NO_MAX_MESSAGES = 16
+T0_SENTENCE_CAP = 8
 
 
 # ────────────────────────────────────────────────────
@@ -64,11 +68,11 @@ class Session:
         self.history_mgr = HistoryManager(
             bot_name=bot_name,
             chat_id=chat_id,
-            N0=11,
+            N0=NO_MAX_MESSAGES,  # max messages to hold in this tier
             N1=22,
             K=7,
-            T0_cap=66,
-            T1_cap=55,
+            T0_cap=T0_SENTENCE_CAP,  # max sentences of summary
+            T1_cap=3,
             T2_cap=222,
         )
 
@@ -153,11 +157,13 @@ class Session:
 
     def load_history_from_disk(self) -> str:
         """
-        Find the highest‐version history file and load its history_buffer.
+        Find the highest‐version history file, load its full history_buffer,
+        then seed our HistoryManager.tier0 with only the last N0*2 entries
+        (so you pick up exactly the most recent N₀ user+bot exchanges).
         """
         history_dir = Path("histories") / self.bot_name / str(self.chat_id)
         if not history_dir.exists():
-            raise FileNotFoundError
+            raise FileNotFoundError(f"No history directory at {history_dir}")
 
         base = f"{self.active_user}_with_{self.active_char}"
         pattern = re.compile(rf"^{re.escape(base)}(?:_v(\d+))?\.json$")
@@ -168,14 +174,49 @@ class Session:
                 continue
             ver = int(m.group(1) or 1)
             versions.append((ver, p))
+
         if not versions:
-            raise FileNotFoundError
+            raise FileNotFoundError(f"No versions of {base}*.json in {history_dir}")
+
+        # pick the highest version
         _, latest = sorted(versions)[-1]
 
+        # load raw payload
         data = json.loads(latest.read_text(encoding="utf-8"))
-        self.history_buffer = data.get("history_buffer", [])
-        logger.info(f"[Session {self.chat_id}] Loaded {len(self.history_buffer)} entries from {latest}")
+        full_buffer = data.get("history_buffer", [])
+        # self.history_buffer = full_buffer  # keep full for manual flush
+
+        logger.info(f"[Session {self.chat_id}] Loaded {len(full_buffer)} entries from {latest}")
+
+        # seed HistoryManager with only the last N0*2 entries
+        N0 = self.history_mgr.N0
+        # TO DO: this should be adjusted as soon as tier-1, and tier-2 are implemented
+        recent_raw = full_buffer[-(N0 * 2) :]
+
+        for entry in recent_raw:
+            msg = Message(
+                ts=entry["ts"],
+                who=entry["who"],
+                lang=entry.get("lang", "unknown"),
+                text=entry["text"],
+                compressed=entry.get("compressed", entry["text"]),
+                tokens_text=entry.get("tokens_text", len(entry["text"].split())),
+                tokens_compressed=entry.get("tokens_compressed", entry.get("tokens_text", len(entry["text"].split()))),
+            )
+            # dispatch into user vs bot so your promotions work correctly
+            if entry["who"] == self.active_user_data["identity"]["name"]:
+                self.history_mgr.add_user_message(msg)
+            else:
+                self.history_mgr.add_bot_message(msg)
+
         return str(latest)
+
+    def close(self):
+        """
+        Cancel background tasks (if you tear down sessions).
+        """
+        if hasattr(self, "_flush_task"):
+            self._flush_task.cancel()
 
     def close(self):
         """
@@ -233,24 +274,27 @@ def get_session(chat_id: int, bot_name: str) -> Session:
             session.active_user_data = load_user_config(session.active_user, session.active_char_data) or {}
 
             try:
-                # this populates session.history_buffer but returns the path string
-                _ = session.load_history_from_disk()
+                path = session.load_history_from_disk()
+                logger.info(f"[Session {chat_id}] Start-History geladen aus {path}")
 
-                # now session.history_buffer is a list of dicts
+                # Seed in den Manager
+                from llm_telegram_bot.session.history_manager import Message
+
                 for entry in session.history_buffer:
-                    from llm_telegram_bot.session.history_manager import Message
-
                     session.history_mgr.tier0.append(
                         Message(
                             ts=entry["ts"],
                             who=entry["who"],
                             lang=entry.get("lang", "unknown"),
                             text=entry["text"],
+                            compressed=entry.get("compressed", entry["text"]),
                             tokens_text=entry.get("tokens_text", 0),
-                            compressed="",
-                            tokens_compressed=entry.get("tokens_compressed", 0),
-                        ),
+                            tokens_compressed=entry.get("tokens_compressed", entry.get("tokens_text", 0)),
+                        )
                     )
+
+                    # ---- NEW: drop loaded entries so they don’t get re-flushed ----
+                    session.history_buffer.clear()
 
                 logger.info(
                     f"[Session {session.chat_id}] Loaded " f"{len(session.history_buffer)} history entries on startup"

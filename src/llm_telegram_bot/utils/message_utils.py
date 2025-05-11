@@ -104,10 +104,10 @@ def build_full_prompt(
     if recent:
         parts.append("[RECENT]")
         for msg in recent:
-            who = getattr(msg, "who", "?")
-            text = getattr(msg, "text", "")
-            toks = getattr(msg, "tokens_text", 0)
-            parts.append(f"{who}: {text}")
+            who = msg.who
+            snippet = getattr(msg, "compressed", msg.text)
+            toks = msg.tokens_compressed
+            parts.append(f"{who}: {snippet}  ({toks} toks)")
 
     # 5) Final user prompt
     parts.append("[PROMPT]")

@@ -109,17 +109,14 @@ class HistoryManager:
         Add a Message originating from the user into tier-0,
         then trigger any necessary promotions to higher tiers.
         """
-        # first append raw
-        self.tier0.append(msg)
-
-        # NOW compress in‐place
+        # 1) compress just-in-time
         self._compress_t0(msg)
-
-        # log before/after
         logger.debug(
-            f"[HistoryManager] Tier-0 entry for {msg.who}@{msg.ts}: "
-            f"original={msg.tokens_text} compressed={msg.tokens_compressed}"
+            f"[HistoryManager] add_user_message → {msg.who!r}@{msg.ts}, "
+            f"orig={msg.tokens_text}, comp={msg.tokens_compressed}"
         )
+        # 2) store into tier-0
+        self.tier0.append(msg)
 
         self._maybe_promote()
 
@@ -128,17 +125,13 @@ class HistoryManager:
         Add a Message originating from the bot (LLM reply) into tier-0,
         then trigger any necessary promotions to higher tiers.
         """
-        # first append raw
-        self.tier0.append(msg)
-
-        # NOW compress in‐place
+        # compress LLM replies as well
         self._compress_t0(msg)
-
-        # log before/after
         logger.debug(
-            f"[HistoryManager] Tier-0 entry for {msg.who}@{msg.ts}: "
-            f"original={msg.tokens_text} compressed={msg.tokens_compressed}"
+            f"[HistoryManager] add_bot_message → {msg.who!r}@{msg.ts}, "
+            f"orig={msg.tokens_text}, comp={msg.tokens_compressed}"
         )
+        self.tier0.append(msg)
 
         self._maybe_promote()
 
