@@ -16,7 +16,7 @@ from llm_telegram_bot.utils.logger import logger
 MAX_HISTORY_BYTES = 1_000_000
 
 # yeah just, quickly testing
-NO_MAX_MESSAGES = 16
+NO_MAX_MESSAGES = 25
 T0_SENTENCE_CAP = 8
 
 
@@ -210,13 +210,6 @@ class Session:
                 self.history_mgr.add_bot_message(msg)
 
         return str(latest)
-
-    def close(self):
-        """
-        Cancel background tasks (if you tear down sessions).
-        """
-        if hasattr(self, "_flush_task"):
-            self._flush_task.cancel()
 
     def close(self):
         """

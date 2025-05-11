@@ -301,22 +301,29 @@ class PollingLoop:
         logger.debug(f"[Poller] Full prompt hast ({tokens_full} toks)]\n{full_prompt}")
 
         # Send Feedback about Prompt and History
+        # Send Feedback about Prompt and History
         mgr = session.history_mgr
         stats = mgr.token_stats()
         caps = mgr
 
-        # To Do: show info about "how full" tiers are, e.g. "x of caps.N0"
+        # also get counts of items in each tier
+        counts = {
+            "tier0": len(mgr.tier0),
+            "tier1": len(mgr.tier1),
+            "tier2": len(mgr.tier2),
+        }
+
         await session.send_message(
             "<b>🔢 History Manager's Token Parameters</b>:\n"
-            f"• N0: max {caps.N0} mess; max {caps.T0_cap} sent\n"
-            f"• N1: {caps.N1} ({caps.T1_cap})\n"
-            f"• K:  {caps.K}  ({caps.T2_cap})\n\n"
+            f"• N0: {caps.N0} msgs max; {caps.T0_cap} sentences max\n"
+            f"• N1: max {caps.N1} msgs max; {caps.T1_cap} sentences max\n"
+            f"• K:  {caps.K} batches; cap {caps.T2_cap} toks\n\n"
             "<b>🧮 Current Context Usage</b>:\n"
-            f"• overview: {stats['tier2']}\n"
-            f"• midterm: {stats['tier1']}\n"
-            f"• recent: {stats['tier0']}\n"
-            f"• full prompt: {tokens_full}\n"
-            f"• your text: {tokens_user_text}",
+            f"• overview: {counts['tier2']} mega-summaries ({stats['tier2']} toks)\n"
+            f"• midterm: {counts['tier1']} summaries ({stats['tier1']} toks)\n"
+            f"• recent: {counts['tier0']} msgs ({stats['tier0']} toks)\n"
+            f"• full prompt: {tokens_full} toks\n"
+            f"• your text: {tokens_user_text} toks",
             parse_mode="HTML",
         )
 
