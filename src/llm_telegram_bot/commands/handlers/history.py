@@ -43,10 +43,9 @@ async def history_handler(session: Any, message: dict, args: List[str]):
     # ─── OFF ───
     if cmd == "off":
         sess.history_on = False
+        # flush only the legacy buffer to disk
         path = sess.flush_history_to_disk()
-        mgr.tier0.clear()
-        mgr.tier1.clear()
-        mgr.tier2.clear()
+        # do _not_ clear your tiered manager — keep in-memory context intact
         return await session.send_message(
             f"{header}\n✅ History logging disabled & flushed to <code>{path}</code>.",
             parse_mode="HTML",
@@ -103,27 +102,10 @@ async def history_handler(session: Any, message: dict, args: List[str]):
     if cmd in ("flush", "save"):
         if not sess.history_on:
             return await session.send_message("⚠️ History is disabled.", parse_mode="HTML")
-        if not mgr.tier0:
-            return await session.send_message(f"{header}\n⚠️ No new messages to flush.", parse_mode="HTML")
+        if not sess.history_buffer:
+            return await session.send_message(f"{header}\n⚠️ No new history to flush.", parse_mode="HTML")
 
-        # Copy manager’s tier-0 into the session buffer
-        sess.history_buffer = [
-            {
-                "ts": m.ts,
-                "who": m.who,
-                "lang": m.lang,
-                "text": m.text,
-                "tokens_original": m.tokens_compressed,
-            }
-            for m in mgr.tier0
-        ]
-
-        # Flush to disk (Session.flush_history_to_disk clears history_buffer)
-        path = sess.flush_history_to_disk()
-
-        # Now clear out tier-0 so you don't re-flush the same messages
-        mgr.tier0.clear()
-
+        path = sess.flush_history_to_disk()  # clears session.history_buffer only
         return await session.send_message(
             f"{header}\n✅ History flushed to <code>{path}</code>",
             parse_mode="HTML",

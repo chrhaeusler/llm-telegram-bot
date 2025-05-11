@@ -46,7 +46,10 @@ class ChatSession:
         self.chat_id = chat_id
         self.bot_name = bot_name
         self._session = get_session(chat_id, bot_name)
+        # History Manager for Summarization of tiers 0-2
         self.history_mgr = self._session.history_mgr
+        # History Buffer for writing to file
+        self.history_buffer: list[dict] = []
 
     async def send_message(self, text: str, *, parse_mode: str = "MarkdownV2", **kwargs) -> None:
         self.client.chat_id = self.chat_id
@@ -302,6 +305,7 @@ class PollingLoop:
         stats = mgr.token_stats()
         caps = mgr
 
+        # To Do: show info about "how full" tiers are, e.g. "x of caps.N0"
         await session.send_message(
             "<b>🔢 History Manager's Token Parameters</b>:\n"
             f"• N0: {caps.N0} ({caps.T0_cap} cap)\n"
@@ -372,13 +376,37 @@ class PollingLoop:
             tokens_compressed=tokens_reply,
         )
 
-        # Update History (only upon a successful reply)
+        # Update HistoryManager (for summarization))
         session.history_mgr.add_user_message(prompt_msg)
         session.history_mgr.add_bot_message(reply_msg)
 
         # Send back to user (with splitting)
         for chunk in split_message(reply):
             await session.send_message(chunk)
+
+        # Append to History Buffer (for recording to file)
+
+        state.history_buffer.append(
+            {
+                "who": prompt_msg.who,
+                "ts": prompt_msg.ts,
+                "lang": prompt_msg.lang,
+                "text": prompt_msg.text,
+                "tokens_text": prompt_msg.tokens_text,
+                "tokens_compressed": prompt_msg.tokens_compressed,
+            }
+        )
+
+        state.history_buffer.append(
+            {
+                "who": reply_msg.who,
+                "ts": reply_msg.ts,
+                "lang": reply_msg.lang,
+                "text": reply_msg.text,
+                "tokens_text": reply_msg.tokens_text,
+                "tokens_compressed": reply_msg.tokens_compressed,
+            }
+        )
 
 
 if __name__ == "__main__":

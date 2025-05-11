@@ -84,36 +84,14 @@ class Session:
         self.messaging_paused = False
 
     async def _periodic_flush(self):
-        """Every 10 minutes, if logging is on and we have buffered entries, flush."""
-
         while True:
-            logger.debug(
-                f"[Session {self.chat_id}] _periodic_flush tick (history_on={self.history_on}, tier0={len(self.history_mgr.tier0)})"
-            )
-            await asyncio.sleep(600)  # back to 10 minutes
+            await asyncio.sleep(10)  # 10 minutes
             try:
-                if self.history_on and self.history_mgr.tier0:
-                    # 1) pull out everything in tier0
-                    entries = []
-                    for msg in list(self.history_mgr.tier0):
-                        entries.append(
-                            {
-                                "who": msg.who,
-                                "ts": msg.ts,
-                                "lang": msg.lang,
-                                "text": msg.text,
-                                "tokens_text": msg.tokens_text,
-                                "tokens_compressed": msg.tokens_compressed,
-                            }
-                        )
-                    # 2) prime the old history_buffer and flush
-                    self.history_buffer = entries
-                    logger.debug(f"[Session {self.chat_id}] auto-flushing {len(entries)} tier0 entries")
-                    self.flush_history_to_disk()
-                    # 3) clear them out of the manager now that they're on disk
-                    self.history_mgr.tier0.clear()
+                if self.history_on and self.history_buffer:
+                    path = self.flush_history_to_disk()  # consumes history_buffer only
+                    logger.debug(f"[Session {self.chat_id}] Periodic flush wrote to {path}")
             except Exception as e:
-                logger.exception(f"[Session {self.chat_id}] periodic flush failed: {e}")
+                logger.exception(f"[Session {self.chat_id}] Periodic flush failed: {e}")
 
     def flush_history_to_disk(self) -> Path:
         """
@@ -127,6 +105,7 @@ class Session:
         base = f"{self.active_user}_with_{self.active_char}"
         # regex to capture an optional “_vN”
         pattern = re.compile(rf"^{re.escape(base)}(?:_v(\d+))?\.json$")
+
         candidates = []
         for p in history_dir.glob(f"{base}*.json"):
             m = pattern.match(p.name)
