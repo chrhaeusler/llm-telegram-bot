@@ -18,7 +18,7 @@ MAX_HISTORY_BYTES = 1_000_000
 
 # yeah just, quickly testing
 NO_MAX_MESSAGES = 25
-T0_TOKEN_CAP = 120  # assuming 20 tokens per sentence during summarization
+T0_TOKEN_CAP = 120  # assuming 30 tokens per sentence during summarization
 
 
 # ────────────────────────────────────────────────────

@@ -11,6 +11,8 @@ from llm_telegram_bot.utils.logger import logger
 from llm_telegram_bot.utils.summarize import safe_summarize
 from llm_telegram_bot.utils.token_utils import count_tokens
 
+TOKENS_PER_SENTENCE = 30
+
 
 @dataclass
 class Message:
@@ -104,7 +106,7 @@ class HistoryManager:
 
         # 2) otherwise we need a summary
         #    translate token-budget → sentence-budget
-        avg_toks_per_sent = 20  # hard-coding FTW!
+        avg_toks_per_sent = TOKENS_PER_SENTENCE  # hard-coding FTW!
         # ensure at least 1 sentence
         num_sents = max(1, cap // avg_toks_per_sent)
 
