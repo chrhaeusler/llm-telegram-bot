@@ -196,8 +196,10 @@ class Session:
 
         # seed HistoryManager with only the last N0*2 entries
         N0 = self.history_mgr.N0
+        N1 = self.history_mgr.N1
+        K = self.history_mgr.K
         # TO DO: this should be adjusted as soon as tier-1, and tier-2 are implemented
-        recent_raw = full_buffer[-(N0 * 2) :]
+        recent_raw = full_buffer[-(N0 + N1 + K + 5) :]
 
         for entry in recent_raw:
             msg = Message(

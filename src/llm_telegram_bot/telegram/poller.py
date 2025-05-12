@@ -381,7 +381,7 @@ class PollingLoop:
             ts=ts,
             who=session.active_char_data["identity"]["name"],  # state.active_char,
             lang=language_reply,
-            text=reply,
+            text=reply.replace('...', '.'),  # q&d cleaning because "..." confuses Sumy
             tokens_text=tokens_reply,
             compressed=reply,
             tokens_compressed=tokens_reply,
