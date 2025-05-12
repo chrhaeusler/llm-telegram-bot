@@ -1,17 +1,15 @@
 # src/llm_telegram_bot/session/history_manager.py
 
 import datetime
-import json
 from collections import deque
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Deque, Dict
+from dataclasses import dataclass, field
+from typing import Deque, Dict
 
 from llm_telegram_bot.utils.logger import logger
 from llm_telegram_bot.utils.summarize import safe_summarize
 from llm_telegram_bot.utils.token_utils import count_tokens
 
-TOKENS_PER_SENTENCE = 30
+TOKENS_PER_SENTENCE = 30  # yes, TexRank like long sentences with sometime >30 tokens
 
 
 @dataclass
@@ -22,21 +20,24 @@ class Message:
     text: str  # the raw, unmodified message
     tokens_text: int
     compressed: str  # compressed text for prompt-injection
-    tokens_compressed: int
+    tokens_compressed: int  # TO DO: change this to time stamp
 
 
 @dataclass
 class Summary:
     text: str
     tokens: int
+    who: str  # 'user' or 'bot'
+    ts: datetime.datetime = field(default_factory=datetime.datetime.utcnow)
 
 
 @dataclass
 class MegaSummary:
-    text: str
-    tokens: int
-    span_start: datetime.datetime
-    span_end: datetime.datetime
+    text: str  # 2–3 sentence capsule
+    # keywords: list[str]  # e.g. ["Alice","Bob","API","Meetup"]
+    tokens: int  # count(text)
+    span_start: datetime
+    span_end: datetime
 
 
 class HistoryManager:
@@ -98,21 +99,21 @@ class HistoryManager:
         L = msg.tokens_text
         cap = self.T0_cap
 
-        # 1) under the cap → no change
+        # 1) under the cap: no change
         if L <= cap:
             msg.compressed = msg.text
             msg.tokens_compressed = L
             return
 
         # 2) otherwise we need a summary
-        #    translate token-budget → sentence-budget
-        avg_toks_per_sent = TOKENS_PER_SENTENCE  # hard-coding FTW!
+        # translate token-budget into sentence-budget
+        avg_toks_per_sent = TOKENS_PER_SENTENCE
         # ensure at least 1 sentence
         num_sents = max(1, cap // avg_toks_per_sent)
 
         try:
             summary = safe_summarize(
-                # summarize with texrank (or switch to lexrank
+                # summarize with texrank (or switch to lexrank)
                 msg.text,
                 num_sentences=num_sents,
                 lang=msg.lang,
@@ -125,6 +126,40 @@ class HistoryManager:
 
         msg.compressed = summary
         msg.tokens_compressed = count_tokens(summary)
+
+    def _compress_t1(self, msg: Message) -> Summary:
+        """
+        Tier-1 compression:
+        Take the Tier-0 compressed message and compress it to a single sentence (~T1_cap tokens).
+        """
+        cap = self.T1_cap
+
+        # 2) otherwise we need a summary
+        # translate token-budget into sentence-budget
+        avg_toks_per_sent = TOKENS_PER_SENTENCE
+        # ensure at least 1 sentence
+        num_sents = max(1, cap // avg_toks_per_sent)
+
+        try:
+            summary_text = safe_summarize(
+                text=msg.compressed,
+                num_sentences=num_sents,
+                lang=msg.lang,
+                method="textrank",
+            )
+        
+        except Exception as e:
+            logger.warning(f"[compress_t1] summarization failed: {e}; falling back to t0 summary")
+            summary_text = msg.compressed
+
+        tokens = count_tokens(summary_text)
+
+        return Summary(
+            text=summary_text,
+            tokens=tokens,
+            who=msg.who,
+            ts=msg.ts,
+        )
 
     def add_user_message(self, msg: Message) -> None:
         """
@@ -161,9 +196,7 @@ class HistoryManager:
         # Tier-0 → Tier-1
         if len(self.tier0) > self.N0:
             old: Message = self.tier0.popleft()
-            # TODO: generate a Summary with actual summarization capped at T1_cap
-            summary_text = f"(summary of: {old.text[:30]}…)"
-            summ = Summary(text=summary_text, tokens=min(old.tokens_compressed, self.T1_cap))
+            summ = self._compress_t1(old)
             self.tier1.append(summ)
             logger.debug(f"[HistoryManager] promoted to tier1: {summ}")
 
@@ -192,52 +225,3 @@ class HistoryManager:
             "tier1": self.tier1,  # Deque[Summary]
             "tier2": self.tier2,  # Deque[MegaSummary]
         }
-
-    def flush_to_disk(
-        self,
-        bot_name: str,
-        chat_id: int,
-        active_service: str,
-        active_model: str,
-        active_char: str,
-        active_user: str,
-        jailbreak: Any,
-        history_on: bool,
-    ) -> Path:
-        """
-        Write out **only** the raw, un-compressed tier-0 messages to disk
-        under histories/<bot_name>/<chat_id>/<user>_with_<char>.json,
-        then clear tier-0.
-        """
-        history_dir = Path("histories") / bot_name / str(chat_id)
-        history_dir.mkdir(parents=True, exist_ok=True)
-        history_file = history_dir / f"{active_user}_with_{active_char}.json"
-
-        # Build a list of dicts from tier0 messages:
-        raw_msgs = [
-            {
-                "ts": msg.ts,
-                "who": msg.who,
-                "lang": msg.lang,
-                "text": msg.text,  # raw text
-                "tokens_text": msg.tokens_text,
-            }
-            for msg in self.tier0
-        ]
-
-        payload = {
-            "active_service": active_service,
-            "active_model": active_model,
-            "active_char": active_char,
-            "active_user": active_user,
-            "jailbreak": jailbreak,
-            "history_on": history_on,
-            "history_buffer": raw_msgs,
-        }
-
-        with history_file.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2, ensure_ascii=False)
-
-        # clear only what you've just written
-        self.tier0.clear()
-        return history_file

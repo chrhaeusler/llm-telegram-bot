@@ -88,26 +88,27 @@ def build_full_prompt(
     # 2) Tier-2 OVERVIEW
     overview = context.get("overview", [])
     if overview:
-        parts.append("[OVERVIEW]")
+        parts.append("[VERY EARLY TOPICS]")
         for mega in overview:
             parts.append(f"- {mega.text}  ({mega.tokens} toks)")
 
     # 3) Tier-1 SUMMARY
     midterm = context.get("midterm", [])
     if midterm:
-        parts.append("[SUMMARY]")
+        parts.append("[EARLY CONVERSATION]")
         for summ in midterm:
-            parts.append(f"- {summ.text}  ({summ.tokens} toks)")
+            # parts.append(f"- {summ.text}")  #  ({summ.tokens} toks)")
+            parts.append(f"{summ.who.capitalize()}: {summ.text}")
 
     # 4) Tier-0 RECENT MESSAGES
     recent = context.get("recent", [])
     if recent:
-        parts.append("[RECENT]")
+        parts.append("[RECENT CONVERSATION]")
         for msg in recent:
             who = msg.who
             snippet = getattr(msg, "compressed", msg.text)
-            toks = msg.tokens_compressed
-            parts.append(f"{who}: {snippet}  ({toks} toks)")
+            # toks = msg.tokens_compressed
+            parts.append(f"{who}: {snippet}")  # ({toks} toks)")
 
     # 5) Final user prompt
     parts.append("[PROMPT]")

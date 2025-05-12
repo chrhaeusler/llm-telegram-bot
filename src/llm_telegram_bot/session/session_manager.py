@@ -17,8 +17,10 @@ from llm_telegram_bot.utils.logger import logger
 MAX_HISTORY_BYTES = 1_000_000
 
 # yeah just, quickly testing
-NO_MAX_MESSAGES = 25
-T0_TOKEN_CAP = 120  # assuming 30 tokens per sentence during summarization
+N0_MAX_MESSAGES = 20
+N1_MAX_MESSAGES = 30
+T0_TOKEN_CAP = 150  # assuming 30 tokens per sentence during summarization = 5 sentencews
+T1_TOKEN_CAP = 30  # Summy will output one sentence (might be long though)
 
 
 # ────────────────────────────────────────────────────
@@ -72,12 +74,12 @@ class Session:
         self.history_mgr = HistoryManager(
             bot_name=bot_name,
             chat_id=chat_id,
-            N0=NO_MAX_MESSAGES,  # max messages to hold in this tier
-            N1=22,
+            N0=N0_MAX_MESSAGES,  # max messages to hold in this tier
+            N1=N1_MAX_MESSAGES,
             K=7,
-            T0_cap=T0_TOKEN_CAP,  # max sentences of summary
-            T1_cap=3,
-            T2_cap=22,
+            T0_cap=T0_TOKEN_CAP,  # max tokens; will be divided by 30 to get number of
+            T1_cap=T1_TOKEN_CAP,  # sentences Sumy's TexRank is supposed to produce
+            T2_cap=60,
         )
 
         # Start periodic flush every 10 minutes

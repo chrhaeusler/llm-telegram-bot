@@ -317,9 +317,9 @@ class PollingLoop:
 
         await session.send_message(
             "<b>🔢 History Manager's Token Parameters</b>:\n"
-            f"• N0: {caps.N0} msgs max; {caps.T0_cap} tokens max\n"
-            f"• N1: max {caps.N1} msgs max; {caps.T1_cap} sentences max\n"
-            f"• K:  {caps.K} batches; cap {caps.T2_cap} toks\n\n"
+            f"• N0: {caps.N0} msgs max; {caps.T0_cap} tokens each\n"
+            f"• N1: max {caps.N1} msgs max; {caps.T1_cap} tokens each\n"
+            f"• K:  {caps.K} batches; cap {caps.T2_cap} tokens\n\n"
             "<b>🧮 Current Context Usage</b>:\n"
             f"• overview: {counts['tier2']} mega-summaries ({stats['tier2']} toks)\n"
             f"• midterm: {counts['tier1']} summaries ({stats['tier1']} toks)\n"
