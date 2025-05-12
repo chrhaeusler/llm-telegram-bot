@@ -17,7 +17,7 @@ MAX_HISTORY_BYTES = 1_000_000
 
 # yeah just, quickly testing
 NO_MAX_MESSAGES = 25
-T0_SENTENCE_CAP = 8
+T0_TOKEN_CAP = 120  # assuming 20 tokens per sentence during summarization
 
 
 # ────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ class Session:
             N0=NO_MAX_MESSAGES,  # max messages to hold in this tier
             N1=22,
             K=7,
-            T0_cap=T0_SENTENCE_CAP,  # max sentences of summary
+            T0_cap=T0_TOKEN_CAP,  # max sentences of summary
             T1_cap=3,
             T2_cap=22,
         )

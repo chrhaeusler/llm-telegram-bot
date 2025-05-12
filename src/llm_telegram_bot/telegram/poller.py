@@ -273,6 +273,8 @@ class PollingLoop:
         except LangDetectException:
             language_user = "unknown"
 
+        logger.debug(f"[Poller] Detected language of user text: {language_user}")
+
         # Gather config + persona
         svc_name = state.active_service
         bot_def = self.config.factorydefault
@@ -315,7 +317,7 @@ class PollingLoop:
 
         await session.send_message(
             "<b>🔢 History Manager's Token Parameters</b>:\n"
-            f"• N0: {caps.N0} msgs max; {caps.T0_cap} sentences max\n"
+            f"• N0: {caps.N0} msgs max; {caps.T0_cap} tokens max\n"
             f"• N1: max {caps.N1} msgs max; {caps.T1_cap} sentences max\n"
             f"• K:  {caps.K} batches; cap {caps.T2_cap} toks\n\n"
             "<b>🧮 Current Context Usage</b>:\n"
@@ -368,6 +370,8 @@ class PollingLoop:
             language_reply = detect(reply)
         except LangDetectException:
             language_reply = "unknown"
+
+        logger.debug(f"[Poller] Detected language of LLM reply: {language_reply}")
 
         # record LLM reply
         tokens_reply = count_tokens(reply)

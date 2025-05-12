@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Deque, Dict
 
 from llm_telegram_bot.utils.logger import logger
-from llm_telegram_bot.utils.summarize import summarize_text
+from llm_telegram_bot.utils.summarize import safe_summarize
 from llm_telegram_bot.utils.token_utils import count_tokens
 
 
@@ -89,20 +89,41 @@ class HistoryManager:
 
     def _compress_t0(self, msg: Message) -> None:
         """
-        Tier-0 “compression” that simply:
-          • if msg.tokens_text ≤ T0_cap: keep raw text
-          • else: summarize down to at most T0_cap tokens
+        Tier-0 “compression”:
+         • if msg.tokens_text ≤ T0_cap: keep raw
+         • else: summarize down to ≈ T0_cap tokens
         """
         L = msg.tokens_text
-        # no compression needed below cap
-        if L <= self.T0_cap:
+        cap = self.T0_cap
+
+        # 1) under the cap → no change
+        if L <= cap:
             msg.compressed = msg.text
             msg.tokens_compressed = L
-        else:
-            # too long → summarize to exactly T0_cap tokens
-            summary = summarize_text(msg.text, self.T0_cap, lang=msg.lang)
-            msg.compressed = summary
-            msg.tokens_compressed = count_tokens(summary)
+            return
+
+        # 2) otherwise we need a summary
+        #    translate token-budget → sentence-budget
+        avg_toks_per_sent = 20  # adjust this to match your style
+        num_sents = cap // avg_toks_per_sent
+        if num_sents < 1:
+            num_sents = 1  # ensure at least 1 sentence
+
+        try:
+            summary = safe_summarize(
+                # summarize with texrank (or switch to lexrank
+                msg.text,
+                num_sentences=num_sents,
+                lang=msg.lang,
+                method="texrank",
+            )
+
+        except Exception as e:
+            logger.warning(f"[compress_t0] summarization failed: {e}; falling back to raw")
+            summary = msg.text
+
+        msg.compressed = summary
+        msg.tokens_compressed = count_tokens(summary)
 
     def add_user_message(self, msg: Message) -> None:
         """
