@@ -3,6 +3,7 @@
 import asyncio
 import json
 import re
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -50,8 +51,11 @@ class Session:
         self.active_user_data: Optional[dict] = None
 
         # ── Legacy history buffer (for `/history`) ────────
+        # ── Legacy history buffer (for `/history`) ────────
         self.history_on: bool = False
         self.history_buffer: list[dict] = []
+        # we’ll set last_load_ts only after we actually load from disk
+        self.last_load_ts: Optional[str] = None
 
         # ── Jailbreak toggle ──────────────────────────────
         self.jailbreak: Optional[int] = None
@@ -209,6 +213,7 @@ class Session:
             else:
                 self.history_mgr.add_bot_message(msg)
 
+        self.last_load_ts = datetime.now().isoformat(timespec="seconds")
         return str(latest)
 
     def close(self):

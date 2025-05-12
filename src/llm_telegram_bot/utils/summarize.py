@@ -33,6 +33,7 @@ def safe_summarize(text: str, num_sentences: int, lang: str = "english", method:
 
         try:
             parser = PlaintextParser.from_string(text, Tokenizer(attempt_lang))
+            logger.info(f"[Summarizer] Using {method} to summarize text in langugae '{attempt_lang}'")
             summarizer = LexRankSummarizer() if method.lower() == "lexrank" else TextRankSummarizer()
             summary_sentences = summarizer(parser.document, num_sentences)
             return " ".join(str(s) for s in summary_sentences)

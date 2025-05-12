@@ -104,10 +104,9 @@ class HistoryManager:
 
         # 2) otherwise we need a summary
         #    translate token-budget → sentence-budget
-        avg_toks_per_sent = 20  # adjust this to match your style
-        num_sents = cap // avg_toks_per_sent
-        if num_sents < 1:
-            num_sents = 1  # ensure at least 1 sentence
+        avg_toks_per_sent = 20  # hard-coding FTW!
+        # ensure at least 1 sentence
+        num_sents = max(1, cap // avg_toks_per_sent)
 
         try:
             summary = safe_summarize(
