@@ -19,8 +19,10 @@ MAX_HISTORY_BYTES = 1_000_000
 # yeah just, quickly testing
 N0_MAX_MESSAGES = 20
 N1_MAX_MESSAGES = 30
+T2_BATCH_OF_K = 7
 T0_TOKEN_CAP = 150  # assuming 30 tokens per sentence during summarization = 5 sentencews
 T1_TOKEN_CAP = 30  # Summy will output one sentence (might be long though)
+T2_TOKEN_CAP = 90
 
 
 # ────────────────────────────────────────────────────
@@ -76,10 +78,10 @@ class Session:
             chat_id=chat_id,
             N0=N0_MAX_MESSAGES,  # max messages to hold in this tier
             N1=N1_MAX_MESSAGES,
-            K=7,
+            K=T2_BATCH_OF_K,
             T0_cap=T0_TOKEN_CAP,  # max tokens; will be divided by 30 to get number of
             T1_cap=T1_TOKEN_CAP,  # sentences Sumy's TexRank is supposed to produce
-            T2_cap=60,
+            T2_cap=T2_TOKEN_CAP,
         )
 
         # Start periodic flush every 10 minutes

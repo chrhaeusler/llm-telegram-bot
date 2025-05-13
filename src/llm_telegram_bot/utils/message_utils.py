@@ -88,7 +88,7 @@ def build_full_prompt(
     # 2) Tier-2 OVERVIEW
     overview = context.get("overview", [])
     if overview:
-        parts.append("[VERY EARLY TOPICS]")
+        parts.append("[START OF THE CONVERSATION]")
         for mega in overview:
             parts.append(f"- {mega.text}  ({mega.tokens} toks)")
 
