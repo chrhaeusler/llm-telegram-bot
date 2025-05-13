@@ -1,117 +1,116 @@
-# Roadmap (Updated 2025-05-09)
-
----
+# Project Roadmap (Updated 2025-05-13)
 
 ## Phase 0 – Development Infrastructure & CI
 
-- [ ] Add & configure **pre-commit** hooks (black, isort, flake8, mypy).
-- [ ] Add **mypy** typing to all public interfaces (session manager, routing, handlers).
-- [ ] Create a lightweight **CI pipeline** (GitHub Actions / GitLab CI) to run:
-  - pre-commit
-  - pytest (unit + integration)
-  - mypy
-- [ ] fix: sent pics are not correctly saved to disk
-- [ ] Add CI status badges to README.
+- [ ] Add & configure pre-commit hooks (black, isort, flake8, mypy)
+- [ ] Enforce mypy typing on all public interfaces
+- [ ] Create a lightweight CI pipeline to run pre-commit, pytest, mypy
+- [ ] Fix: sent pictures are not correctly saved to disk
+- [ ] Add CI status badges to README
 
----
+## Phase 1 – Core Foundations & “Simple” Commands ✅
 
-## Phase 1 – Core Foundations & “Simple” Commands ✅ _(done except tests)_
-
-- [x] Ensure `src/commands/handlers/*.py` are imported in poller so `@register_command` runs.
-- [x] Treat `/start` as alias for `/bot` in `routing.py`.
+- [x] Load command handlers (`@register_command`) in poller
 - [x] Help & view commands: `/help`, `/bot(s)`, `/model(s)`, `/status`
 - [x] Set/override commands: `/temp`, `/tokens`, `/service`, `/model`
 - [x] File I/O commands: `/savestr`, `/slp`, `/slr`
+- [ ] Refactor handlers to rely on session state rather than disk I/O
+- [ ] Unit tests for all Phase 1 handlers
 
-- [ ] go through the commands: rely less on config file but on session parameters to reduce disk I/O
-- [ ] Unit tests for each handler: no-arg, valid-arg, invalid-arg.
+## Phase 2 – Session Manager & State Isolation ✅
 
----
+- [x] `session_manager.py` refactored: per-bot, per-chat-ID state
+- [x] Default service/model seeded from config
+- [ ] Unit tests for session state behaviors
 
-## Phase 2 – Session Manager & State Isolation ✅ _(code complete)_
+## Phase 3 – Persona & History Commands ✅
 
-- [x] Refactored `session_manager.py` to: Initialize default service/model; Accept bot identifier via parameter; Maintain per-bot, per-chat_id state
-- [ ] Unit tests for all session state behaviors
+### 3.1 Persona Commands
 
----
+- [x] Load/validate `/char` and `/user` YAMLs (`char_loader.py`)
+- [x] commands `/char`, `/user`
+- [x] Flush & reload history on persona switch (no duplicates!)
+- [ ] Unit tests for all persona commands
 
-## Phase 3a - User + Char
+### 3.2 History I/O Commands
 
-- [x] Abstract loader for character/user YAMLs
-- [x] Implement `/char`, `/char list`, `/char <name>`
-- [x] Implement `config/persona_loader.py`
-- [x] implement `/user` and `/char` commands
-- [x] Integrate active character and user into routing
-- [ ] use all infos from char & user configs (background, interests etc.)
-- [ ] Unit tests for all commands
+- [x] `/history on|off|files|load|flush`
+- [x] Automatic load on startup (latest session file)
+- [x] Manual flush merges new entries into JSON (rotating version if too large)
+- [ ] Fix entries of `[Recent]` and do not include API errors like `LLM Char: Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`
+- [ ] Unit tests for `/history` behaviors
 
-## Phase 3b - History sent to provide Memory to LLM
+## Phase 4 – History Summarization (🟡 In Progress)
 
-- [x] implement `/history on|off|flush|save|load`
-- [x] flush history before a change of char or user.
-- [x] load history from file at startup
-- [ ] Unit tests for all commands
+### 4.1 Tier-0 “Just-In-Time” Compression
 
----
+- [x] if message > T0_cap, call `safe_summarize(..., sentences=T0_cap/avg)`
+- [ ] fix: now both tokens_text and tokens_compressed; but we need just tokens_text
+- [ ] fix add `lang` for language instead
 
-## Phase 4 – History Summarization 🟡 _(in progress)_
+### 4.2 Tier-1 Promotion
 
-- [x] Create `HistoryManager` with three tiers (0,1,2)
-- [x] detect language and summarize previous messages; wire into `build_full_prompt()`
-- [x] sliding‐window message summarization logic
-- [x] implement tier 0, and find good parameters (e.g. 10 messages, with max 8 sentences)
-- [ ] switch from couting words as tokens to tiktoken
-- [ ] implement tier 1
-- [ ] implement tier 2
-- [ ] expose `/sum [params]` to tune sentence‐counts and window size
+- [x] When `len(tier0)>N0`, pop oldest, summarize to ≤ T1_cap tokens, wrap in `Summary`
+- [x] `Summary` now carries `ts`, `who`, `text`, `tokens`
+- [ ] add `lang`
 
----
+### 4.3 Tier-2 Rolling “Mega” Summaries
 
-## Phase 5 – Logging & Formatting 🟡 _(in progress)_
+- [x] When `len(tier1)>N1`, batch a fraction (25% of N1) or up to `K`, combine, prepend previous mega
+- [x] Extract detecting-language, steering prompt, `safe_summarize(..., sentences=MEGA_SENTENCES)`
+- [x] Extract & merge NER keywords (limit to `MAX_KEYWORDS`, FIFO)
+- [ ] Fix: Extract NERs before combining (possibly english and german summaries)!
+- [ ] `MegaSummary` holds `text`, `keywords`, `tokens`, `span_start`, `span_end`, `lang`, `source_blob`, `is_stub`
 
-- [x] Enhance `send_message` logs (chat_id, duration, preview)
-- [x] Use HTML formatting (escape utils in place)
-- [x] Added `telegram_splitter.py` for 4096-char limit
-- [ ] CLI-mode flag to skip HTML escapes
+### 4.4 Prompt Assembly & Injection
 
----
+- [x] build_full_prompt() order:
+  1. System / jailbreak
+  2. `[CONTEXT]` (timestamps & “last at…”)
+  3. `[OVERVIEW]` → tier2.megas
+  4. `[SUMMARY]` → tier1
+  5. `[RECENT]` → tier0 (use `msg.compressed`)
+  6. `[PROMPT]` → user text
 
-## Phase 6 – CLI Bot & Documentation 🟡 _(just started)_
+### 4.5 Nice-to-Have: Time Awareness
 
-- [x] Add `run.sh` launcher to project root
-- [ ] Build CLI runner (mirror Telegram routing)
-- [ ] Render Markdown/code blocks in terminal
-- [ ] Update `README.md` with usage examples
-- [ ] Add `docs/git-workflow.md`
+- [ ] Before `[PROMPT]`, inject a small block: `[CONTEXT]`: `Last message at {last_msg.ts} by {last_msg.who}. Current time is {now} to provide Weekday and Time of Day
+- [ ] Support Jinja in char config to adapt replies if gap of >2h
+- [ ]Support Jinja in persona templates for time-aware behavior
 
----
+```jinja
+{% if (now - last_msg_dt).hours >= 2 %}
+  Wenn zwischen …
+{% endif %}
+```
 
-## Phase 7 – Nice-to-Have Commands
+## Phase 5 – Configuration & Tuning
 
-- [ ] /jb (automatic jailbreak prompts)
-- [ ] /setdefaults
-- [ ] /defaults
-- [ ] /reset (to factory defaults)
-- [ ] /undo
-- [ ] Add more quality-of-life commands
+- [ ] Move `N0`, `N1`, `K`, `T0_cap`, `T1_cap`, `T2_cap`, etc. into `config.yaml` per-bot
+- [ ] Read parameters at startup and pass into `HistoryManager`
+- [ ] Expose `/sum [params]` to tweak summarization on the fly
+- [ ] Switch from word counts to real token counts (e.g. tiktoken)
 
----
+## Phase 6 – Logging, Formatting & CLI 🟡
 
-## Phase 8 – Release Preparation
+- [x] Enhanced send_message logs (chat_id, duration, preview)
+- [x] HTML‐safe escapes for all outgoing messages
+- [x] telegram_splitter.py for Telegram’s 4096-char limit
+- [ ] CLI runner (bin/cli-chatbot.py) with Markdown rendering
+- [ ] Update README.md with examples
 
-- [ ] CI green: pre-commit, pytest, mypy
-- [ ] Smoke-tests: TelegramClient + LLM end-to-end
-- [ ] Tag & publish v0.1-alpha
-- [ ] SQLite for history storage
-- [ ] Out of scope as of now: Vector database or graph database
-- [ ] Implement speech-to-text and text-to-speech models
-- [ ] Implement image analysis (pixtral)
-- [ ] [other APIs](https://github.com/cheahjs/free-llm-api-resources),
-- [ ] memory agents, DB, LangChain, etc.
+## Phase 7 – Mid-Term & Testing
 
----
+- [ ] Add unit tests for each tier’s summarization logic & metrics (token savings)
+- [ ] Implement CI “smoke test”: Telegram → LLM end-to-end
+- [ ] Auto-reload tier1/tier2 on startup if file exists
+- [ ] Migrate raw history from JSON → SQLite or vector DB
 
----
+## Phase 8 – Nice-to-Have Commands
+
+- [ ] `/undo`, `/reset`, `/defaults`, `/jb` (auto jailbreaks)
+- [ ] `/memory` to inspect current tiers
+- [ ] Explore speech-to-text, text-to-speech, image analysis, etc.
 
 # Project Structure & Status (Updated 2025-05-04)
 
