@@ -332,6 +332,35 @@ class PollingLoop:
         # Record into HistoryManager
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
 
+        # Get parameter for calling LLM
+        service = get_service_for_name(svc_name, svc_conf)
+        model, temp, max_tk = get_effective_llm_params(
+            chat_id,
+            bot_name,
+            bot_def,
+            svc_conf,
+        )
+
+        # TO DO: ASK THE LLM FOR A SUMMARY
+        # BUT HANDLE IF sentences like "Write a long text about..." are in the
+        # text to be summarized
+        # if session.history_mgr.tier2 and session.history_mgr.tier2[-1].is_stub:
+        #     import ipdb
+
+        #     ipdb.set_trace()
+        #     mega = session.history_mgr.tier2.pop()
+        #     # generate a fresh LLM narrative
+        #     fresh = await service.send_prompt(
+        #         prompt=mega.text,  # your steering+blob is already baked in
+        #         model=model,
+        #         temperature=0.3,
+        #         maxtoken=250,  # TO DO: make this a variable to be set in config.yaml
+        #     )
+        #     mega.text = fresh
+        #     mega.tokens = count_tokens(fresh)
+        #     mega.is_stub = False
+        #     session.history_mgr.tier2.append(mega)
+
         prompt_msg = Message(
             ts=ts,
             who=session.active_user_data["identity"]["name"],  # state.active_user,
@@ -340,15 +369,6 @@ class PollingLoop:
             tokens_text=tokens_user_text,
             compressed=user_text,
             tokens_compressed=tokens_user_text,
-        )
-
-        # Get parameter for calling LLM
-        service = get_service_for_name(svc_name, svc_conf)
-        model, temp, max_tk = get_effective_llm_params(
-            chat_id,
-            bot_name,
-            bot_def,
-            svc_conf,
         )
 
         # Call LLM and guard against API errors
@@ -381,22 +401,21 @@ class PollingLoop:
             ts=ts,
             who=session.active_char_data["identity"]["name"],  # state.active_char,
             lang=language_reply,
-            text=reply.replace('...', '.'),  # q&d cleaning because "..." confuses Sumy
+            text=reply,
             tokens_text=tokens_reply,
             compressed=reply,
             tokens_compressed=tokens_reply,
         )
 
-        # Update HistoryManager (for summarization))
-        session.history_mgr.add_user_message(prompt_msg)
-        session.history_mgr.add_bot_message(reply_msg)
-
         # Send back to user (with splitting)
         for chunk in split_message(reply):
             await session.send_message(chunk)
 
-        # Append to History Buffer (for recording to file)
+        # Update HistoryManager (for summarization))
+        session.history_mgr.add_user_message(prompt_msg)
+        session.history_mgr.add_bot_message(reply_msg)
 
+        # Append to History Buffer (for recording to file)
         state.history_buffer.append(
             {
                 "who": prompt_msg.who,

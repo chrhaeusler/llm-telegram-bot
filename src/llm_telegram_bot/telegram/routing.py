@@ -43,10 +43,12 @@ async def route_message(
     # ── Slash Commands ──────────────────────────────────────────────────────
     if text.startswith("/"):
         parts = text.split()
-        raw = parts[0]
+        raw = parts[0].lower()
         args = parts[1:]
 
-        cmd = raw.lstrip("/")
+        # all commands are lower case
+        # catch annoying auto-correct capitalizing the text sometimes
+        cmd = raw.lstrip("/").lower()  # catch
         if "@" in cmd:
             cmd = cmd.split("@", 1)[0]
 

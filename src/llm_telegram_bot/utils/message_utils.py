@@ -90,7 +90,11 @@ def build_full_prompt(
     if overview:
         parts.append("[START OF THE CONVERSATION]")
         for mega in overview:
-            parts.append(f"- {mega.text}  ({mega.tokens} toks)")
+            parts.append(f"{mega.text}")
+        # keywords from the **last** mega summary (or combine all, up to you)
+        last_keys = overview[-1].keywords
+        if last_keys:
+            parts.append(f"[KEYWORDS DURING START OF CONVERSATION]\n{', '.join(last_keys)}")
 
     # 3) Tier-1 SUMMARY
     midterm = context.get("midterm", [])
