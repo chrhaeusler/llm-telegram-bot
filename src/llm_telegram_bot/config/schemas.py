@@ -21,7 +21,7 @@ class ServiceConfig(BaseModel):
 class BotDefaults(BaseModel):
     service: str
     model: str
-    temperature: float = Field(..., ge=0.0, le=1.0)
+    temperature: float = Field(..., ge=0.0, le=2.0)
     maxtoken: int = Field(..., gt=0)
     top_p: float = Field(..., ge=0.0, le=1.0)
     frequency_penalty: float = Field(..., description="Penalty for frequent tokens")
@@ -100,7 +100,7 @@ class FactoryDefault(BaseModel):
 
     service: str
     model: str
-    temperature: float = Field(..., ge=0.0, le=1.0)
+    temperature: float = Field(..., ge=0.0, le=2.0)
     maxtoken: int = Field(..., gt=0)
     top_p: float = Field(..., ge=0.0, le=1.0)
     frequency_penalty: float
