@@ -59,7 +59,7 @@ class Session:
         self.history_on: bool = False
         self.history_buffer: list[dict] = []
         # we’ll set last_load_ts only after we actually load from disk
-        self.last_load_ts: Optional[str] = "2000-01-01_00-00-00"
+        self.last_load_ts: Optional[str] = "2000-01-01T00:00:00.000000"
 
         # ── Jailbreak toggle ──────────────────────────────
         self.jailbreak: Optional[int] = None
