@@ -85,7 +85,7 @@ class Session:
             # NER extractions behavior
             extract_ner_t0_before=True,
             extract_ner_t0_after=False,
-            extract_ner_t1=False,
+            extract_ner_t1=False,  # if False: inherit the original msg.keywords
             # NER bucket count limits
             max_ner_t0=30,
             max_ner_t1=20,
