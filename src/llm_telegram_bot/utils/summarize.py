@@ -21,7 +21,7 @@ from llm_telegram_bot.utils.logger import logger
 _NLP_CACHE = {}
 
 # the English labels you care about:
-EN_LABELS = {
+_EN_LABELS = {
     "PERSON",
     "WORK_OF_ART",  # movies, books etc.
     "GPE",  # geopolitical entities: countries, states, cities
@@ -34,7 +34,7 @@ EN_LABELS = {
 }
 
 # the German labels spaCy actually uses:
-DE_LABELS = {
+_DE_LABELS = {
     "PER",
     "MISC",  # often WORK_OF_ART or similar
     "GPE",  # geopolitical entities: countries, states, cities
@@ -100,9 +100,9 @@ def extract_named_entities(text: str, lang: str = "english") -> List[str]:
 
     # 3) Choose allowed labels by language
     if code == "de":
-        allowed = DE_LABELS
+        allowed = _DE_LABELS
     else:
-        allowed = EN_LABELS
+        allowed = _EN_LABELS
 
     seen = set()
     raw = []
@@ -120,11 +120,11 @@ def extract_named_entities(text: str, lang: str = "english") -> List[str]:
     out = []
     for name in raw:
         # a) strip leading/trailing punctuation & emojis
-        name = name.strip(" \t\n" + "!?,.:;…—–-")  # common punctuation
+        name = name.strip(" \t\n" + "!?',.:;…—–-")  # common punctuation
         name = _EMOJI_RE.sub("", name).strip()
 
         # b) drop if empty or too short
-        if len(name) < 2:
+        if len(name) < 3:
             continue
         # c) drop if internal emojis or forbidden chars
         if _EMOJI_RE.search(name):
