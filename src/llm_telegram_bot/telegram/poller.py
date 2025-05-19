@@ -283,9 +283,12 @@ class PollingLoop:
         # Build context dict for prompt
         raw_ctx = session.history_mgr.get_all_context()
         context = {
-            "recent": raw_ctx["tier0"],
-            "midterm": raw_ctx["tier1"],
-            "overview": raw_ctx["tier2"],
+            "tier0": raw_ctx["tier0"],  # recent messages
+            "tier1": raw_ctx["tier1"],  # midterm summaries
+            "tier2": raw_ctx["tier2"],  # overview/mega summaries
+            "tier0_keys": raw_ctx["tier0_keys"],  # NER bucket for recent
+            "tier1_keys": raw_ctx["tier1_keys"],  # NER bucket for midterm
+            "tier2_keys": raw_ctx["tier2_keys"],  # NER bucket for overview
         }
 
         # Render full prompt
@@ -300,9 +303,19 @@ class PollingLoop:
         # count tokens
         tokens_user_text = count_tokens(user_text)
         tokens_full = count_tokens(full_prompt)
+
+        # right after you build the prompt:
+        # logger.debug("[Poller] → About to log context buckets")
+
+        # # downgrade to INFO so it can’t be filtered out
+        # logger.info(f"[Poller] CONTEXT KEYS   : {list(context.keys())}")
+        # logger.info(f"[Poller] tier0 (#{len(context['tier0'])}) : {context['tier0']}")
+        # logger.info(f"[Poller] tier1 (#{len(context['tier1'])}) : {context['tier1']}")
+        # logger.info(f"[Poller] tier2 (#{len(context['tier2'])}) : {context['tier2']}")
+
+        # then you log the full prompt
         logger.debug(f"[Poller] Full prompt hast ({tokens_full} toks)]\n{full_prompt}")
 
-        # Send Feedback about Prompt and History
         # Send Feedback about Prompt and History
         mgr = session.history_mgr
         stats = mgr.token_stats()
@@ -319,7 +332,7 @@ class PollingLoop:
             "<b>🔢 History Manager's Token Parameters</b>:\n"
             f"• N0: {caps.N0} msgs max; {caps.T0_cap} tokens each\n"
             f"• N1: max {caps.N1} msgs max; {caps.T1_cap} tokens each\n"
-            f"• K:  {caps.K} batches; cap {caps.T2_cap} tokens\n\n"
+            f"• K:  {caps.K} batches; 5 sentences\n\n"
             "<b>🧮 Current Context Usage</b>:\n"
             f"• overview: {counts['tier2']} mega-summaries ({stats['tier2']} toks)\n"
             f"• midterm: {counts['tier1']} summaries ({stats['tier1']} toks)\n"
@@ -332,35 +345,6 @@ class PollingLoop:
         # Record into HistoryManager
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
 
-        # Get parameter for calling LLM
-        service = get_service_for_name(svc_name, svc_conf)
-        model, temp, max_tk = get_effective_llm_params(
-            chat_id,
-            bot_name,
-            bot_def,
-            svc_conf,
-        )
-
-        # TO DO: ASK THE LLM FOR A SUMMARY
-        # BUT HANDLE IF sentences like "Write a long text about..." are in the
-        # text to be summarized
-        # if session.history_mgr.tier2 and session.history_mgr.tier2[-1].is_stub:
-        #     import ipdb
-
-        #     ipdb.set_trace()
-        #     mega = session.history_mgr.tier2.pop()
-        #     # generate a fresh LLM narrative
-        #     fresh = await service.send_prompt(
-        #         prompt=mega.text,  # your steering+blob is already baked in
-        #         model=model,
-        #         temperature=0.3,
-        #         maxtoken=250,  # TO DO: make this a variable to be set in config.yaml
-        #     )
-        #     mega.text = fresh
-        #     mega.tokens = count_tokens(fresh)
-        #     mega.is_stub = False
-        #     session.history_mgr.tier2.append(mega)
-
         prompt_msg = Message(
             ts=ts,
             who=session.active_user_data["identity"]["name"],  # state.active_user,
@@ -369,6 +353,15 @@ class PollingLoop:
             tokens_text=tokens_user_text,
             compressed=user_text,
             tokens_compressed=tokens_user_text,
+        )
+
+        # Get parameter for calling LLM
+        service = get_service_for_name(svc_name, svc_conf)
+        model, temp, max_tk = get_effective_llm_params(
+            chat_id,
+            bot_name,
+            bot_def,
+            svc_conf,
         )
 
         # Call LLM and guard against API errors
@@ -399,7 +392,7 @@ class PollingLoop:
 
         reply_msg = Message(
             ts=ts,
-            who=session.active_char_data["identity"]["name"],  # state.active_char,
+            who=session.active_char_data["identity"]["name"],
             lang=language_reply,
             text=reply,
             tokens_text=tokens_reply,
@@ -414,6 +407,20 @@ class PollingLoop:
         # Update HistoryManager (for summarization))
         session.history_mgr.add_user_message(prompt_msg)
         session.history_mgr.add_bot_message(reply_msg)
+
+        if session.history_mgr.tier2 and session.history_mgr.tier2[-1].is_stub:
+            mega = session.history_mgr.tier2.pop()
+            # generate a fresh LLM narrative
+            fresh = await service.send_prompt(
+                prompt=mega.text,  # your steering+blob is already baked in
+                model=model,
+                temperature=0.3,
+                maxtoken=250,  # TO DO: make this a variable to be set in config.yaml
+            )
+            mega.text = fresh
+            mega.tokens = count_tokens(fresh)
+            mega.is_stub = False
+            session.history_mgr.tier2.append(mega)
 
         # Append to History Buffer (for recording to file)
         state.history_buffer.append(

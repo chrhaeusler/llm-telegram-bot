@@ -17,8 +17,43 @@ from typing import List
 
 from llm_telegram_bot.utils.logger import logger
 
-# Cache small models
+# Cache for models
 _NLP_CACHE = {}
+
+# the English labels you care about:
+EN_LABELS = {
+    "PERSON",
+    "WORK_OF_ART",  # movies, books etc.
+    "GPE",  # geopolitical entities: countries, states, cities
+    # "LOC",  # locations, including regions and geographical features
+    # "FAC",  # facilities: buildings ("Empire State Building") or airports
+    # "ORG",  # organizations: companies, universities, or teams
+    # "NORP",  # nationalities, religious groups, political parties
+    # "EVENT",  # events, like "Olympics" or "World Cup".
+    # "PRODUCT",  # such as "iPhone" or "Nike shoes"
+}
+
+# the German labels spaCy actually uses:
+DE_LABELS = {
+    "PER",
+    "MISC",  # often WORK_OF_ART or similar
+    "GPE",  # geopolitical entities: countries, states, cities
+    "LOC",  # locations, including regions and geographical features
+    "ORG",
+}
+
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001f300-\U0001f6ff"  # symbols & pictographs
+    "\U0001f900-\U0001f9ff"  # supplemental symbols & pictographs
+    "\u2600-\u26ff"  # miscellaneous symbols
+    "\u2700-\u27bf"  # dingbats
+    "]"
+)
+
+# only allow letters, spaces, hyphens, apostrophes inside
+# means name has at least one forbidden character (e.g. +, *, /, punctuation, emoji)
+_INTERNAL_CLEAN_RE = re.compile(r"[^\w\s\-']")
 
 
 def _get_nlp(lang: str):
@@ -31,7 +66,9 @@ def _get_nlp(lang: str):
     """
     # TO DO: chose an appropriate model `de_core_news_lg`
     # is to large for the raspberry pi 4
-    model = "de_core_news_sm" if lang.startswith("de") else "en_core_web_sm"
+    # de_core_news_sm, de_core_news_md, de_core_news_lg, de_core_news_trf
+    # en_core_web_sm, en_core_web_md, en_core_web_lg, en_core_web_trf
+    model = "de_core_news_md" if lang.startswith("de") else "en_core_web_md"
     if model not in _NLP_CACHE:
         try:
             _NLP_CACHE[model] = spacy.load(model)
@@ -43,46 +80,89 @@ def _get_nlp(lang: str):
 
 def extract_named_entities(text: str, lang: str = "english") -> List[str]:
     """
-    Pull out PERSON, ORG, GPE, DATE, proper nouns, etc. from `text`.
-    Pre-clean by removing special characters and single-digit numbers.
-    If lang starts with "de", run both German and English NER and merge uniques.
+    Extract PERSON/LOC/MISC (German) or PERSON/LOC/GPE/WORK_OF_ART (English),
+    then aggressively clean:
+      - strip punctuation and emojis at ends
+      - drop entries with internal emojis or stray symbols
+      - require each word to start uppercase
     """
-    # Keep letters, numbers, whitespace, dots, semicolons, colons, and dashes
-
-    cleaned = re.sub(r"[^A-Za-z0-9ÄÖÜäöüß\s\.\;\:\-\(\)]", " ", text)
-    # 2) Strip standalone single-digit tokens
-    cleaned = re.sub(r"\b\d\b", "", cleaned)
-    # 3) Collapse multiple spaces
+    # 1) Normalize bullets & whitespace
+    # Remove leading “- ” on each line
+    no_bullets = re.sub(r"(?m)^\s*-\s*", "", text)
+    # Collapse newlines/tabs into spaces; then collapse multiple spaces down to one
+    cleaned = no_bullets.replace("\n", " ").replace("\t", " ")
     cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
 
-    def _ents_from_doc(doc) -> List[str]:
-        allowed = {
-            "PERSON",
-            "WORK_OF_ART",  # movies, books etc.
-            "GPE",  # geopolitical entities: countries, states, cities
-            "LOC",  # locations, including regions and geographical features
-            # "FAC",  # facilities: buildings ("Empire State Building") or airports
-            # "ORG",  # organizations: companies, universities, or teams
-            # "NORP",  # nationalities, religious groups, political parties
-            # "EVENT",  # events, like "Olympics" or "World Cup".
-            # "PRODUCT",  # such as "iPhone" or "Nike shoes"
-        }
-        seen = set()
-        out = []
-        for ent in doc.ents:
-            if ent.label_ in allowed:
-                e = ent.text.strip()
-                key = e.lower()
-                if key and key not in seen:
-                    seen.add(key)
-                    out.append(e)
-        return out
-
-    # choose model code
+    # 2) spaCy NER pass
     code = "de" if lang.startswith("de") else "en"
     nlp = _get_nlp(code)
     doc = nlp(cleaned)
-    return _ents_from_doc(doc)
+
+    # 3) Choose allowed labels by language
+    if code == "de":
+        allowed = DE_LABELS
+    else:
+        allowed = EN_LABELS
+
+    seen = set()
+    raw = []
+    for ent in doc.ents:
+        if ent.label_ not in allowed:
+            continue
+        # require at least one PROPN
+        if not any(tok.pos_ == "PROPN" for tok in ent):
+            continue
+        raw.append(ent.text.strip())
+
+    logger.debug(f"[NER] pre‐clean: {raw}")
+
+    # 4) Post‐filter & normalize
+    out = []
+    for name in raw:
+        # a) strip leading/trailing punctuation & emojis
+        name = name.strip(" \t\n" + "!?,.:;…—–-")  # common punctuation
+        name = _EMOJI_RE.sub("", name).strip()
+
+        # b) drop if empty or too short
+        if len(name) < 2:
+            continue
+        # c) drop if internal emojis or forbidden chars
+        if _EMOJI_RE.search(name):
+            continue
+        if _INTERNAL_CLEAN_RE.search(name):
+            continue
+        # d) require each word to start uppercase
+        # words = name.split()
+        # if not w[1].isupper() for w in words):
+        #     continue
+
+        key = name.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(name)
+
+    logger.debug(f"[NER] post‐clean: {out}")
+
+    # 5) German fallback
+    if code == "de" and not out:
+        pattern = re.compile(r"(?m)^\s*-\s*([^,]+)")
+        for m in pattern.findall(text):
+            nm = m.strip()
+            # apply same cleaning
+            nm = nm.strip(" \t\n!?,.:;…—–-")
+            nm = _EMOJI_RE.sub("", nm).strip()
+            if len(nm) < 2 or _INTERNAL_CLEAN_RE.search(nm):
+                continue
+            words = nm.split()
+            if any(not w[0].isupper() for w in words):
+                continue
+            key = nm.lower()
+            if key not in seen:
+                seen.add(key)
+                out.append(nm)
+        logger.debug(f"[NER] regex fallback => {out}")
+
+    return out
 
 
 def summarize_text(text: str, num_sentences: int, lang: str = "english") -> str:
@@ -115,7 +195,7 @@ def safe_summarize(text: str, num_sentences: int, lang: str = "en", method: str 
         try:
             parser = PlaintextParser.from_string(text, Tokenizer(attempt_lang))
 
-            logger.info(f"[Summarizer] Using {method} to summarize text in langugae '{attempt_lang}'")
+            # logger.info(f"[Summarizer] Using {method} to summarize text in langugae '{attempt_lang}'")
 
             summarizer = get_summarizer(method)
             summary_sentences = summarizer(parser.document, num_sentences)

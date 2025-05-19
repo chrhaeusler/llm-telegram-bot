@@ -144,7 +144,7 @@ class HistoryManager:
             # roll into tier1 bucket
             for k in summ.keywords:
                 self.tier1_keys.append(k)
-            logger.debug(f"[promote] tier0→1: {summ}")
+            # logger.debug(f"[promote] tier0→1: {summ}")
 
         # Tier-1 → Tier-2
         while len(self.tier1) > self.N1:

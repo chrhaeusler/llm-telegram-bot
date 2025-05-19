@@ -50,6 +50,16 @@ def summarize_history(history: list[dict]) -> str:
 
 
 # ─── Full Prompt Builder ─────────────────────────────────────────────────
+def _unique_preserve_order(items: List[str]) -> List[str]:
+    """Deduplicate a list of strings (case‐insensitive), preserving first occurrence."""
+    seen = set()
+    out = []
+    for it in items:
+        key = it.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(it)
+    return out
 
 
 def build_full_prompt(
@@ -87,9 +97,9 @@ def build_full_prompt(
     if system_enabled and rendered_jb:
         parts.append(rendered_jb)
 
-    # 2) Tier-2 OVERVIEW + NER bucket
+    # Tier-2 NERs
     tier2 = context.get("tier2", [])
-    tier2_keys = context.get("tier2_keys", [])
+    tier2_keys = _unique_preserve_order(context.get("tier2_keys", []))
     if tier2:
         parts.append("[START OF THE CONVERSATION]")
         for mega in tier2:
@@ -98,9 +108,9 @@ def build_full_prompt(
             parts.append("[NAMED ENTITIES IN START OF CONVERSATION]")
             parts.append(", ".join(tier2_keys))
 
-    # 3) Tier-1 SUMMARY + NER bucket
+    # Tier-1 text
     tier1 = context.get("tier1", [])
-    tier1_keys = context.get("tier1_keys", [])
+    tier1_keys = _unique_preserve_order(context.get("tier1_keys", []))
     if tier1:
         parts.append("[EARLY CONVERSATION]")
         for summ in tier1:
@@ -109,19 +119,21 @@ def build_full_prompt(
             parts.append("[NAMED ENTITIES IN EARLY CONVERSATION]")
             parts.append(", ".join(tier1_keys))
 
-    # 4) Tier-0 RECENT MESSAGES + NER bucket
+    # Tier-0 text
     tier0 = context.get("tier0", [])
-    tier0_keys = context.get("tier0_keys", [])
+    tier0_keys = _unique_preserve_order(context.get("tier0_keys", []))
     if tier0:
         parts.append("[RECENT CONVERSATION]")
         for msg in tier0:
             snippet = getattr(msg, "compressed", msg.text)
             parts.append(f"{msg.who}: {snippet}")
+
+        # For now do not provide named entities in tier0
         if tier0_keys:
             parts.append("[NAMED ENTITIES IN RECENT CONVERSATION]")
             parts.append(", ".join(tier0_keys))
 
-    # 5) Final user prompt
+    # Final user prompt
     parts.append("[PROMPT]")
     parts.append(user_text)
 
