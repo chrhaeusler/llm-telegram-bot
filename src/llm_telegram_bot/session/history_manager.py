@@ -3,13 +3,22 @@ import datetime
 import re
 from collections import Counter, deque
 from dataclasses import dataclass, field
-from typing import Deque, Dict
+from typing import Any, Deque, Dict, List
 
 from llm_telegram_bot.utils.logger import logger
 from llm_telegram_bot.utils.summarize import extract_named_entities, safe_summarize
 from llm_telegram_bot.utils.token_utils import count_tokens
 
-TOKENS_PER_SENTENCE = 30  # yes, TexRank like long sentences with sometime >30 tokens
+TOKENS_PER_SENTENCE = 30  # rough tokens per sentence for sentence-budgeting
+
+
+def keyword_extractor(text: str, lang: str) -> List[str]:
+    """Wrap NER extractor with safe fallback."""
+    try:
+        return extract_named_entities(text, lang=lang)
+    except Exception as e:
+        logger.warning(f"[keyword_extractor] failed: {e}")
+        return []
 
 
 @dataclass
@@ -17,279 +26,261 @@ class Message:
     ts: str
     who: str
     lang: str
-    text: str  # the raw, unmodified message
+    text: str
     tokens_text: int
-    compressed: str  # compressed text for prompt-injection
-    tokens_compressed: int  # TO DO: change this to time stamp
+    compressed: str
+    tokens_compressed: int
+    keywords: List[str] = field(default_factory=list)
 
 
 @dataclass
 class Summary:
-    who: str  # non-default
-    lang: str  # non-default
-    text: str  # non-default
-    tokens: int  # non-default
+    who: str
+    lang: str
+    text: str
+    tokens: int
     ts: datetime.datetime = field(default_factory=datetime.datetime.utcnow)
+    keywords: List[str] = field(default_factory=list)
 
 
 @dataclass
 class MegaSummary:
     text: str
-    keywords: list[str]
+    keywords: List[str]
     tokens: int
     span_start: datetime.datetime
     span_end: datetime.datetime
-    is_stub: bool = True  # a flag so your async loop can “upgrade” it via LLM
+    is_stub: bool = True
 
 
 class HistoryManager:
     """
-    Collects every incoming/outgoing message into tiered deques
-    and applies summarization later.
+    Tiered history + optional, per-tier NER buckets.
     """
 
-    # ── tuning constants ───────────────────────────────────────────────
-    FRACTION_TO_SUMMARIZE = 0.25  # % of N1 to pull each batch
-    MEGA_SENTENCES = 5  # how many sentences for the LLM summary
-    MAX_KEYWORDS = 50  # cap of rolling keyword list
+    FRACTION_TO_SUMMARIZE = 0.25
+    MEGA_SENTENCES = 5
 
     def __init__(
         self,
         bot_name: str,
         chat_id: int,
         *,
-        N0=10,
-        N1=20,
-        K=5,
-        T0_cap=100,
-        T1_cap=50,
-        T2_cap=200,
+        N0: int = 10,
+        N1: int = 20,
+        K: int = 5,
+        T0_cap: int = 100,
+        T1_cap: int = 50,
+        T2_cap: int = 200,
+        # When to extract NERs
+        extract_ner_t0_before: bool = True,  # extract NERs before summarization?
+        extract_ner_t0_after: bool = False,
+        extract_ner_t1: bool = False,  # extract NERs after tier1 summary and use these?
+        # NER parameters:
+        max_ner_t0: int = 20,
+        max_ner_t1: int = 20,
+        max_ner_t2: int = 50,
     ):
         self.bot_name = bot_name
         self.chat_id = chat_id
-        self.N0 = N0
-        self.N1 = N1
-        self.K = K
-        self.T0_cap = T0_cap
-        self.T1_cap = T1_cap
-        self.T2_cap = T2_cap
 
+        # tier caps
+        self.N0, self.N1, self.K = N0, N1, K
+        self.T0_cap, self.T1_cap, self.T2_cap = T0_cap, T1_cap, T2_cap
+
+        # NER settings
+        self.max_ner_t0 = max_ner_t0
+        self.max_ner_t1 = max_ner_t1
+        self.max_ner_t2 = max_ner_t2
+        self.extract_ner_t0_before = extract_ner_t0_before
+        self.extract_ner_t0_after = extract_ner_t0_after
+        self.extract_ner_t1 = extract_ner_t1
+
+        # data tiers
         self.tier0: Deque[Message] = deque()
         self.tier1: Deque[Summary] = deque()
         self.tier2: Deque[MegaSummary] = deque()
 
+        # rolling NER buckets per tier
+        self.tier0_keys: deque[str] = deque(maxlen=self.max_ner_t0)
+        self.tier1_keys: deque[str] = deque(maxlen=self.max_ner_t1)
+        self.tier2_keys: deque[str] = deque(maxlen=self.max_ner_t2)
+
         logger.debug(
-            f"[HistoryManager] init {bot_name}:{chat_id} → "
-            f"N0={N0}, N1={N1}, K={K}, caps=(T0={T0_cap},T1={T1_cap},T2={T2_cap})"
+            f"[HistoryManager] init {bot_name}:{chat_id} "
+            f"N0={N0},N1={N1},caps=(T0={T0_cap},T1={T1_cap},T2={T2_cap}) "
+            f"NER caps=(t0={max_ner_t0},t1={max_ner_t1},t2={max_ner_t2}) "
+            f"extract_ner_t0_before={extract_ner_t0_before},"
+            f"after={extract_ner_t0_after},t1={extract_ner_t1}"
         )
 
     def token_stats(self) -> Dict[str, int]:
-        """
-        Returns the total compressed‐token count in each tier.
-        """
         return {
-            "tier0": sum(msg.tokens_compressed for msg in self.tier0),
+            "tier0": sum(m.tokens_compressed for m in self.tier0),
             "tier1": sum(s.tokens for s in self.tier1),
             "tier2": sum(m.tokens for m in self.tier2),
         }
 
-    # (Optional) expose a method to fetch everything you’ll inject into your prompt:
-    def get_all_context(self) -> Dict[str, Deque]:
+    def get_all_context(self) -> Dict[str, Any]:
+        """
+        Returns all three tiers plus their rolling NER buckets,
+        each as a simple list for easy iteration/serialization.
+        """
         return {
-            "tier0": self.tier0,  # Deque[Message]
-            "tier1": self.tier1,  # Deque[Summary]
-            "tier2": self.tier2,  # Deque[MegaSummary]
+            "tier0": list(self.tier0),  # List[Message]
+            "tier1": list(self.tier1),  # List[Summary]
+            "tier2": list(self.tier2),  # List[MegaSummary]
+            "tier0_keys": list(self.tier0_keys),  # List[str]
+            "tier1_keys": list(self.tier1_keys),  # List[str]
+            "tier2_keys": list(self.tier2_keys),  # List[str]
         }
 
     def _maybe_promote(self) -> None:
-        # ── Tier-0 → Tier-1 ────────────────────────────────────────────
+        # Tier-0 → Tier-1
         while len(self.tier0) > self.N0:
-            old: Message = self.tier0.popleft()
-            # compress into a Summary-object (you already have _compress_t1)
-            summ: Summary = self._compress_t1(old)
+            old = self.tier0.popleft()
+            summ = self._compress_t1(old)
             self.tier1.append(summ)
-            logger.debug(f"[HistoryManager] promoted to tier1: {summ}")
+            # roll into tier1 bucket
+            for k in summ.keywords:
+                self.tier1_keys.append(k)
+            logger.debug(f"[promote] tier0→1: {summ}")
 
-        # ── Tier-1 → Tier-2 rolling mega ────────────────────────────────
+        # Tier-1 → Tier-2
         while len(self.tier1) > self.N1:
-            # decide how many tier1 summaries to fold in
-            fraction = max(1, int(self.N1 * self.FRACTION_TO_SUMMARIZE))
-            batch_size = min(fraction, self.K, len(self.tier1))
+            batch_size = min(
+                max(1, int(self.N1 * self.FRACTION_TO_SUMMARIZE)),
+                self.K,
+                len(self.tier1),
+            )
             batch = [self.tier1.popleft() for _ in range(batch_size)]
 
-            # stitch together
+            # build blob + spans
             new_blob = " ".join(s.text for s in batch)
             span_start = getattr(batch[0], "span_start", datetime.datetime.utcnow())
             span_end = getattr(batch[-1], "span_end", datetime.datetime.utcnow())
 
-            # if we already had a mega, prepend it so we never lose context
+            # prepend previous mega
             if self.tier2:
                 prev = self.tier2.popleft()
                 new_blob = prev.text + "\n\n" + new_blob
                 span_start = min(span_start, prev.span_start)
                 span_end = max(span_end, prev.span_end)
-                prev_keywords = deque(prev.keywords)
+                prev_keys = deque(prev.keywords)
             else:
-                prev_keywords = deque()
+                prev_keys = deque()
 
-            # pick the dominant language among the batch
-            langs = [getattr(s, "lang", "unknown") for s in batch]
-            non_unknown = [l for l in langs if l != "unknown"]
-            chosen_lang = non_unknown and Counter(non_unknown).most_common(1)[0][0] or "english"
+            # determine language
+            langs = [s.lang for s in batch if s.lang != "unknown"]
+            chosen_lang = Counter(langs).most_common(1)[0][0] if langs else "english"
 
-            # 1) make a steering prompt + run safe_summarize
-            steering = {
-                "de": "Fasse die folgende Unterhaltung in eine kurze Erzählung zusammen:",
-                "en": "Summarize the following conversation into a short narrative:",
-            }.get(chosen_lang[:2], "Summarize the following conversation:")
-            to_summarize = f"{steering}\n\n{new_blob}"
-
+            # summarize
             mega_text = safe_summarize(
                 new_blob,
                 num_sentences=self.MEGA_SENTENCES,
                 lang=chosen_lang,
                 method="textrank",
             )
-
             mega_tokens = min(count_tokens(mega_text), self.T2_cap)
 
-            # 2) extract NER keywords & merge de-dup into prev_keywords
-            new_keys = extract_named_entities(new_blob, lang=chosen_lang)
-            for k in new_keys:
-                if k not in prev_keywords:
-                    prev_keywords.append(k)
-            # cap rolling keywords
-            while len(prev_keywords) > self.MAX_KEYWORDS:
-                prev_keywords.popleft()
+            # take over tier1 bucket as tier2 bucket (fresh snapshot)
+            # NB: you could also re-extract here if you prefer.
+            for k in self.tier1_keys:
+                prev_keys.append(k)
+            while len(prev_keys) > self.max_ner_t2:
+                prev_keys.popleft()
 
             mega = MegaSummary(
                 text=mega_text,
-                keywords=list(prev_keywords),
+                keywords=list(prev_keys),
                 tokens=mega_tokens,
                 span_start=span_start,
                 span_end=span_end,
                 is_stub=True,
             )
             self.tier2.append(mega)
-            logger.debug(f"[HistoryManager] promoted to tier2: {mega}")
+            # roll into tier2 bucket
+            self.tier2_keys.clear()
+            for k in mega.keywords:
+                self.tier2_keys.append(k)
+
+            logger.debug(f"[promote] tier1→2: {mega}")
 
     def add_user_message(self, msg: Message) -> None:
-        """
-        Add a Message originating from the user into tier-0,
-        then trigger any necessary promotions to higher tiers.
-        """
-        # 1) compress just-in-time
+        # Tier-0 NER before or after compress
+        if self.extract_ner_t0_before:
+            msg.keywords = keyword_extractor(msg.text, msg.lang)
         self._compress_t0(msg)
-        logger.debug(
-            f"[HistoryManager] add_user_message → {msg.ts!r}@{msg.who}, "
-            f"orig={msg.tokens_text}, comp={msg.tokens_compressed}"
-        )
-        # 2) store into tier-0
-        self.tier0.append(msg)
+        if self.extract_ner_t0_after:
+            msg.keywords = keyword_extractor(msg.compressed, msg.lang)
 
+        # roll into bucket
+        for k in msg.keywords:
+            self.tier0_keys.append(k)
+
+        logger.debug(f"[add_user] {msg.who}@{msg.ts}, toks={msg.tokens_compressed}, keys={msg.keywords}")
+        self.tier0.append(msg)
         self._maybe_promote()
 
     def add_bot_message(self, msg: Message) -> None:
-        """
-        Add a Message originating from the bot (LLM reply) into tier-0,
-        then trigger any necessary promotions to higher tiers.
-        """
-        # compress LLM replies as well
+        # same as user
+        if self.extract_ner_t0_before:
+            msg.keywords = keyword_extractor(msg.text, msg.lang)
         self._compress_t0(msg)
-        logger.debug(
-            f"[HistoryManager] add_bot_message → {msg.ts!r}@{msg.who}, "
-            f"orig={msg.tokens_text}, comp={msg.tokens_compressed}"
-        )
-        self.tier0.append(msg)
+        if self.extract_ner_t0_after:
+            msg.keywords = keyword_extractor(msg.compressed, msg.lang)
 
+        for k in msg.keywords:
+            self.tier0_keys.append(k)
+
+        logger.debug(f"[add_bot] {msg.who}@{msg.ts}, toks={msg.tokens_compressed}, keys={msg.keywords}")
+        self.tier0.append(msg)
         self._maybe_promote()
 
     def remove_lettered_lists(self, text: str) -> str:
-        """
-        Remove lines that look like:
-        a) Something
-        b) Something else
-        c) Yet another
-        """
-        # This will drop any line that starts with optional whitespace,
-        # then a single lowercase letter or digit, then a parenthesis,
-        # then the rest of the line.
         cleaned = re.sub(r'(?m)^\s*[a-z0-9]\)\s.*$', '', text)
-        # And collapse any now–empty blank lines:
-        cleaned = re.sub(r'\n{2,}', '\n\n', cleaned).strip()
-        return cleaned
+        return re.sub(r'\n{2,}', '\n\n', cleaned).strip()
 
     def _compress_t0(self, msg: Message) -> None:
-        """
-        Tier-0 “compression”:
-         • if msg.tokens_text ≤ T0_cap: keep raw
-         • else: summarize down to ≈ T0_cap tokens
-        """
-        L = msg.tokens_text
-        cap = self.T0_cap
-
-        # 1) under the cap: no change
+        L, cap = msg.tokens_text, self.T0_cap
         if L <= cap:
             msg.compressed = msg.text
             msg.tokens_compressed = L
             return
 
-        # 2) otherwise we need a summary
-        # translate token-budget into sentence-budget
-        avg_toks_per_sent = TOKENS_PER_SENTENCE
-        # ensure at least 1 sentence
-        num_sents = max(1, cap // avg_toks_per_sent)
-        # do some cleaning
-        raw = msg.text.replace('...', '.')  # cleaning because "..." confuses Sumy
-        prepped = self.remove_lettered_lists(raw)
-
+        num_sents = max(1, cap // TOKENS_PER_SENTENCE)
+        prepped = self.remove_lettered_lists(msg.text.replace("...", "."))
         try:
-            summary = safe_summarize(
-                # summarize with texrank (or switch to lexrank)
-                prepped,
-                num_sentences=num_sents,
-                lang=msg.lang,
-                method="texrank",
-            )
-
+            summary = safe_summarize(prepped, num_sentences=num_sents, lang=msg.lang, method="textrank")
         except Exception as e:
-            logger.warning(f"[compress_t0] summarization failed: {e}; falling back to raw")
+            logger.warning(f"[compress_t0] failed: {e}")
             summary = msg.text
 
         msg.compressed = summary
         msg.tokens_compressed = count_tokens(summary)
 
     def _compress_t1(self, msg: Message) -> Summary:
-        """
-        Tier-1 compression:
-        Take the Tier-0 compressed message and compress it to a single sentence (~T1_cap tokens).
-        """
         cap = self.T1_cap
-
-        # 2) otherwise we need a summary
-        # translate token-budget into sentence-budget
-        avg_toks_per_sent = TOKENS_PER_SENTENCE
-        # ensure at least 1 sentence
-        num_sents = max(1, cap // avg_toks_per_sent)
-
+        num_sents = max(1, cap // TOKENS_PER_SENTENCE)
         try:
-            summary_text = safe_summarize(
-                text=msg.compressed,
-                num_sentences=num_sents,
-                lang=msg.lang,
-                method="textrank",
-            )
-
+            text = safe_summarize(msg.compressed, num_sentences=num_sents, lang=msg.lang, method="textrank")
         except Exception as e:
-            logger.warning(f"[compress_t1] summarization failed: {e}; falling back to t0 summary")
-            summary_text = msg.compressed
+            logger.warning(f"[compress_t1] failed: {e}")
+            text = msg.compressed
 
-        tokens = count_tokens(summary_text)
+        tokens = count_tokens(text)
+
+        # NER on tier1 if requested, else inherit from message
+        if self.extract_ner_t1:
+            keys = keyword_extractor(text, msg.lang)
+        else:
+            keys = msg.keywords.copy()
 
         return Summary(
             ts=msg.ts,
             who=msg.who,
             lang=msg.lang,
-            text=summary_text,
+            text=text,
             tokens=tokens,
+            keywords=keys[: self.max_ner_t1],
         )

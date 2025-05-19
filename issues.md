@@ -37,7 +37,7 @@
 - [x] `/history on|off|files|load|flush`
 - [x] Automatic load on startup (latest session file)
 - [x] Manual flush merges new entries into JSON (rotating version if too large)
-- [ ] Fix entries of `[Recent]` and do not include API errors like `LLM Char: Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`
+- [ ] Fix entries of `[Recent]` and do not include API errors like `LLM Char: Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; `Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; or just `Error from Groq: ` dont know why it is so short?
 - [ ] Unit tests for `/history` behaviors
 
 ## Phase 4 – History Summarization (🟡 In Progress)
@@ -108,6 +108,7 @@
 
 ## Phase 8 – Nice-to-Have Commands
 
+- [ ] `/dlm`: delete the last message in the history buffer and historyManager
 - [ ] `/undo`, `/reset`, `/defaults`, `/jb` (auto jailbreaks)
 - [ ] `/memory` to inspect current tiers
 - [ ] Explore speech-to-text, text-to-speech, image analysis, etc.
@@ -219,4 +220,6 @@ Running setup.py install for langdetect ... done
 DEPRECATION: breadability is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559
 
 - python3 -m spacy download de_core_news_sm
+- python3 -m spacy download de_core_news_md
 - python3 -m spacy download en_core_web_sm
+

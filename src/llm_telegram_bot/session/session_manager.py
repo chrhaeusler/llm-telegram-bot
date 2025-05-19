@@ -82,6 +82,14 @@ class Session:
             T0_cap=T0_TOKEN_CAP,  # max tokens; will be divided by 30 to get number of
             T1_cap=T1_TOKEN_CAP,  # sentences Sumy's TexRank is supposed to produce
             T2_cap=T2_TOKEN_CAP,
+            # NER extractions behavior
+            extract_ner_t0_before=True,
+            extract_ner_t0_after=False,
+            extract_ner_t1=False,
+            # NER bucket count limits
+            max_ner_t0=30,
+            max_ner_t1=20,
+            max_ner_t2=50,
         )
 
         # Start periodic flush every 10 minutes

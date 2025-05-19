@@ -53,66 +53,73 @@ def summarize_history(history: list[dict]) -> str:
 
 
 def build_full_prompt(
-    char: dict[str, Any],
-    user: dict[str, Any],
+    char: Dict[str, Any],
+    user: Dict[str, Any],
     jailbreak: Union[int, str, bool],
-    context: Dict[str, List[Any]],  # {'overview': [...], 'midterm': [...], 'recent': [...]}
+    context: Dict[str, List[Any]],  # now includes 'tier0', 'tier0_keys', etc.
     user_text: str,
     *,
     system_enabled: bool = True,
 ) -> str:
     """
-    Assemble the LLM prompt in five stages:
+    Assemble the LLM prompt in five stages, now including per-tier NER buckets:
       1) Rendered jailbreak / system instructions
-      2) [OVERVIEW] (Tier-2 aggregated summaries)
-      3) [SUMMARY] (Tier-1 intermediate summaries)
-      4) [RECENT] (Tier-0 raw or lightly-compressed messages)
+      2) [START OF THE CONVERSATION] (Tier-2 summaries)
+        + [NAMED ENTITIES IN START OF CONVERSATION] (tier2_keys)
+      3) [EARLY CONVERSATION] (Tier-1 summaries)
+        + [NAMED ENTITIES IN EARLY CONVERSATION] (tier1_keys)
+      4) [RECENT CONVERSATION] (Tier-0 messages)
+        + [NAMED ENTITIES IN RECENT CONVERSATION] (tier0_keys)
       5) [PROMPT] user's current message
     """
+    parts: List[str] = []
 
-    # 1) Render jailbreak/system block
+    # 1) System / jailbreak
     rendered_jb = ""
     if isinstance(jailbreak, str):
         jb = load_jailbreaks().get(jailbreak, {})
         tpl = jb.get("prompt", "").strip()
-        if tpl and isinstance(char, dict) and isinstance(user, dict):
+        if tpl:
             try:
                 rendered_jb = render_template(tpl, char=char, user=user)
             except Exception as e:
                 logger.warning(f"[Prompt] Skipping jailbreak render: {e}")
-
-    parts: List[str] = []
     if system_enabled and rendered_jb:
         parts.append(rendered_jb)
 
-    # 2) Tier-2 OVERVIEW
-    overview = context.get("overview", [])
-    if overview:
+    # 2) Tier-2 OVERVIEW + NER bucket
+    tier2 = context.get("tier2", [])
+    tier2_keys = context.get("tier2_keys", [])
+    if tier2:
         parts.append("[START OF THE CONVERSATION]")
-        for mega in overview:
-            parts.append(f"{mega.text}")
-        # keywords from the **last** mega summary (or combine all, up to you)
-        last_keys = overview[-1].keywords
-        if last_keys:
-            parts.append(f"[KEYWORDS DURING START OF CONVERSATION]\n{', '.join(last_keys)}")
+        for mega in tier2:
+            parts.append(mega.text)
+        if tier2_keys:
+            parts.append("[NAMED ENTITIES IN START OF CONVERSATION]")
+            parts.append(", ".join(tier2_keys))
 
-    # 3) Tier-1 SUMMARY
-    midterm = context.get("midterm", [])
-    if midterm:
+    # 3) Tier-1 SUMMARY + NER bucket
+    tier1 = context.get("tier1", [])
+    tier1_keys = context.get("tier1_keys", [])
+    if tier1:
         parts.append("[EARLY CONVERSATION]")
-        for summ in midterm:
-            # parts.append(f"- {summ.text}")  #  ({summ.tokens} toks)")
+        for summ in tier1:
             parts.append(f"{summ.who.capitalize()}: {summ.text}")
+        if tier1_keys:
+            parts.append("[NAMED ENTITIES IN EARLY CONVERSATION]")
+            parts.append(", ".join(tier1_keys))
 
-    # 4) Tier-0 RECENT MESSAGES
-    recent = context.get("recent", [])
-    if recent:
+    # 4) Tier-0 RECENT MESSAGES + NER bucket
+    tier0 = context.get("tier0", [])
+    tier0_keys = context.get("tier0_keys", [])
+    if tier0:
         parts.append("[RECENT CONVERSATION]")
-        for msg in recent:
-            who = msg.who
+        for msg in tier0:
             snippet = getattr(msg, "compressed", msg.text)
-            # toks = msg.tokens_compressed
-            parts.append(f"{who}: {snippet}")  # ({toks} toks)")
+            parts.append(f"{msg.who}: {snippet}")
+        if tier0_keys:
+            parts.append("[NAMED ENTITIES IN RECENT CONVERSATION]")
+            parts.append(", ".join(tier0_keys))
 
     # 5) Final user prompt
     parts.append("[PROMPT]")

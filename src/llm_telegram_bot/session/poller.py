@@ -283,9 +283,12 @@ class PollingLoop:
         # Build context dict for prompt
         raw_ctx = session.history_mgr.get_all_context()
         context = {
-            "recent": raw_ctx["tier0"],
-            "midterm": raw_ctx["tier1"],
-            "overview": raw_ctx["tier2"],
+            "tier0": raw_ctx["tier0"],  # recent messages
+            "tier1": raw_ctx["tier1"],  # midterm summaries
+            "tier2": raw_ctx["tier2"],  # overview/mega summaries
+            "tier0_keys": raw_ctx["tier0_keys"],  # NER bucket for recent
+            "tier1_keys": raw_ctx["tier1_keys"],  # NER bucket for midterm
+            "tier2_keys": raw_ctx["tier2_keys"],  # NER bucket for overview
         }
 
         # Render full prompt

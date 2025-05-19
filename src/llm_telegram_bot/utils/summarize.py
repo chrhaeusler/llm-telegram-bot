@@ -1,5 +1,7 @@
 # src/llm_telegram_bot/utils/summarize.py
+
 import os
+import re
 
 import nltk
 import spacy
@@ -20,8 +22,16 @@ _NLP_CACHE = {}
 
 
 def _get_nlp(lang: str):
-    """Load or cache a spaCy model for en / de fallback."""
-    model = "en_core_web_sm" if lang.startswith("en") else "de_core_news_sm"
+    """
+    Load or cache a spaCy model for en / de fallback.
+
+    Note: well, de_core_news_md is shit even for German persons and movie names,
+    but what you gonna
+
+    """
+    # TO DO: chose an appropriate model `de_core_news_lg`
+    # is to large for the raspberry pi 4
+    model = "de_core_news_sm" if lang.startswith("de") else "en_core_web_sm"
     if model not in _NLP_CACHE:
         try:
             _NLP_CACHE[model] = spacy.load(model)
@@ -33,23 +43,46 @@ def _get_nlp(lang: str):
 
 def extract_named_entities(text: str, lang: str = "english") -> List[str]:
     """
-    Pull out PERSON, ORG, GPE, DATE and proper nouns from `text`.
+    Pull out PERSON, ORG, GPE, DATE, proper nouns, etc. from `text`.
+    Pre-clean by removing special characters and single-digit numbers.
+    If lang starts with "de", run both German and English NER and merge uniques.
     """
-    # map lang token to spaCy model key
-    code = "en" if lang.startswith("en") else "de"
+    # Keep letters, numbers, whitespace, dots, semicolons, colons, and dashes
+
+    cleaned = re.sub(r"[^A-Za-z0-9ÄÖÜäöüß\s\.\;\:\-\(\)]", " ", text)
+    # 2) Strip standalone single-digit tokens
+    cleaned = re.sub(r"\b\d\b", "", cleaned)
+    # 3) Collapse multiple spaces
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+
+    def _ents_from_doc(doc) -> List[str]:
+        allowed = {
+            "PERSON",
+            "WORK_OF_ART",  # movies, books etc.
+            "GPE",  # geopolitical entities: countries, states, cities
+            "LOC",  # locations, including regions and geographical features
+            # "FAC",  # facilities: buildings ("Empire State Building") or airports
+            # "ORG",  # organizations: companies, universities, or teams
+            # "NORP",  # nationalities, religious groups, political parties
+            # "EVENT",  # events, like "Olympics" or "World Cup".
+            # "PRODUCT",  # such as "iPhone" or "Nike shoes"
+        }
+        seen = set()
+        out = []
+        for ent in doc.ents:
+            if ent.label_ in allowed:
+                e = ent.text.strip()
+                key = e.lower()
+                if key and key not in seen:
+                    seen.add(key)
+                    out.append(e)
+        return out
+
+    # choose model code
+    code = "de" if lang.startswith("de") else "en"
     nlp = _get_nlp(code)
-    doc = nlp(text)
-    ents = [ent.text for ent in doc.ents if ent.label_ in {"PERSON", "ORG", "GPE", "DATE"}]
-    # also grab proper nouns not in ents
-    # ents += [tok.text for tok in doc if tok.pos_ == "PROPN"]
-    # preserve order & dedupe
-    seen = set()
-    out = []
-    for e in ents:
-        if e.lower() not in seen:
-            seen.add(e.lower())
-            out.append(e)
-    return out
+    doc = nlp(cleaned)
+    return _ents_from_doc(doc)
 
 
 def summarize_text(text: str, num_sentences: int, lang: str = "english") -> str:
