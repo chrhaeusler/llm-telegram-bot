@@ -304,15 +304,6 @@ class PollingLoop:
         tokens_user_text = count_tokens(user_text)
         tokens_full = count_tokens(full_prompt)
 
-        # right after you build the prompt:
-        # logger.debug("[Poller] → About to log context buckets")
-
-        # # downgrade to INFO so it can’t be filtered out
-        # logger.info(f"[Poller] CONTEXT KEYS   : {list(context.keys())}")
-        # logger.info(f"[Poller] tier0 (#{len(context['tier0'])}) : {context['tier0']}")
-        # logger.info(f"[Poller] tier1 (#{len(context['tier1'])}) : {context['tier1']}")
-        # logger.info(f"[Poller] tier2 (#{len(context['tier2'])}) : {context['tier2']}")
-
         # then you log the full prompt
         logger.debug(f"[Poller] Full prompt hast ({tokens_full} toks)]\n{full_prompt}")
 
@@ -330,13 +321,14 @@ class PollingLoop:
 
         await session.send_message(
             "<b>🔢 History Manager's Token Parameters</b>:\n"
-            f"• N0: {caps.N0} msgs max; {caps.T0_cap} tokens each\n"
-            f"• N1: max {caps.N1} msgs max; {caps.T1_cap} tokens each\n"
-            f"• K:  {caps.K} batches; 5 sentences\n\n"
+            # assuming a sentences lenght of 30 tokens
+            f"• N0: {caps.N0} msgs max; {caps.T0_cap // 30} sentences each\n"
+            f"• N1: max {caps.N1} msgs max; {caps.T1_cap // 30} sentences each\n"
+            f"• K:  {caps.K} batches; {caps.T2_cap // 30} sentences\n\n"
             "<b>🧮 Current Context Usage</b>:\n"
-            f"• overview: {counts['tier2']} mega-summaries ({stats['tier2']} toks)\n"
-            f"• midterm: {counts['tier1']} summaries ({stats['tier1']} toks)\n"
-            f"• recent: {counts['tier0']} msgs ({stats['tier0']} toks)\n"
+            f"• tier2: {counts['tier2']} mega-summaries ({stats['tier2']} toks)\n"
+            f"• tier1: {counts['tier1']} summaries ({stats['tier1']} toks)\n"
+            f"• tier0: {counts['tier0']} msgs ({stats['tier0']} toks)\n"
             f"• full prompt: {tokens_full} toks\n"
             f"• your text: {tokens_user_text} toks",
             parse_mode="HTML",
@@ -407,20 +399,6 @@ class PollingLoop:
         # Update HistoryManager (for summarization))
         session.history_mgr.add_user_message(prompt_msg)
         session.history_mgr.add_bot_message(reply_msg)
-
-        if session.history_mgr.tier2 and session.history_mgr.tier2[-1].is_stub:
-            mega = session.history_mgr.tier2.pop()
-            # generate a fresh LLM narrative
-            fresh = await service.send_prompt(
-                prompt=mega.text,  # your steering+blob is already baked in
-                model=model,
-                temperature=0.3,
-                maxtoken=250,  # TO DO: make this a variable to be set in config.yaml
-            )
-            mega.text = fresh
-            mega.tokens = count_tokens(fresh)
-            mega.is_stub = False
-            session.history_mgr.tier2.append(mega)
 
         # Append to History Buffer (for recording to file)
         state.history_buffer.append(

@@ -135,75 +135,85 @@ class HistoryManager:
         }
 
     def _maybe_promote(self) -> None:
-        # Tier-0 → Tier-1
+        # Tier-0 → Tier-1 promotion
         while len(self.tier0) > self.N0:
             old = self.tier0.popleft()
             summ = self._compress_t1(old)
             self.tier1.append(summ)
-            # roll into tier1 bucket
             for k in summ.keywords:
                 self.tier1_keys.append(k)
-            # logger.debug(f"[promote] tier0→1: {summ}")
 
-        # Tier-1 → Tier-2
+        # Tier-1 → Tier-2 promotion
         while len(self.tier1) > self.N1:
+            # at least 1
+            # never more than K at once
+            # never more than you have
+            # = usually the fraction of K (at the moment 25%)
             batch_size = min(
                 max(1, int(self.N1 * self.FRACTION_TO_SUMMARIZE)),
                 self.K,
                 len(self.tier1),
             )
-            batch = [self.tier1.popleft() for _ in range(batch_size)]
 
-            # build blob + spans
-            new_blob = " ".join(s.text for s in batch)
-            span_start = getattr(batch[0], "span_start", datetime.datetime.utcnow())
-            span_end = getattr(batch[-1], "span_end", datetime.datetime.utcnow())
+            batch: list[Summary] = [self.tier1.popleft() for _ in range(batch_size)]
+            batch_blob = " ".join(s.text for s in batch)
 
-            # prepend previous mega
+            # Get time span of current batch
+            span_start = min(s.ts for s in batch)
+            span_end = max(s.ts for s in batch)
+
+            # Include previous Tier-2 summary (if exists)
             if self.tier2:
                 prev = self.tier2.popleft()
-                new_blob = prev.text + "\n\n" + new_blob
+                full_blob = prev.text + "\n\n" + batch_blob
                 span_start = min(span_start, prev.span_start)
                 span_end = max(span_end, prev.span_end)
-                prev_keys = deque(prev.keywords)
+                existing_keys = deque(prev.keywords)
             else:
-                prev_keys = deque()
+                full_blob = batch_blob
+                existing_keys = deque()
 
-            # determine language
+            # Choose language from current batch
             langs = [s.lang for s in batch if s.lang != "unknown"]
             chosen_lang = Counter(langs).most_common(1)[0][0] if langs else "english"
 
-            # calculate number of sentences for T2
+            # Summarize the full blob into Tier-2 "mega summary"
             cap = self.T2_cap
             num_sents = max(1, cap // TOKENS_PER_SENTENCE)
-            # summarize
             mega_text = safe_summarize(
-                new_blob,
+                full_blob,
                 num_sentences=num_sents,
                 lang=chosen_lang,
                 method="textrank",
             )
-            mega_tokens = min(count_tokens(mega_text), self.T2_cap)
 
-            # take over tier1 bucket as tier2 bucket (fresh snapshot)
-            # NB: you could also re-extract here if you prefer.
-            for k in self.tier1_keys:
-                prev_keys.append(k)
-            while len(prev_keys) > self.max_ner_t2:
-                prev_keys.popleft()
+            mega_tokens = count_tokens(mega_text)
 
+            # Extract fresh keywords from batch_blob only (Tier-1 summaries)
+            new_keys = deque(extract_named_entities(batch_blob, lang=chosen_lang))
+
+            # Merge with existing Tier-2 keys (from previous summary)
+            for k in new_keys:
+                existing_keys.append(k)
+
+            # Deduplicate and truncate keys
+            deduped = list(dict.fromkeys(existing_keys))  # preserves order
+            deduped = deduped[-self.max_ner_t2 :]  # keep last N only
+
+            # Save new Tier-2 mega-summary
             mega = MegaSummary(
                 text=mega_text,
-                keywords=list(prev_keys),
+                keywords=deduped,
                 tokens=mega_tokens,
                 span_start=span_start,
                 span_end=span_end,
                 is_stub=True,
             )
             self.tier2.append(mega)
-            # roll into tier2 bucket
+
+            # Refresh Tier-2 keyword bucket
             self.tier2_keys.clear()
-            for k in mega.keywords:
+            for k in deduped:
                 self.tier2_keys.append(k)
 
             logger.debug(f"[promote] tier1→2: {mega}")
@@ -220,7 +230,7 @@ class HistoryManager:
         for k in msg.keywords:
             self.tier0_keys.append(k)
 
-        logger.debug(f"[add_user] {msg.who}@{msg.ts}, toks={msg.tokens_compressed}, keys={msg.keywords}")
+        # logger.debug(f"[add_user] {msg.who} at {msg.ts}, toks={msg.tokens_compressed}, keys={msg.keywords}")
         self.tier0.append(msg)
         self._maybe_promote()
 
@@ -235,7 +245,7 @@ class HistoryManager:
         for k in msg.keywords:
             self.tier0_keys.append(k)
 
-        logger.debug(f"[add_bot] {msg.who}@{msg.ts}, toks={msg.tokens_compressed}, keys={msg.keywords}")
+        # logger.debug(f"[add_bot] {msg.who} at {msg.ts}, toks={msg.tokens_compressed}, keys={msg.keywords}")
         self.tier0.append(msg)
         self._maybe_promote()
 

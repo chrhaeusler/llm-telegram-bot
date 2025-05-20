@@ -115,7 +115,7 @@ def extract_named_entities(text: str, lang: str = "english") -> List[str]:
             continue
         raw.append(ent.text.strip())
 
-    logger.debug(f"[NER] pre‐clean: {raw}")
+    # logger.debug(f"[NER] pre‐clean: {raw}")
 
     # 4) Post‐filter & normalize
     out = []
@@ -142,7 +142,7 @@ def extract_named_entities(text: str, lang: str = "english") -> List[str]:
             seen.add(key)
             out.append(name)
 
-    logger.debug(f"[NER] post‐clean: {out}")
+    # logger.debug(f"[NER] post‐clean: {out}")
 
     # 5) German fallback
     if code == "de" and not out:
@@ -161,7 +161,6 @@ def extract_named_entities(text: str, lang: str = "english") -> List[str]:
             if key not in seen:
                 seen.add(key)
                 out.append(nm)
-        logger.debug(f"[NER] regex fallback => {out}")
 
     return out
 
