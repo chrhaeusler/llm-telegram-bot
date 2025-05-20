@@ -59,7 +59,6 @@ class HistoryManager:
     """
 
     FRACTION_TO_SUMMARIZE = 0.25
-    MEGA_SENTENCES = 5
 
     def __init__(
         self,
@@ -174,10 +173,13 @@ class HistoryManager:
             langs = [s.lang for s in batch if s.lang != "unknown"]
             chosen_lang = Counter(langs).most_common(1)[0][0] if langs else "english"
 
+            # calculate number of sentences for T2
+            cap = self.T2_cap
+            num_sents = max(1, cap // TOKENS_PER_SENTENCE)
             # summarize
             mega_text = safe_summarize(
                 new_blob,
-                num_sentences=self.MEGA_SENTENCES,
+                num_sentences=num_sents,
                 lang=chosen_lang,
                 method="textrank",
             )

@@ -20,6 +20,11 @@ from llm_telegram_bot.utils.logger import logger
 # Cache for models
 _NLP_CACHE = {}
 
+# de_core_news_sm, de_core_news_md, de_core_news_lg, de_core_news_trf
+_GERMAN_MODEL = "de_core_news_md"
+# en_core_web_sm, en_core_web_md, en_core_web_lg, en_core_web_trf
+_ENGLISH_MODEL = "en_core_web_sm"
+
 # the English labels you care about:
 _EN_LABELS = {
     "PERSON",
@@ -35,11 +40,11 @@ _EN_LABELS = {
 
 # the German labels spaCy actually uses:
 _DE_LABELS = {
-    "PER",
+    "PER",  # equivalent of english model's "PERSON"
     "MISC",  # often WORK_OF_ART or similar
     "GPE",  # geopolitical entities: countries, states, cities
     "LOC",  # locations, including regions and geographical features
-    "ORG",
+    "ORG",  # organizations: companies, universities, or teams
 }
 
 _EMOJI_RE = re.compile(
@@ -64,11 +69,7 @@ def _get_nlp(lang: str):
     but what you gonna
 
     """
-    # TO DO: chose an appropriate model `de_core_news_lg`
-    # is to large for the raspberry pi 4
-    # de_core_news_sm, de_core_news_md, de_core_news_lg, de_core_news_trf
-    # en_core_web_sm, en_core_web_md, en_core_web_lg, en_core_web_trf
-    model = "de_core_news_md" if lang.startswith("de") else "en_core_web_md"
+    model = _GERMAN_MODEL if lang.startswith("de") else _ENGLISH_MODEL
     if model not in _NLP_CACHE:
         try:
             _NLP_CACHE[model] = spacy.load(model)

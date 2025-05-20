@@ -17,12 +17,12 @@ from llm_telegram_bot.utils.logger import logger
 MAX_HISTORY_BYTES = 1_000_000
 
 # yeah just, quickly testing
-N0_MAX_MESSAGES = 15  # if odd, last msg in tier is from LLM
-N1_MAX_MESSAGES = 30
+N0_MAX_MESSAGES = 13  # if odd, last msg in tier is from LLM
+N1_MAX_MESSAGES = 55
 T2_BATCH_OF_K = 7
-T0_TOKEN_CAP = 150  # assuming 30 tokens per sentence during summarization = 5 sentencews
+T0_TOKEN_CAP = 120  # assuming 30 tokens per sentence during summarization = 4 sentencews
 T1_TOKEN_CAP = 30  # Summy will output one sentence (might be long though)
-T2_TOKEN_CAP = 90
+T2_TOKEN_CAP = 150
 
 
 # ────────────────────────────────────────────────────
