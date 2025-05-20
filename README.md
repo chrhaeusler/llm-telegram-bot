@@ -1,7 +1,6 @@
 # 🚧 llm-telegram-bot (Alpha)
 
-> **⚠️ Alpha quality** – may break, incomplete setup, won’t “just work” by `pip install`.  
-> Frequent breaking changes.
+> **⚠️ Alpha quality** (aka "it works on my computer") – won’t "just work" by `pip install`; frequent breaking changes.
 
 ## Note
 

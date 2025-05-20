@@ -156,7 +156,15 @@ class HistoryManager:
             )
 
             batch: list[Summary] = [self.tier1.popleft() for _ in range(batch_size)]
-            batch_blob = " ".join(s.text for s in batch)
+            # some cleaning of the sentences so they get summarized better
+            processed_texts = []
+            for s in batch:
+                text = s.text.rstrip()
+                if not text.endswith(('.', '!', '?')):
+                    text += "."
+                processed_texts.append(text)
+
+            batch_blob = " ".join(processed_texts)
 
             # Get time span of current batch
             span_start = min(s.ts for s in batch)
@@ -184,7 +192,7 @@ class HistoryManager:
                 full_blob,
                 num_sentences=num_sents,
                 lang=chosen_lang,
-                method="textrank",
+                method="lsa",  # or texrank or lexrank
             )
 
             mega_tokens = count_tokens(mega_text)
@@ -249,11 +257,17 @@ class HistoryManager:
         self.tier0.append(msg)
         self._maybe_promote()
 
+    # this is for chars suggestion a list of option on how to proceed the conversation
     def remove_lettered_lists(self, text: str) -> str:
         cleaned = re.sub(r'(?m)^\s*[a-z0-9]\)\s.*$', '', text)
         return re.sub(r'\n{2,}', '\n\n', cleaned).strip()
 
     def _compress_t0(self, msg: Message) -> None:
+        # always remove lettered list
+        # for chars giving options on how to proceed, like a) option 1, b) option 2
+        msg.text = self.remove_lettered_lists(msg.text.replace("...", "."))
+
+        # just take short messages as they are
         L, cap = msg.tokens_text, self.T0_cap
         if L <= cap:
             msg.compressed = msg.text
@@ -261,9 +275,14 @@ class HistoryManager:
             return
 
         num_sents = max(1, cap // TOKENS_PER_SENTENCE)
-        prepped = self.remove_lettered_lists(msg.text.replace("...", "."))
         try:
-            summary = safe_summarize(prepped, num_sentences=num_sents, lang=msg.lang, method="textrank")
+            summary = safe_summarize(
+                msg.text,
+                num_sentences=num_sents,
+                lang=msg.lang,
+                method="lsa",  # or texrank or lexrank
+            )
+
         except Exception as e:
             logger.warning(f"[compress_t0] failed: {e}")
             summary = msg.text
@@ -275,7 +294,10 @@ class HistoryManager:
         cap = self.T1_cap
         num_sents = max(1, cap // TOKENS_PER_SENTENCE)
         try:
-            text = safe_summarize(msg.compressed, num_sentences=num_sents, lang=msg.lang, method="textrank")
+            text = safe_summarize(
+                msg.compressed, num_sentences=num_sents, lang=msg.lang, method="lsa"  # or texrank or lexrank
+            )
+
         except Exception as e:
             logger.warning(f"[compress_t1] failed: {e}")
             text = msg.compressed

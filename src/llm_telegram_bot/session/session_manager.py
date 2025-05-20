@@ -18,11 +18,11 @@ MAX_HISTORY_BYTES = 1_000_000
 
 # yeah just, quickly testing
 N0_MAX_MESSAGES = 13  # if odd, last msg in tier is from LLM
-N1_MAX_MESSAGES = 40
+N1_MAX_MESSAGES = 55
 T2_BATCH_OF_K = 10  # how many tier1 summaries to batch into one mega
 T0_TOKEN_CAP = 120  # = 4 sentences (assuming 30 toks per sentence during summarization)
 T1_TOKEN_CAP = 30  # = 1 sentence during summarization
-T2_TOKEN_CAP = 150  # = 5 sentences (assuming 30 toks per sentence during summarization)
+T2_TOKEN_CAP = 120  # = 4 sentences (assuming 30 toks per sentence during summarization)
 MAX_NER_T0 = 30
 MAX_NER_T1 = 30
 MAX_NER_T2 = 50
@@ -212,7 +212,7 @@ class Session:
         N1 = self.history_mgr.N1
         K = self.history_mgr.K
         # TO DO: this should be adjusted as soon as tier-1, and tier-2 are implemented
-        recent_raw = full_buffer[-(N0 + N1 + K + 20) :]  # 20 is for keywords only
+        recent_raw = full_buffer[-(N0 + N1 + K + 5) :]  # 5 is for keywords only
 
         for entry in recent_raw:
             msg = Message(

@@ -1,11 +1,16 @@
-# Project Roadmap (Updated 2025-05-13)
+# Project Roadmap (Updated 2025-05-20)
+
+## Fixes
+
+- [ ] entries of `[Recent]` and do not include API errors like `LLM Char: Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; `Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; or just `Error from Groq: ` dont know why it is so short?
+- [ ] sent pictures are not correctly saved to disk
 
 ## Phase 0 – Development Infrastructure & CI
 
 - [ ] Add & configure pre-commit hooks (black, isort, flake8, mypy)
 - [ ] Enforce mypy typing on all public interfaces
+- [ ] `requirement.txt` and `requirements-dev.txt`
 - [ ] Create a lightweight CI pipeline to run pre-commit, pytest, mypy
-- [ ] Fix: sent pictures are not correctly saved to disk
 - [ ] Add CI status badges to README
 
 ## Phase 1 – Core Foundations & “Simple” Commands ✅
@@ -37,45 +42,40 @@
 - [x] `/history on|off|files|load|flush`
 - [x] Automatic load on startup (latest session file)
 - [x] Manual flush merges new entries into JSON (rotating version if too large)
-- [ ] Fix entries of `[Recent]` and do not include API errors like `LLM Char: Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; `Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; or just `Error from Groq: ` dont know why it is so short?
-- [ ] Unit tests for `/history` behaviors
 
-## Phase 4 – History Summarization (🟡 In Progress)
+## Phase 4 – Memory Module via History Summarization (🟡 In Progress)
 
 ### 4.1 Tier-0 “Just-In-Time” Compression
 
 - [x] if message > T0_cap, call `safe_summarize(..., sentences=T0_cap/avg)`
-- [ ] fix: now both tokens_text and tokens_compressed; but we need just tokens_text
-- [ ] fix add `lang` for language instead
 
 ### 4.2 Tier-1 Promotion
 
 - [x] When `len(tier0)>N0`, pop oldest, summarize to ≤ T1_cap tokens, wrap in `Summary`
 - [x] `Summary` now carries `ts`, `who`, `text`, `tokens`
-- [ ] add `lang`
 
 ### 4.3 Tier-2 Rolling “Mega” Summaries
 
 - [x] When `len(tier1)>N1`, batch a fraction (25% of N1) or up to `K`, combine, prepend previous mega
 - [x] Extract detecting-language, steering prompt, `safe_summarize(..., sentences=MEGA_SENTENCES)`
 - [x] Extract & merge NER keywords for English and German (limit to `MAX_KEYWORDS`)
--- [ ] `MegaSummary` holds `text`, `keywords`, `tokens`, `span_start`, `span_end`, `lang`, `source_blob`, `is_stub`
+      -- [ ] `MegaSummary` holds `text`, `keywords`, `tokens`, `span_start`, `span_end`, `lang`, `source_blob`, `is_stub`
 
 ### 4.4 Prompt Assembly & Injection
 
 - [x] build_full_prompt() order:
-  1. System / jailbreak
-  2. `[CONTEXT]` (timestamps & “last at…”)
-  3. `[OVERVIEW]` → tier2.megas
-  4. `[SUMMARY]` → tier1
-  5. `[RECENT]` → tier0 (use `msg.compressed`)
+  1. `[System]`
+  2. `[OVERVIEW]` → tier2.megas
+  3. `[SUMMARY]` → tier1
+  4. `[RECENT]` → tier0 (use `msg.compressed`)
+  5. `[CONTEXT]` (timestamps & “last at…”) (s. below)
   6. `[PROMPT]` → user text
 
 ### 4.5 Nice-to-Have: Time Awareness
 
 - [ ] Before `[PROMPT]`, inject a small block: `[CONTEXT]`: `Last message at {last_msg.ts} by {last_msg.who}. Current time is {now} to provide Weekday and Time of Day
 - [ ] Support Jinja in char config to adapt replies if gap of >2h
-- [ ]Support Jinja in persona templates for time-aware behavior
+- [ ] Support Jinja in persona templates for time-aware behavior
 
 ```jinja
 {% if (now - last_msg_dt).hours >= 2 %}
@@ -85,10 +85,11 @@
 
 ## Phase 5 – Configuration & Tuning
 
+- [ ] Maybe, switch to topic modeling for tier1 with updated weights such that old topics fade
 - [ ] Move `N0`, `N1`, `K`, `T0_cap`, `T1_cap`, `T2_cap`, etc. into `config.yaml` per-bot
 - [ ] Read parameters at startup and pass into `HistoryManager`
 - [ ] Expose `/sum [params]` to tweak summarization on the fly
-- [ ] Switch from word counts to real token counts (e.g. tiktoken)
+- [ ] `/dlm`: delete the last message in the history buffer and HistoryManager
 
 ## Phase 6 – Logging, Formatting & CLI 🟡
 
@@ -102,17 +103,17 @@
 
 - [ ] Add unit tests for each tier’s summarization logic & metrics (token savings)
 - [ ] Implement CI “smoke test”: Telegram → LLM end-to-end
-- [ ] Auto-reload tier1/tier2 on startup if file exists
+- [ ] Auto-reload tier1/tier2 on startup if file exists (however, computational load is not that high to summarize again)
 - [ ] Migrate raw history from JSON → SQLite or vector DB
+- [ ] "finalize" `run.sh`
 
 ## Phase 8 – Nice-to-Have Commands
 
-- [ ] `/dlm`: delete the last message in the history buffer and historyManager
 - [ ] `/undo`, `/reset`, `/defaults`, `/jb` (auto jailbreaks)
 - [ ] `/memory` to inspect current tiers
 - [ ] Explore speech-to-text, text-to-speech, image analysis, etc.
 
-# Project Structure & Status (Updated 2025-05-04)
+## Project Structure & Status (Updated 2025-05-04)
 
 ```bash
 ├── bin
@@ -212,6 +213,8 @@
 └── tmp                             # [x] Temporary files & downloads
 ```
 
+## Notes for `run.sh`
+
 DEPRECATION: docopt is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559
 Running setup.py install for docopt ... done
 DEPRECATION: langdetect is being installed using the legacy 'setup.py install' method, because it does not have a 'pyproject.toml' and the 'wheel' package is not installed. pip 23.1 will enforce this behaviour change. A possible replacement is to enable the '--use-pep517' option. Discussion can be found at https://github.com/pypa/pip/issues/8559
@@ -224,4 +227,3 @@ python3 -m spacy download de_core_news_md
 python3 -m spacy download en_core_web_sm
 python3 -m spacy download en_core_web_md
 ```
-

@@ -1,3 +1,4 @@
+# src/llm_telegram_bot/config/persona_loader.py
 import logging
 from pathlib import Path
 from types import SimpleNamespace
