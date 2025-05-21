@@ -322,9 +322,9 @@ class PollingLoop:
         await session.send_message(
             "<b>🔢 History Manager's Token Parameters</b>:\n"
             # assuming a sentences lenght of 30 tokens
-            f"N0: {caps.N0} msgs max; {caps.T0_cap // 30} sentences each\n"
-            f"N1: max {caps.N1} msgs max; {caps.T1_cap // 30} sentences each\n"
-            f"K:  {caps.K} batches; {caps.T2_cap // 30} sentences\n\n"
+            f"N0: {caps.N0} msgs max; {caps.T0_cap // 30} sents each\n"
+            f"N1: {caps.N1} msgs max; {caps.T1_cap // 30} sents each\n"
+            f"K:  {caps.K} batches; {caps.T2_cap // 30} sents each\n\n"
             "<b>🧮 Current Context Usage</b>:\n"
             f"tier2: {counts['tier2']} ({stats['tier2']} toks)\n"
             f"tier1: {counts['tier1']} ({stats['tier1']} toks)\n"

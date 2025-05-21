@@ -18,11 +18,11 @@ MAX_HISTORY_BYTES = 1_000_000
 
 # yeah just, quickly testing
 N0_MAX_MESSAGES = 13  # if odd, last msg in tier is from LLM
-N1_MAX_MESSAGES = 55
+N1_MAX_MESSAGES = 50
 T2_BATCH_OF_K = 10  # how many tier1 summaries to batch into one mega
 T0_TOKEN_CAP = 120  # = 4 sentences (assuming 30 toks per sentence during summarization)
 T1_TOKEN_CAP = 30  # = 1 sentence during summarization
-T2_TOKEN_CAP = 120  # = 4 sentences (assuming 30 toks per sentence during summarization)
+T2_TOKEN_CAP = 150  # = 4 sentences (assuming 30 toks per sentence during summarization)
 MAX_NER_T0 = 30
 MAX_NER_T1 = 30
 MAX_NER_T2 = 50
