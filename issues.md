@@ -104,6 +104,7 @@
 
 - [ ] `/undo`, `/reset`, `/defaults`, `/jb` (auto jailbreaks)
 - [ ] `/memory` to inspect current tiers
+- [ ] Implement more services like Chutes ([s. Free LLM Services](https://github.com/cheahjs/free-llm-api-resources?tab=readme-ov-file))
 - [ ] Explore speech-to-text, text-to-speech, image analysis, etc.
 
 ## Project Structure & Status (Updated 2025-05-04)
