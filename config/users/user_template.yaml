@@ -12,8 +12,10 @@ context:
   threshold_seconds: 3600
   template: >
     {% if delta_seconds >= user.context.threshold_seconds %}
-    Please use what you talked about last and the following temporal context of
-    your last message and what {{user.identity.name}} is writing now to tailor your next answer:
+    To tailor your next answer, use
+    what you talked about last,
+    when you wrote your last message, and the temporal distance to
+    what {{user.identity.name}} is writing now at the current time of the day:
 
     Last reply by {{ char.identity.name }} was
     on {{ day_of_week_last }}, {{ date_last }}
@@ -22,7 +24,7 @@ context:
 
     {{user.identity.name}} is writing now
     on {{ day_of_week_now }}, {{ date_now }}
-    at {{ hour_now }}:{{ minute_now }}
+    at {{ hour_now }}:{{ minute_now }}.
 
 identity:
   name: "Johnny"

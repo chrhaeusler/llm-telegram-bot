@@ -73,15 +73,9 @@
 
 ### 4.5 Nice-to-Have: Time Awareness
 
-- [ ] Before `[PROMPT]`, inject a small block: `[CONTEXT]`: `Last message at {last_msg.ts} by {last_msg.who}. Current time is {now} to provide Weekday and Time of Day
-- [ ] Support Jinja in char config to adapt replies if gap of >2h
-- [ ] Support Jinja in persona templates for time-aware behavior
-
-```jinja
-{% if (now - last_msg_dt).hours >= 2 %}
-  Wenn zwischen …
-{% endif %}
-```
+- [x] Before `[PROMPT]`, inject a small block: `[CONTEXT]`: `Last message at {last_msg.ts} by {last_msg.who}. Current time is {now} to provide Weekday and Time of Day
+- [x] Support Jinja in char config to adapt replies if gap of >2h
+- [x] Support Jinja in persona templates for time-aware behavior
 
 ## Phase 5 – Configuration & Tuning
 
