@@ -59,23 +59,22 @@
 - [x] When `len(tier1)>N1`, batch a fraction (25% of N1) or up to `K`, combine, prepend previous mega
 - [x] Extract detecting-language, steering prompt, `safe_summarize(..., sentences=MEGA_SENTENCES)`
 - [x] Extract & merge NER keywords for English and German (limit to `MAX_KEYWORDS`)
-- [ ] `MegaSummary` holds `text`, `keywords`, `tokens`, `span_start`, `span_end`, `lang`, `source_blob`, `is_stub`
 
-### 4.4 Prompt Assembly & Injection
-
-- [x] build_full_prompt() order:
-  1. `[System]`
-  2. `[OVERVIEW]` → tier2.megas
-  3. `[SUMMARY]` → tier1
-  4. `[RECENT]` → tier0 (use `msg.compressed`)
-  5. `[CONTEXT]` (timestamps & “last at…”) (s. below)
-  6. `[PROMPT]` → user text
-
-### 4.5 Nice-to-Have: Time Awareness
+### 4.4 Nice-to-Have: Time Awareness
 
 - [x] Before `[PROMPT]`, inject a small block: `[CONTEXT]`: `Last message at {last_msg.ts} by {last_msg.who}. Current time is {now} to provide Weekday and Time of Day
-- [x] Support Jinja in char config to adapt replies if gap of >2h
-- [x] Support Jinja in persona templates for time-aware behavior
+- [x] Support Jinja in user config to adapt replies if gap of >2h
+- [x] Support Jinja in user templates for time-aware behavior
+
+### 4.5 Prompt Assembly & Injection
+
+- [x] build_full_prompt() order:
+  1. `[SYSTEM]`
+  2. `[START OF THE CONVERSATION]` → tier2.megas
+  3. `[EARLY SUMMARY]` → tier1
+  4. `[RECENT CONVERSATION]` → tier0 (use `msg.compressed`)
+  5. `[CONTEXT]` (timestamps & “last at) (s. below)
+  6. `[PROMPT]` → user text
 
 ## Phase 5 – Configuration & Tuning
 
