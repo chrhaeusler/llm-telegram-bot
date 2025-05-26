@@ -2,7 +2,7 @@
 
 ## Fixes
 
-- [ ] entries of `[Recent]` and do not include API errors like `LLM Char: Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; `Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; or just `Error from Groq: ` dont know why it is so short?
+- [x] entries of `[Recent]` and do not include API errors like `LLM Char: Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; or just `Error from Groq: ` dont know why it is so short?
 - [ ] sent pictures are not correctly saved to disk
 
 ## Phase 0 – Development Infrastructure & CI

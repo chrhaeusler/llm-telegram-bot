@@ -348,7 +348,6 @@ class PollingLoop:
 
         # Record into HistoryManager
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
-        last_llm_response_time = getattr(session.history_mgr, 'last_llm_response_time', None)
 
         prompt_msg = Message(
             ts=ts,
@@ -381,6 +380,12 @@ class PollingLoop:
             # report it but do NOT record it in history
             logger.exception("[PollingLoop] LLM API error")
             await session.send_message(f"❌ LLM error: {err}")
+            return
+
+        # handle errors that come as message
+        if isinstance(reply, str) and reply.startswith("Error from"):
+            logger.error(f"[PollingLoop] LLM returned error message in response: {reply}")
+            await session.send_message(f"❌ LLM error: {reply}")
             return
 
         # detect reply language
