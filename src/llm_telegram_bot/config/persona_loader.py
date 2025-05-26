@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
+import pytz
 import yaml
 from jinja2 import Template
 
@@ -40,6 +41,13 @@ def _render_templates(data: Any, context: Dict[str, Any]) -> Any:
     else:
         logger.debug(f"Rendering string: {data} with context keys: {list(context.keys())}")
         return data
+
+def render_string_template(template_str: str, context: Dict[str, Any]) -> str:
+    try:
+        return Template(template_str).render(**context)
+    except Exception as e:
+        logger.warning(f"Prompt render error: {e}")
+        return template_str
 
 
 # ─── CHARACTERS ─────────────────────────────────────────────────────────────
@@ -122,6 +130,9 @@ def get_all_users() -> Dict[str, Dict[str, Any]]:
     return users
 
 
+# Assume _user_cache and _USER_DIR are already defined
+
+
 def get_user(user_key: str) -> Optional[Dict[str, Any]]:
     if user_key in _user_cache:
         return _user_cache[user_key]
@@ -133,16 +144,30 @@ def get_user(user_key: str) -> Optional[Dict[str, Any]]:
 
     data = _load_yaml(path)
     if data:
+        # Enrich with timezone info
+        tz_name = data.get("context", {}).get("timezone")
+        if tz_name:
+            try:
+                data["_timezone"] = pytz.timezone(tz_name)
+            except pytz.UnknownTimeZoneError:
+                logger.warning(f"Unknown timezone '{tz_name}' in user config '{user_key}', defaulting to UTC")
+                data["_timezone"] = pytz.UTC
+        else:
+            data["_timezone"] = pytz.UTC
+
         _user_cache[user_key] = data
+
     return data
 
 
-def load_user_config(user_key: Optional[str], char_data: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+def load_user_config(
+    user_key: Optional[str],
+    char_data: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
     if not user_key:
         return None
 
-    user = get_user(user_key)  # Name "get_user" is not defined
-
+    user = get_user(user_key)
     if not user:
         logger.warning(f"User '{user_key}' not found.")
         return None
@@ -150,10 +175,10 @@ def load_user_config(user_key: Optional[str], char_data: Optional[Dict[str, Any]
     context = {
         "char": char_data or {},
         "user": user,
-        "char_ns": SimpleNamespace(**(char_data or {})),  # Name "SimpleNamespace" is not defined
+        "char_ns": SimpleNamespace(**(char_data or {})),
         "user_ns": SimpleNamespace(**user),
-    }  # Name "SimpleNamespace" is not defined
+    }
 
     rendered = _render_templates(user, context)
 
-    return rendered  # Returning Any from function declared to return "dict[Any, Any] | None"
+    return rendered

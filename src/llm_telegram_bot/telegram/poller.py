@@ -1,11 +1,12 @@
 # src/telegram/poller.py
 
 import asyncio
-import datetime
 import os
 import time
+from datetime import datetime
 from typing import Any, Dict, Optional
 
+import pytz
 from langdetect import LangDetectException, detect
 
 import llm_telegram_bot.commands.handlers  # noqa: F401
@@ -180,9 +181,7 @@ class PollingLoop:
                             self.polling_interval_idle,
                         )
                         if new_int != self.current_interval:
-                            last_seen = datetime.datetime.fromtimestamp(self.last_event_time).strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            )
+                            last_seen = datetime.fromtimestamp(self.last_event_time).strftime("%Y-%m-%d %H:%M:%S")
                             logger.info(
                                 f"[Poller: Loop] No activity for {int(idle)}s (last at {last_seen}), backing off to {new_int}s"
                             )
@@ -291,13 +290,26 @@ class PollingLoop:
             "tier2_keys": raw_ctx["tier2_keys"],  # NER bucket for overview
         }
 
-        # Render full prompt
+        # Compute the two timestamps and pass them into the prompt builder
+        last_ts = session.history_mgr.last_llm_response_time
+
+        # ── Compute timezone-aware "now" ────────────────────────────
+        # session.now was set in get_session(); it’s timezone-aware.
+        now = getattr(session, "now", None)
+        if now is None:
+            # Fallback: use the user's timezone from their config, or UTC
+
+            tz = session.active_user_data.get("_timezone", pytz.UTC)
+            now = datetime.now(tz)
+
         full_prompt = build_full_prompt(
             char=session.active_char_data or {},
             user=session.active_user_data or {},
             jailbreak=state.jailbreak,
             context=context,
             user_text=user_text,
+            now=now,
+            last_llm_response_time=last_ts,
         )
 
         # count tokens
@@ -336,6 +348,7 @@ class PollingLoop:
 
         # Record into HistoryManager
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
+        last_llm_response_time = getattr(session.history_mgr, 'last_llm_response_time', None)
 
         prompt_msg = Message(
             ts=ts,

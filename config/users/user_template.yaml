@@ -3,8 +3,26 @@
 # ── Metadata ───────────────────────────────────────────────────────────
 key: john-doe # unique identifier
 role: Friend # high-level category (teacher, casual, spicy, etc.)
+
 description: > # short human-readable summary
   Just a everyday normal guy
+
+context:
+  timezone: Europe/Berlin
+  threshold_seconds: 3600
+  template: >
+    {% if delta_seconds >= user.context.threshold_seconds %}
+    Please use what you talked about last and the following temporal context of
+    your last message and what {{user.identity.name}} is writing now to tailor your next answer:
+
+    Last reply by {{ char.identity.name }} was
+    on {{ day_of_week_last }}, {{ date_last }}
+    at {{ hour_last }}:{{ minute_last }}.
+    {% endif %}
+
+    {{user.identity.name}} is writing now
+    on {{ day_of_week_now }}, {{ date_now }}
+    at {{ hour_now }}:{{ minute_now }}
 
 identity:
   name: "Johnny"

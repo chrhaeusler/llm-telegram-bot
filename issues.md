@@ -59,7 +59,7 @@
 - [x] When `len(tier1)>N1`, batch a fraction (25% of N1) or up to `K`, combine, prepend previous mega
 - [x] Extract detecting-language, steering prompt, `safe_summarize(..., sentences=MEGA_SENTENCES)`
 - [x] Extract & merge NER keywords for English and German (limit to `MAX_KEYWORDS`)
-      -- [ ] `MegaSummary` holds `text`, `keywords`, `tokens`, `span_start`, `span_end`, `lang`, `source_blob`, `is_stub`
+- [ ] `MegaSummary` holds `text`, `keywords`, `tokens`, `span_start`, `span_end`, `lang`, `source_blob`, `is_stub`
 
 ### 4.4 Prompt Assembly & Injection
 

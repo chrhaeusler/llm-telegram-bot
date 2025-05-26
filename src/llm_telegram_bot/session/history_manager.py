@@ -3,7 +3,7 @@ import datetime
 import re
 from collections import Counter, deque
 from dataclasses import dataclass, field
-from typing import Any, Deque, Dict, List
+from typing import Any, Deque, Dict, List, Optional
 
 from llm_telegram_bot.utils.logger import logger
 from llm_telegram_bot.utils.summarize import extract_named_entities, safe_summarize
@@ -104,6 +104,8 @@ class HistoryManager:
         self.tier0_keys: deque[str] = deque(maxlen=self.max_ner_t0)
         self.tier1_keys: deque[str] = deque(maxlen=self.max_ner_t1)
         self.tier2_keys: deque[str] = deque(maxlen=self.max_ner_t2)
+
+        self._last_bot_ts: Optional[datetime.datetime] = None
 
         logger.debug(
             f"[HistoryManager] init {bot_name}:{chat_id} "
@@ -240,6 +242,15 @@ class HistoryManager:
 
         # logger.debug(f"[add_user] {msg.who} at {msg.ts}, toks={msg.tokens_compressed}, keys={msg.keywords}")
         self.tier0.append(msg)
+
+        # ---- record last‐bot timestamp for context logic ----
+        try:
+            # parse your ts format "YYYY-MM-DD_HH-MM-SS"
+            self._last_bot_ts = datetime.datetime.strptime(msg.ts, "%Y-%m-%d_%H-%M-%S")
+        except Exception:
+            logger.warning(f"[HistoryManager] could not parse bot ts: {msg.ts}")
+            self._last_bot_ts = None
+
         self._maybe_promote()
 
     def add_bot_message(self, msg: Message) -> None:
@@ -318,3 +329,22 @@ class HistoryManager:
             tokens=tokens,
             keywords=keys[: self.max_ner_t1],
         )
+
+    @property
+    def last_llm_response_time(self) -> Optional[datetime.datetime]:
+        """
+        Returns the timestamp of the most recent bot (LLM) message in tier0,
+        parsed into a datetime, or None if no such message exists.
+        """
+        bot_name = self.bot_name  # the identity name used for LLM replies
+        # scan tier0 in reverse (newest messages at the end of deque)
+        for msg in reversed(self.tier0):
+            if msg.who == bot_name:
+                try:
+                    # assuming ts format is "YYYY-MM-DD_HH-MM-SS"
+                    return datetime.datetime.strptime(msg.ts, "%Y-%m-%d_%H-%M-%S")
+                except ValueError:
+                    logger.warning(f"[HistoryManager] could not parse ts: {msg.ts}")
+                    return None
+
+        return self._last_bot_ts

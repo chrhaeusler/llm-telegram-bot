@@ -8,6 +8,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import pytz
+
 from llm_telegram_bot.config.config_loader import load_config
 from llm_telegram_bot.config.persona_loader import load_char_config, load_user_config
 from llm_telegram_bot.config.schemas import BotDefaults, RootConfig, ServiceConfig
@@ -18,7 +20,7 @@ MAX_HISTORY_BYTES = 1_000_000
 
 # yeah just, quickly testing
 N0_MAX_MESSAGES = 13  # if odd, last msg in tier is from LLM
-N1_MAX_MESSAGES = 50
+N1_MAX_MESSAGES = 45
 T2_BATCH_OF_K = 10  # how many tier1 summaries to batch into one mega
 T0_TOKEN_CAP = 120  # = 4 sentences (assuming 30 toks per sentence during summarization)
 T1_TOKEN_CAP = 30  # = 1 sentence during summarization
@@ -262,38 +264,38 @@ def get_session(chat_id: int, bot_name: str) -> Session:
     if session_key not in _sessions:
         session = Session(chat_id, bot_name)
 
-        cfg: RootConfig = get_config()
-        telegram_cfg = cfg.telegram
-        bot_conf = telegram_cfg.bots.get(bot_name)
+        cfg = get_config()
+        bot_conf = cfg.telegram.bots.get(bot_name)
 
         if bot_conf and bot_conf.chat_id == chat_id:
-            # seed LLM defaults
+            # ── Seed LLM configuration ─────────────────────────────────────
             session.active_service = bot_conf.default.service
             session.active_model = bot_conf.default.model
 
-            # seed history toggle & jailbreak
+            # ── Seed feature toggles ───────────────────────────────────────
             session.history_on = bot_conf.history_enabled
             session.jailbreak = bot_conf.jailbreak
 
-            # seed persona & user keys
+            # ── Seed persona & user config keys ────────────────────────────
             session.active_char = bot_conf.char
             session.active_user = bot_conf.user
-
             session.history_file_template = (
                 bot_conf.history_file
                 or "{{user.identity.name}}_{{user.role}}_with_{{char.identity.name}}_{{char.role}}.json"
             )
 
+            # ── Load config data ───────────────────────────────────────────
             user_data = load_user_config(session.active_user, None) or {}
-            session.active_char_data = load_char_config(session.active_char, user_data) or {}
-            session.active_user_data = load_user_config(session.active_user, session.active_char_data) or {}
+            char_data = load_char_config(session.active_char, user_data) or {}
+            user_data = load_user_config(session.active_user, char_data) or {}
 
+            session.active_char_data = char_data
+            session.active_user_data = user_data
+
+            # ── Restore history (tier0) if available ──────────────────────
             try:
                 path = session.load_history_from_disk()
-                logger.info(f"[Session {chat_id}] Start-History geladen aus {path}")
-
-                # Seed in den Manager
-                from llm_telegram_bot.session.history_manager import Message
+                logger.info(f"[Session {chat_id}] History loaded from {path}")
 
                 for entry in session.history_buffer:
                     session.history_mgr.tier0.append(
@@ -308,15 +310,28 @@ def get_session(chat_id: int, bot_name: str) -> Session:
                         )
                     )
 
-                    # ---- NEW: drop loaded entries so they don’t get re-flushed ----
-                    session.history_buffer.clear()
+                session.history_buffer.clear()
 
-                logger.info(
-                    f"[Session {session.chat_id}] Loaded " f"{len(session.history_buffer)} history entries on startup"
-                )
+                logger.info(f"[Session {chat_id}] Loaded {len(session.history_mgr.tier0)} tier0 history entries.")
             except FileNotFoundError:
-                # no prior history file, start fresh
                 pass
+
+            # ── Timezone-aware now() and last LLM timestamp ────────────────
+            tz = char_data.get("_timezone") or user_data.get("_timezone") or pytz.UTC
+            session.now = datetime.now(tz)
+
+            # ── Scan history for last bot message (char name) ──────────────
+            last_ts = None
+            char_name = char_data.get("identity", {}).get("name")
+            for entry in reversed(session.history_mgr.tier0):
+                if entry.who == char_name:
+                    try:
+                        last_ts = datetime.strptime(entry.ts, "%Y-%m-%d_%H-%M-%S").replace(tzinfo=tz)
+                    except Exception:
+                        logger.warning(f"[Session {chat_id}] Failed to parse timestamp: {entry.ts}")
+                    break
+
+            session.last_llm_ts = last_ts
 
         _sessions[session_key] = session
 
