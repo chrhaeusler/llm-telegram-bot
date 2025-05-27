@@ -2,14 +2,13 @@
 
 ## Fixes
 
-- [x] entries of `[Recent]` and do not include API errors like `LLM Char: Error from Groq: 429, message='Too Many Requests', url='https://api.groq.com/openai/v1/chat/completions'`; or just `Error from Groq: ` dont know why it is so short?
 - [ ] sent pictures are not correctly saved to disk
 
 ## Phase 0 – Development Infrastructure & CI
 
 - [ ] Add & configure pre-commit hooks (black, isort, flake8, mypy)
 - [ ] Enforce mypy typing on all public interfaces
-- [ ] `requirement.txt` and `requirements-dev.txt`
+- [ ] `requirement.txt` and `requirements-dev.txt` `pip install pipreqs pip-audit renovate`, `pipreqs src --force --ignore ../.venv --savepath requirements.txt`
 - [ ] Create a lightweight CI pipeline to run pre-commit, pytest, mypy
 - [ ] Add CI status badges to README
 
