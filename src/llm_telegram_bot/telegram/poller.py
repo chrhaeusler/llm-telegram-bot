@@ -13,6 +13,7 @@ import llm_telegram_bot.commands.handlers  # noqa: F401
 from llm_telegram_bot.config.config_loader import load_config
 from llm_telegram_bot.config.schemas import BotConfig, RootConfig
 from llm_telegram_bot.llm.dispatcher import get_service_for_name
+from llm_telegram_bot.services.service_chutes import ChutesService
 from llm_telegram_bot.services.service_groq import GroqService
 from llm_telegram_bot.services.service_mistral import MistralService
 from llm_telegram_bot.session.history_manager import Message
@@ -24,12 +25,14 @@ from llm_telegram_bot.session.session_manager import (
     set_model,
     set_service,
     set_temperature,
+    set_think_blocks_on,
 )
 from llm_telegram_bot.telegram.client import TelegramClient
 from llm_telegram_bot.utils.logger import logger
 from llm_telegram_bot.utils.message_utils import (
     build_full_prompt,
     split_message,
+    strip_think_block,
 )
 from llm_telegram_bot.utils.token_utils import count_tokens
 
@@ -142,6 +145,8 @@ class PollingLoop:
             self.llm_service = GroqService(config=svc_conf)
         elif svc_name == "mistral":
             self.llm_service = MistralService(config=svc_conf)
+        elif svc_name == "chutes":
+            self.llm_service = ChutesService(config=svc_conf)
         else:
             raise ValueError(f"Unsupported service '{svc_name}'")
 
@@ -150,6 +155,7 @@ class PollingLoop:
         set_model(self.chat_id, self.bot_name, bot_cfg.default.model)
         set_temperature(self.chat_id, self.bot_name, bot_cfg.default.temperature)
         set_max_tokens(self.chat_id, self.bot_name, bot_cfg.default.maxtoken)
+        set_think_blocks_on(self.chat_id, self.bot_name, bot_cfg.default.show_think_blocks)
 
     def stop(self) -> None:
         self._running = False
@@ -349,9 +355,15 @@ class PollingLoop:
         # Record into HistoryManager
         ts = time.strftime("%Y-%m-%d_%H-%M-%S")
 
+        # handle if no user definition is chosen
+        try:
+            name = session.active_user_data["identity"]["name"]
+        except KeyError:
+            name = "None"
+
         prompt_msg = Message(
             ts=ts,
-            who=session.active_user_data["identity"]["name"],  # state.active_user,
+            who=name,  # session.active_user_data["identity"]["name"] or None,
             lang=language_user,
             text=user_text,
             tokens_text=tokens_user_text,
@@ -361,7 +373,7 @@ class PollingLoop:
 
         # Get parameter for calling LLM
         service = get_service_for_name(svc_name, svc_conf)
-        model, temp, max_tk = get_effective_llm_params(
+        model, temp, max_tk, think_bool = get_effective_llm_params(
             chat_id,
             bot_name,
             bot_def,
@@ -388,6 +400,10 @@ class PollingLoop:
             await session.send_message(f"❌ LLM error: {reply}")
             return
 
+        # strip the think block
+        if think_bool == False:
+            reply = strip_think_block(reply)
+
         # detect reply language
         try:
             language_reply = detect(reply)
@@ -400,9 +416,14 @@ class PollingLoop:
         tokens_reply = count_tokens(reply)
         logger.debug(f"[Poller] Tokens in reply: {tokens_reply}")
 
+        try:
+            name = session.active_char_data["identity"]["name"]
+        except KeyError:
+            name = "None"
+
         reply_msg = Message(
             ts=ts,
-            who=session.active_char_data["identity"]["name"],
+            who=name,
             lang=language_reply,
             text=reply,
             tokens_text=tokens_reply,

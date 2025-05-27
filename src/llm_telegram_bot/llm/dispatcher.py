@@ -2,6 +2,7 @@
 import logging
 from typing import Any, Callable, Dict
 
+from llm_telegram_bot.services.service_chutes import ChutesService
 from llm_telegram_bot.services.service_groq import GroqService
 from llm_telegram_bot.services.service_mistral import MistralService  # Assuming this exists
 
@@ -10,7 +11,8 @@ logger = logging.getLogger(__name__)
 # Mapping of service names to their respective LLM service classes
 SERVICE_FACTORIES: Dict[str, Callable] = {
     "groq": GroqService,
-    "mistral": MistralService,  # Example for Mistral service
+    "mistral": MistralService,
+    "chutes": ChutesService,  # Example for Mistral service
     # Add more services as they become available
 }
 

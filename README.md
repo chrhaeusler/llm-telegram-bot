@@ -12,7 +12,7 @@ Modular, configurable, and extendable—switch services, models, temperature, an
 
 ## Project Goal
 
-- **Bridge** Telegram ↔️ multiple LLM services
+- **Bridge** Telegram ↔️ multiple LLM services ([groq.com](https://console.groq.com/docs/models), [mistral.ai](https://docs.mistral.ai/getting-started/models/models_overview/), [chutes.ai](https://chutes.ai/app?type=llm))
 - **Maintain** conversational memory with tiered summarization
 - **Highly** configurable: services, models, tokens, personas
 

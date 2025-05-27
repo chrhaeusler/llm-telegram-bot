@@ -16,6 +16,34 @@ def iso_ts() -> str:
     return datetime.datetime.now().isoformat(timespec="seconds")
 
 
+def strip_think_block(text: str) -> str:
+    """Removes a think block from an LLM's reply
+
+    Args:
+        text (str):
+
+    Returns:
+        str: cleaned string
+    """
+
+    # 1. Cleaning of proper think bocks
+    # Non-greedy match of anything between <think>...</think>
+    # text_cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+
+    # 2. Cleaning of strings from those models that do not sent the leading <think>
+    # but just the trailing </think>
+    # Look for the first occurrence of </think>
+    end_idx = text.find("</think>")
+
+    if end_idx != -1:
+        # Remove everything up to and including </think>
+        text_cleaned = text[end_idx + len("</think>") :].lstrip()
+    else:
+        text_cleaned = text
+
+    return text_cleaned
+
+
 def split_message(text: str, limit: int = 4096) -> list[str]:
     """
     Splits a long message into chunks suitable for Telegram (max 4096 chars).
@@ -97,7 +125,7 @@ def build_full_prompt(
     date_now = now.strftime("%Y-%m-%d")
     hour_now = now.strftime("%H")
     minute_now = now.strftime("%M")
-    
+
     parts: List[str] = []
 
     # ── Stage 1: jailbreak/system ────────────────────────────────────────

@@ -14,6 +14,7 @@ from llm_telegram_bot.session.session_manager import (
     get_service,
     get_session,
     get_temperature,
+    get_think_blocks_on,
     is_paused,
     pause,
     resume,
@@ -62,6 +63,7 @@ async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) ->
     # user and char
     current_user = get_active_user(session.chat_id, bot_name)
     current_char = get_active_char(session.chat_id, bot_name)
+    think_blocks = "✅" if get_think_blocks_on(chat_id, bot_name) else "❌"
 
     # 3) Escape for HTML
     safe = html.escape
@@ -70,7 +72,8 @@ async def bot_handler(session: Any, message: dict[str, Any], args: List[str]) ->
         status,
         history,
         f"Service: {safe(service)}",
-        f"Model: {safe(model)}",
+        f"Model: <b>{safe(model)}</b>",
+        f"Show think blocks: {safe(think_blocks)}",
         f"Tokens: {safe(str(maxtoken))}",
         f"Temp: {safe(str(temperature))}",
     ]

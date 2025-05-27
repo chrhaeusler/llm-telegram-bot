@@ -3,6 +3,7 @@
 ## Fixes
 
 - [ ] sent pictures are not correctly saved to disk
+- [ ] when dropping a user or char via `/user drop` or `/char drop` does not flush history to file (as a switch of user or char does)
 
 ## Phase 0 – Development Infrastructure & CI
 
@@ -77,6 +78,7 @@
 
 ## Phase 5 – Configuration & Tuning
 
+- [ ] create command to turn on / off think blocks (and show status in output of `\bot`)
 - [ ] Maybe, switch to topic modeling for tier1 with updated weights such that old topics fade
 - [ ] Move `N0`, `N1`, `K`, `T0_cap`, `T1_cap`, `T2_cap`, etc. into `config.yaml` per-bot
 - [ ] Read parameters at startup and pass into `HistoryManager`

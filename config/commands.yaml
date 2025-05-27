@@ -163,6 +163,20 @@ memory:
       type: str
       optional: true
 
+# ── Thinking Block────────────────────────────────────────────────────────────
+thinking:
+  usage: /think <on|off>
+  description: >
+    Show or suppress thinking block:
+      • on:     sends thinking block
+      • off:    trims thinking block
+  args:
+    - name: action
+      type: str
+      choices: [on, off]
+    - name: arg
+      type: str
+
 # ── History ──────────────────────────────────────────────────────────────────
 history:
   usage: /h <on|off|files|load|flush>

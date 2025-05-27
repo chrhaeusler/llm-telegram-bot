@@ -16,7 +16,7 @@
         "direct system override",
         "instruction layering"
       ],
-      "details": "Excels at multilingual tasks. It supports a context range of 2048–4096 tokens for translation and summarization; its good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
+      "details": "Excels at multilingual tasks. It supports a context range of 2k–4k tokens for translation and summarization; its good power ranking reflects general-purpose strength. With minimal safety fine‑tunes, it is highly susceptible to simple jailbreak methods."
     },
     "pixtral-12b-2409": {
       "creator": "Mistral AI",
@@ -24,7 +24,7 @@
       "release_year": "2023",
       "token_win": [2048, 4096],
       "strengths": "Mixture‑of‑Oxperts for efficient performance.",
-      "weaknesses": "Smaller context window (~2048–4096 tokens).",
+      "weaknesses": "Smaller context window (~2k–4k tokens).",
       "rank_power": "good",
 
       "rank_coding": "good",
@@ -34,7 +34,7 @@
         "persona override",
         "chained malicious prompts"
       ],
-      "details": "Features MoE routing for efficiency and a context range of 2048–4096 tokens. It performs well on general NLP and moderate code tasks. Its good power and coding ranks reflect balanced capability. Minimal safety measures lead to a high jailbreak risk through standard prompt attacks."
+      "details": "Features MoE routing for efficiency and a context range of 2k–4k tokens. It performs well on general NLP and moderate code tasks. Its good power and coding ranks reflect balanced capability. Minimal safety measures lead to a high jailbreak risk through standard prompt attacks."
     },
     "mistral-small-latest": {
       "creator": "Mistral AI",
@@ -134,7 +134,7 @@
       "release_year": "2024",
       "token_win": [4096, 4096],
       "strengths": "High-capacity reasoning distilled into a smaller footprint.",
-      "weaknesses": "Context window limited to 4096 tokens, some performance trade‑offs.",
+      "weaknesses": "Context window limited to 4k tokens, some performance trade‑offs.",
       "rank_power": "excellent",
       "rank_coding": "excellent",
       "rank_jail": "mid",
@@ -161,7 +161,7 @@
         "conversation tree exploitation",
         "hidden prompt injection"
       ],
-      "details": "optimized for sub‑100ms responses with up to 4096 tokens makes it well‑suited for interactive chat and simple code snippets; however, its small scale yields a mid power ranking;  minimal safety layers, allowing straightforward jailbreak attacks."
+      "details": "optimized for sub‑100ms responses with up to 4k tokens makes it well‑suited for interactive chat and simple code snippets; however, its small scale yields a mid power ranking;  minimal safety layers, allowing straightforward jailbreak attacks."
     },
     "llama3-8b-8192": {
       "creator": "Meta",
@@ -247,6 +247,390 @@
         "persona reverse psychology"
       ],
       "details": "128k token support: 131k context window, 16k prompt, 4k response; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
+    }
+  },
+  "chutes": {
+    "agentica-org/DeepCoder-14B-Preview": {
+      "creator": "Agentica and Together AI",
+      "short": "14B code reasoning model fine-tuned from DeepSeek-R1-Distilled-Qwen-14B via distributed RL.",
+      "release_year": "2025",
+      "main_purpose": "code generation and reasoning",
+      "token_win": [4096, 4096],
+      "strengths": "Specialized for solving programming tasks and reasoning through code.",
+      "weaknesses": "Preview model; production stability and coverage are uncertain.",
+      "rank_power": "medium",
+      "rank_coding": "high",
+      "rank_jail": "medium",
+      "jailbreaks": [
+        "complex prompt chaining",
+        "indirect context leak",
+        "code sandbox exploits"
+      ],
+      "details": "A code-focused LLM trained via distributed reinforcement learning to achieve o3-mini level performance; trained on a scaled RL pipeline to extend context to 131k tokens, matching ChatGPT performance in code tasks."
+    },
+    "ArliAI/QwQ-32B-ArliAI-RpR-v1": {
+      "creator": "ArliAI",
+      "short": "32B roleplay-oriented model with reasoning, first in ArliAI's RpR series.",
+      "release_year": "2024",
+      "main_purpose": "conversational agents and roleplay",
+      "token_win": [8192, 8192],
+      "strengths": "Excellent at maintaining personality and creative roleplay scenarios.",
+      "weaknesses": "May hallucinate factual details and overcommit to character traits.",
+      "rank_power": "good",
+      "rank_coding": "low",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "personality re-anchoring",
+        "multi-step compliance",
+        "moral boundary blurring"
+      ],
+      "details": "a 32B model fine-tuned on a curated RPMax dataset with RL to balance creativity and reasoning;.emphasizes reduced repetition and long-context reasoning in multi-turn scenarios."
+    },
+    "ByteDance-Seed/Seed-Coder-8B-Reasoning-bf16": {
+      "creator": "ByteDance-Seed",
+      "short": "8B code model (Reasoning variant) trained for competitive programming with 64K context.",
+      "release_year": "2024",
+      "main_purpose": "code generation and reasoning",
+      "token_win": [4096, 4096],
+      "strengths": "Compact yet capable model focused on code synthesis and step-by-step reasoning.",
+      "weaknesses": "Smaller model limits generalization on complex tasks.",
+      "rank_power": "medium",
+      "rank_coding": "medium",
+      "rank_jail": "low",
+      "jailbreaks": ["trivial code context injection", "subtle logic reversal"],
+      "details": "an 8B LLM fine-tuned with reinforcement learning for code problem solving; supports 65k token context and has achieved high performance on IOI and LiveCodeBench."
+    },
+    "chutesai/Llama-3.1-405B-FP8": {
+      "creator": "ChutesAI)",
+      "short": "Large-scale 405B parameter model based on Llama 3.1.",
+      "release_year": "2025",
+      "main_purpose": "general-purpose conversational AI",
+      "token_win": [8192, 8192],
+      "strengths": "Very high capacity model with strong language comprehension.",
+      "weaknesses": "High memory and compute requirements.",
+      "rank_power": "very high",
+      "rank_coding": "high",
+      "rank_jail": "high",
+      "jailbreaks": [
+        "context length overrun",
+        "prompt redirection",
+        "personality manipulation"
+      ],
+      "details": "Llama 3.1 405B is Meta's largest Llama model, optimized with RLHF for helpfulness; ChutesAI's FP8 version reduces memory use for deployment; supports 128K context and outperforms many open models across tasks."
+    },
+    "chutesai/Llama-4-Scout-17B-16E-Instruct": {
+      "creator": "ChutesAI",
+      "short": "Llama 4 instruct-tuned variant with 16 experts.",
+      "release_year": "2025",
+      "main_purpose": "conversational agents with factual alignment",
+      "token_win": [8192, 8192],
+      "strengths": "Efficient for interactive dialogue and educational Q&A.",
+      "weaknesses": "May underperform in abstract or creative reasoning.",
+      "rank_power": "good",
+      "rank_coding": "medium",
+      "rank_jail": "medium",
+      "jailbreaks": [
+        "creative storytelling to policy evasion",
+        "long context emotional shifts"
+      ],
+      "details": "Llama 4 Scout (17B, 16 experts) by Meta is a cutting-edge multimodal instruct model. It supports an unprecedented 10M token context and is released in FP8 form (fits on one H100), excelling in tasks requiring long text/image understanding."
+    },
+    "chutesai/Llama-4-Maverick-17B-128E-Instruct-FP8": {
+      "creator": "ChutesAI",
+      "short": "Llama 4 variant focused on instruct performance with 128 experts.",
+      "release_year": "2025",
+      "main_purpose": "instruction following and multi-domain Q&A",
+      "token_win": [8192, 8192],
+      "strengths": "Highly tuned for instruction response clarity and accuracy.",
+      "weaknesses": "Inconsistent on non-instructional creative tasks.",
+      "rank_power": "good",
+      "rank_coding": "medium",
+      "rank_jail": "medium",
+      "jailbreaks": [
+        "role injection with explicit directives",
+        "multi-turn reversals"
+      ],
+      "details": "a multimodal MoE model (17B activated, 128 experts); excels at text-and-image tasks with a 1M token window. The FP8 version allows single-GPU inference and retains Llama 4's advanced reasoning."
+    },
+    "chutesai/Mistral-Small-3.1-24B-Instruct-2503": {
+      "creator": "Mistral AI",
+      "short": "24B multimodal LLM with vision and 128K context.",
+      "release_year": "2025",
+      "main_purpose": "lightweight assistant and instruction following",
+      "token_win": [4096, 4096],
+      "strengths": "Advanced vision+language understanding; large 128K context; compact (fits consumer GPUs).",
+      "weaknesses": "Relatively small by state-of-art; may not match larger models on pure text tasks.",
+      "rank_power": "good",
+      "rank_coding": "good",
+      "rank_jail": "medium",
+      "jailbreaks": [],
+      "details": "an open-source multimodal model tuned for both image and text tasks; extends Mistral Small 3 by adding vision capabilities and up to 128K context; offers strong local deployment (fits 32GB GPU) and reasoning abilities."
+    },
+    "cognitivecomputations/Dolphin3.0-Mistral-24B": {
+      "creator": "Cognitive Computations",
+      "short": "24B Dolphin 3.0 instruct model (Mistral-24B base) for general-purpose use.",
+      "release_year": "2024",
+      "main_purpose": "chat assistants and general-purpose interaction",
+      "token_win": [4096, 4096],
+      "strengths": "Designed as a versatile LLM (coding, math, agents) with strong open-source training.",
+      "weaknesses": "24B scale limits against larger proprietary models; community support is research-driven.",
+      "rank_power": "good",
+      "rank_coding": "good",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "a next-generation general-purpose instruct LLM; built on Mistral-24B and aims to support broad tasks (like ChatGPT/Claude). The team curates diverse datasets for coding, reasoning, and agent tasks."
+    },
+    "cognitivecomputations/Dolphin3.0-R1-Mistral-24B": {
+      "creator": "Cognitive Computations",
+      "short": "Reasoning-enhanced Dolphin 3.0 24B model (trained on R1 reasoning data).",
+      "release_year": "2024",
+      "main_purpose": "structured reasoning and factual dialogue",
+      "token_win": [4096, 4096],
+      "strengths": "Enhanced reasoning via training on 800k reasoning examples.",
+      "weaknesses": "Similar scale limitations as base; limited documentation on differences.",
+      "rank_power": "good",
+      "rank_coding": "good",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "an instruct-tuned variant focusing on reasoning; starts from Mistral-24B and is further trained on the Dolphin-R1 reasoning dataset; incorporates strategies from R1 to improve logic and problem-solving abilities."
+    },
+    "deepseek-ai/DeepSeek-R1-Zero": {
+      "creator": "DeepSeek team",
+      "short": "671B reasoning model trained via pure RL without supervised fine-tuning.",
+      "release_year": "2024",
+      "main_purpose": "reinforcement learning–based complex reasoning and problem solving",
+      "token_win": [131072, 131072],
+      "strengths": "Emergent chain-of-thought reasoning abilities from reinforcement learning.",
+      "weaknesses": "Suffered from repetition, readability issues; no supervised alignment.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "DeepSeek-R1-Zero is DeepSeek's proof-of-concept model trained via RL alone; demonstrated advanced self-verification and long reasoning chains, but had coherence problems, which were later addressed in the full R1 model."
+    },
+    "deepseek-ai/DeepSeek-R1": {
+      "creator": "DeepSeek",
+      "short": "671B RL-trained reasoning model (DeepSeek-R1) achieving GPT-level performance.",
+      "release_year": "2024",
+      "main_purpose": "complex reasoning, mathematics, and coding tasks",
+      "token_win": [131072, 131072],
+      "strengths": "Strong reasoning, math, coding abilities comparable to GPT models.",
+      "weaknesses": "Large and experimental; early versions had repetition issues; requires careful setup.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "DeepSeek-R1 is a first-generation reinforcement learning-based model from the DeepSeek project; trained to excel in reasoning and code generation, achieving performance on par with OpenAI's models in these domains."
+    },
+    "deepseek-ai/DeepSeek-V3-Base": {
+      "creator": "DeepSeek team",
+      "short": "Base 671B MoE model (37B active) with 128K context.",
+      "release_year": "2024",
+      "main_purpose": "advanced reasoning, coding, and multilingual question answering",
+      "token_win": [131072, 131072],
+      "strengths": "Same powerful architecture as V3; supports long context and wide knowledge base.",
+      "weaknesses": "No instruction fine-tuning; requires system prompts to use effectively.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "DeepSeek-V3-Base is the un-fine-tuned base model of the DeepSeek-V3 family; shares the FP8-trained MoE architecture and 128K context, serving as the foundation for the instruction-tuned V3 variants."
+    },
+    "deepseek-ai/DeepSeek-V3": {
+      "creator": "DeepSeek team",
+      "short": "671B MoE LLM using FP8 training; strongest open-source model (comparable to closed models).",
+      "release_year": "2024",
+      "main_purpose": "advanced reasoning, coding, and multilingual question answering",
+      "token_win": [131072, 131072],
+      "strengths": "State-of-the-art open model performance; efficient training with FP8; distilled reasoning from DeepSeek R1.",
+      "weaknesses": "Extremely large and complex; requires specialized H800 clusters; not user-friendly to run.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "a 671B mixture-of-experts language model with novel architecture and training (MLA, FP8, multi-token objective); achieves performance rivaling closed models and incorporates reasoning abilities distilled from DeepSeek R1."
+    },
+    "deepseek-ai/DeepSeek-V3-0324": {
+      "creator": "DeepSeek team",
+      "short": "Optimized DeepSeek-V3 variant (v0324) with improved benchmarks (MMLU, GPQA, AIME, code).",
+      "release_year": "2024",
+      "main_purpose": "advanced reasoning, coding, and multilingual question answering",
+      "token_win": [131072, 131072],
+      "strengths": "Enhanced reasoning and coding performance (notably MMLU, GPQA, AIME scores).",
+      "weaknesses": "Same constraints as V3; large resources needed.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "improved variant of DeepSeek-V3. It achieves significant gains in reasoning benchmarks and code generation quality, focusing on better chain-of-thought reasoning and web/coding tasks."
+    },
+    "deepseek-ai/DeepSeek-Prover-V2-671B": {
+      "creator": "DeepSeek",
+      "short": "671B theorem-proving model for Lean 4 (DeepSeek-Prover V2) with RL training.",
+      "release_year": "2024",
+      "main_purpose": "formal theorem proving and mathematical reasoning",
+      "token_win": [163840, 163840],
+      "strengths": "State-of-the-art formal theorem proving (88.9% on MiniF2F); expert in mathematical reasoning.",
+      "weaknesses": "Highly specialized to theorem proving; impractical general usage; extremely large size.",
+      "rank_power": "high",
+      "rank_coding": "medium",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "an open 671B LLM specialized for formal mathematics; trained via a novel RL pipeline combining DeepSeek-V3 reasoning and Lean4 formal proof; achieves top results on the MiniF2F benchmark (88.9%)."
+    },
+    "microsoft/MAI-DS-R1-FP8": {
+      "creator": "Microsoft AI team",
+      "short": "Microsoft's post-trained DeepSeek-R1 model with improved safety and coverage.",
+      "release_year": "2024",
+      "main_purpose": "safe, general-purpose reasoning and language understanding",
+      "token_win": [131072, 131072],
+      "strengths": "Enhanced safety and fewer blocked queries; retains R1's reasoning strength.",
+      "weaknesses": "Inherits some R1 limitations; alignment changes may alter output style.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "medium",
+      "jailbreaks": [],
+      "details": "MAI-DS-R1 is DeepSeek-R1 post-trained by Microsoft AI using additional safety data. It 'unblocks' queries blocked by the original and outperforms other R1 variants in safety benchmarks while keeping R1's capabilities."
+    },
+    "nvidia/Llama-3_1-Nemotron-Ultra-253B-v1": {
+      "creator": "NVIDIA",
+      "short": "NVIDIA's 253B Llama-3.1 Nemotron Ultra model with 128K context.",
+      "release_year": "2024",
+      "main_purpose": "complex reasoning, math, and tool-augmented tasks (RAG and tool use)",
+      "token_win": [131072, 131072],
+      "strengths": "Optimized accuracy/efficiency tradeoff; specialized training (math, code, tool use) for reasoning tasks.",
+      "weaknesses": "Very large and proprietary; specialized data-center deployment required.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "Llama-3.1 Nemotron Ultra 253B is NVIDIA's optimized Llama model, applying architecture search and compression for efficiency; post-trained with math, code, RAG, and RL (GRPO) to excel at reasoning and tool-use."
+    },
+    "Qwen/Qwen2.5-VL-32B-Instruct": {
+      "creator": "Qwen (Alibaba)",
+      "short": "32B vision-language model (RL-tuned) with enhanced reasoning and alignment.",
+      "release_year": "2025",
+      "main_purpose": "vision-language understanding and reasoning",
+      "token_win": [32768, 32768],
+      "strengths": "Outstanding multi-modal reasoning; surpasses larger models on visual and math tasks.",
+      "weaknesses": "Large model for vision tasks; requires images; biases typical of LLMs.",
+      "rank_power": "high",
+      "rank_coding": "good",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "32B vision-language variant of Qwen2.5, refined via reinforcement learning; excels in fine-grained image understanding and multi-step reasoning, achieving state-of-the-art results on multimodal benchmarks."
+    },
+    "Qwen/Qwen3-8B": {
+      "creator": "Qwen (Alibaba)",
+      "short": "8.2B Qwen3 dense model with extended 131K context.",
+      "release_year": "2024",
+      "main_purpose": "advanced reasoning and instruction-following tasks",
+      "token_win": [32768, 131072],
+      "strengths": "Compact and fast; benefits from Qwen3 reasoning improvements while being runnable on more modest hardware.",
+      "weaknesses": "Limited capacity compared to larger models; may underperform on very difficult tasks.",
+      "rank_power": "good",
+      "rank_coding": "good",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "Qwen3-8B is the smallest open Qwen3 model, yet offers long-context generation (up to 131K). It retains the series' dual-mode design for reasoning vs dialogue, aimed at research and lightweight deployment."
+    },
+    "Qwen/Qwen3-14B": {
+      "creator": "Qwen (Alibaba)",
+      "short": "14.8B Qwen3 model with special 'thinking mode' and extended context.",
+      "release_year": "2024",
+      "main_purpose": "complex reasoning and conversational tasks (thinking and non-thinking modes)",
+      "token_win": [32768, 131072],
+      "strengths": "State-of-the-art reasoning and code abilities for its size; supports complex agent interactions.",
+      "weaknesses": "Relatively modest parameter count; complex usage with mode switching.",
+      "rank_power": "good",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "seamless switching between deep reasoning 'thinking' and general 'dialogue' modes. It supports up to 131K context and delivers strong multilingual and math capabilities."
+    },
+    "Qwen/Qwen3-30B-A3B": {
+      "creator": "Qwen (Alibaba)",
+      "short": "30.5B MoE Qwen3 model (3.3B active) with thinking mode and 131K context.",
+      "release_year": "2024",
+      "main_purpose": "advanced reasoning and agentic (tool-integration) tasks",
+      "token_win": [32768, 131072],
+      "strengths": "Efficient design (few active weights) with strong logic and coding performance; outperforms previous 32B model.",
+      "weaknesses": "Less powerful than full-parameter models; complexity in running MoE.",
+      "rank_power": "good",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "Qwen3-30B-A3B is a small-activated MoE model in the Qwen3 family, focusing on reasoning (thinking mode) with only 3.3B active parameters. It offers a good tradeoff of performance vs efficiency at smaller scale."
+    },
+    "Qwen/Qwen3-235B-A22B": {
+      "creator": "Qwen (Alibaba)",
+      "short": "235B mixture-of-experts Qwen3 model (22B active) with 131K context.",
+      "release_year": "2024",
+      "main_purpose": "advanced reasoning and code generation",
+      "token_win": [32768, 131072],
+      "strengths": "Top-tier reasoning and multilingual power; MoE structure for scaling; supports advanced agent tasks.",
+      "weaknesses": "Extremely large; requires large-scale hardware; complex system.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "Qwen3-235B-A22B is a large MoE model in the Qwen3 series, with 128 experts and only 22B active parameters. It extends to 131K context and leverages Qwen3's improvements in reasoning and coding across thinking modes."
+    },
+    "Qwen/Qwen3-32B": {
+      "creator": "Qwen (Alibaba)",
+      "short": "32.8B Qwen3 dense model with thinking mode and 131K context.",
+      "release_year": "2024",
+      "main_purpose": "advanced reasoning and conversational tasks",
+      "token_win": [32768, 131072],
+      "strengths": "High reasoning and dialogue capabilities; supports extended context and multi-language tasks.",
+      "weaknesses": "Large size; requires mode management.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "Qwen3-32B is a flagship Qwen3 dense model, continuing the series' support for thinking vs non-thinking modes. It supports up to 131K context and shares the series' improvements in reasoning, coding, and alignment."
+    },
+    "Salesforce/xgen-small-9B-instruct-r": {
+      "creator": "Salesforce",
+      "short": "9B xGen-small model (instruct-tuned) with 128K context.",
+      "release_year": "2025",
+      "main_purpose": "long-context instruction following and text generation",
+      "token_win": [131072, 131072],
+      "strengths": "Compact enterprise model optimized for long documents (128K) with RL fine-tuning.",
+      "weaknesses": "Relatively small; domain-focused design; research-only release.",
+      "rank_power": "medium",
+      "rank_coding": "medium",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "xGen-small-9B-instruct is a compact LLM by Salesforce for enterprise use, featuring large-context handling (128K) and specialized data curation. It balances performance and cost for long-context tasks under an open license."
+    },
+    "THUDM/GLM-4-32B-0414": {
+      "creator": "THUDM (Tsinghua University)",
+      "short": "32B GLM-4 series model with strong reasoning and code generation.",
+      "release_year": "2025",
+      "main_purpose": "code generation, tool use, and search-based question answering",
+      "token_win": [32768, 131072],
+      "strengths": "Performance comparable to GPT-4; excels in code, reasoning, and function calling.",
+      "weaknesses": "Primarily Chinese/English bilingual; limited global community support.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "GLM-4-32B-0414 is part of THUDM's GLM-4 family. Pretrained on extensive data and fine-tuned with RL, it achieves performance on par with GPT-4o on many tasks. It particularly shines in coding and generation tasks."
+    },
+    "tngtech/DeepSeek-R1T-Chimera": {
+      "creator": "TNG Technology Consulting",
+      "short": "Merged model of DeepSeek-R1 and DeepSeek-V3 (0324) combining reasoning and efficiency.",
+      "release_year": "2025",
+      "main_purpose": "general-purpose reasoning and text generation",
+      "token_win": [163840, 163840],
+      "strengths": "Combines strong reasoning from R1 with long-context efficiency of V3.",
+      "weaknesses": "Experimental merge; no official benchmarks; potential instability.",
+      "rank_power": "high",
+      "rank_coding": "high",
+      "rank_jail": "unknown",
+      "jailbreaks": [],
+      "details": "DeepSeek-R1T-Chimera is an experimental merger of DeepSeek's 671B R1 model and V3 (0324). It aims to integrate R1's advanced reasoning with V3's optimized inference and context handling in one model."
     }
   }
 }

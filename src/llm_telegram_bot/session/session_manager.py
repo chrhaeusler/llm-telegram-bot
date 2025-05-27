@@ -34,6 +34,7 @@ MAX_NER_T2 = 50
 class ModelConfig:
     def __init__(self):
         self.model_name: Optional[str] = None
+        self.think_block_on: bool = False
         self.temperature: float = 0.7
         self.max_tokens: int = 4096
 
@@ -51,6 +52,7 @@ class Session:
         self.active_service: Optional[str] = None
         self.active_model: Optional[str] = None
         self.model_config: ModelConfig = ModelConfig()
+        self.think_block_on: Optional[bool] = True
 
         # ── Persona & Scenario ────────────────────────────
         self.active_char: Optional[str] = None
@@ -59,7 +61,6 @@ class Session:
         self.active_char_data: Optional[dict] = None
         self.active_user_data: Optional[dict] = None
 
-        # ── Legacy history buffer (for `/history`) ────────
         # ── Legacy history buffer (for `/history`) ────────
         self.history_on: bool = False
         self.history_buffer: list[dict] = []
@@ -274,6 +275,7 @@ def get_session(chat_id: int, bot_name: str) -> Session:
 
             # ── Seed feature toggles ───────────────────────────────────────
             session.history_on = bot_conf.history_enabled
+            session.think_block_on = bot_conf.default.show_think_blocks
             session.jailbreak = bot_conf.jailbreak
 
             # ── Seed persona & user config keys ────────────────────────────
@@ -376,6 +378,14 @@ def set_max_tokens(chat_id: int, bot_name: str, max_tokens: int) -> None:
     get_session(chat_id, bot_name).model_config.max_tokens = max_tokens
 
 
+def get_think_blocks_on(chat_id: int, bot_name: str) -> bool:
+    return get_session(chat_id, bot_name).model_config.think_block_on
+
+
+def set_think_blocks_on(chat_id: int, bot_name: str, think_bool: bool) -> None:
+    get_session(chat_id, bot_name).model_config.think_block_on = think_bool
+
+
 def get_effective_llm_params(
     chat_id: int,
     bot_name: str,
@@ -423,7 +433,17 @@ def get_effective_llm_params(
     else:
         max_toks = bot_default.maxtoken
 
-    return model, temperature, max_toks
+    # --- Think Block ---
+    if sess.model_config.think_block_on is not None:
+        think_bool = sess.model_config.think_block_on
+    elif sess.active_service == bot_default.service:
+        think_bool = bot_default.think_block_on
+    elif svc_conf.temperature is not None:
+        think_bool = svc_conf.think_block_on
+    else:
+        think_bool = bot_default.think_block_on
+
+    return model, temperature, max_toks, think_bool
 
 
 # ────────────────────────────────────────────────────

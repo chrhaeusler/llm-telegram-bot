@@ -38,14 +38,14 @@ async def history_handler(session: Any, message: dict, args: List[str]):
     # ─── ON ─────────────────────────────────────────
     if cmd == "on":
         sess.history_on = True
-        return await session.send_message(f"{header}\n✅ History logging enabled.", parse_mode="HTML")
+        return await session.send_message(f"{header}\nHistory logging is now enabled ✅", parse_mode="HTML")
 
     # ─── OFF ────────────────────────────────────────
     if cmd == "off":
         sess.history_on = False
         path = sess.flush_history_to_disk()
         return await session.send_message(
-            f"{header}\n✅ History logging disabled & flushed to <code>{path}</code>.",
+            f"{header}\nHistory logging is now disabled ⏸️\nHistory was flushed to\n<code>{path}</code>.",
             parse_mode="HTML",
         )
 
@@ -90,7 +90,7 @@ async def history_handler(session: Any, message: dict, args: List[str]):
             sess.history_buffer.clear()
 
             return await session.send_message(
-                f"{header}\n✅ Loaded history from <code>{path}</code>.", parse_mode="HTML"
+                f"{header}\nLoaded history from <code>{path}</code> ✅.", parse_mode="HTML"
             )
 
         except FileNotFoundError:
@@ -110,7 +110,7 @@ async def history_handler(session: Any, message: dict, args: List[str]):
         # and contains dicts with both "text" and "compressed" keys
         path = sess.flush_history_to_disk()  # AND clears sess.history_buffer
 
-        return await session.send_message(f"{header}\n✅ History flushed to <code>{path}</code>.", parse_mode="HTML")
+        return await session.send_message(f"{header}\nHistory flushed to <code>{path}</code> ✅.", parse_mode="HTML")
 
     # ─── UNKNOWN ────────────────────────────────────
     return await session.send_message(f"{header}\n⚠️ Unknown subcommand: {cmd}", parse_mode="HTML")
