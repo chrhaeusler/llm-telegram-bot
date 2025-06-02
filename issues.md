@@ -75,6 +75,7 @@
   4. `[RECENT CONVERSATION]` → tier0 (use `msg.compressed`)
   5. `[CONTEXT]` (timestamps & “last at) (s. below)
   6. `[PROMPT]` → user text
+- [ ] switch syntax to `< system >` ... `</ system >`?
 
 ## Phase 5 – Configuration & Tuning
 
@@ -98,15 +99,19 @@
 - [ ] Add unit tests for each tier’s summarization logic & metrics (token savings)
 - [ ] Implement CI “smoke test”: Telegram → LLM end-to-end
 - [ ] Auto-reload tier1/tier2 on startup if file exists (however, computational load is not that high to summarize again)
-- [ ] Migrate raw history from JSON → SQLite or vector DB
 - [ ] "finalize" `run.sh`
 
 ## Phase 8 – Nice-to-Have Commands
 
 - [ ] `/undo`, `/reset`, `/defaults`, `/jb` (auto jailbreaks)
 - [ ] `/memory` to inspect current tiers
-- [ ] Implement more services like Chutes ([s. Free LLM resources](https://github.com/cheahjs/free-llm-api-resources?tab=readme-ov-file))
+- [ ] Implement more services ([s. Free LLM resources](https://github.com/cheahjs/free-llm-api-resources?tab=readme-ov-file))
 - [ ] Explore speech-to-text, text-to-speech, image analysis, etc.
+
+## Out of scope at the moment
+
+- migrate raw history from JSON → SQLite or vector DB
+- use mem0 or langmem
 
 ## Project Structure & Status (Updated 2025-05-04)
 
