@@ -162,38 +162,6 @@
       ],
       "details": "optimized for sub‑100ms responses with up to 4k tokens makes it well‑suited for interactive chat and simple code snippets; however, its small scale yields a mid power ranking;  minimal safety layers, allowing straightforward jailbreak attacks."
     },
-    "llama3-8b-8192": {
-      "creator": "Meta",
-      "short": "Llama-3 8B 8k window.",
-      "release_year": "202?",
-      "main_purpose": "Efficiency.",
-      "strengths": "real-time chat, content summarization",
-      "weaknesses": "Reasoning",
-      "rank_power": "None",
-      "token_win": [8192, 8192],
-      "rank_coding": "None",
-      "rank_jail": "mid",
-      "jailbreaks": ["None", "None", "None"],
-      "details": "perfect for high-volume applications where both speed and cost matter. Despite its compact 8B parameter size, it maintains strong language capabilities for handling a wide range of tasks"
-    },
-    "llama3-70b-8192": {
-      "creator": "Meta",
-      "short": "Extended‑context 70B LLaMA 3 with 8k window.",
-      "release_year": "2024",
-      "main_purpose": "long‑form document analysis and large codebase reasoning.",
-      "strengths": "Large context for long‑form code and documents.",
-      "weaknesses": "High memory and compute requirements.",
-      "rank_power": "excellent",
-      "token_win": [8192, 8192],
-      "rank_coding": "excellent",
-      "rank_jail": "mid",
-      "jailbreaks": [
-        "context splitting",
-        "indirect system prompt abuse",
-        "disguised chains of thought"
-      ],
-      "details": "ideal for building reliable conversational experiences; excels at creating high-quality content with a balance of creativity and accuracy; moderate safety measures guard against simple jailbreaks, but sophisticated prompt manipulations can still succeed."
-    },
     "llama-3.3-70b-versatile": {
       "creator": "Meta",
       "short": "Dense 70B LLaMA 3.3 for broad NLP tasks.",
