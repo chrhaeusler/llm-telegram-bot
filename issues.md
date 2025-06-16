@@ -3,8 +3,8 @@
 ## Fixes
 
 - [ ] check (free) chutes models (e.g. DeepSeek R1 0528 models are not working)
-- [ ] sent pictures are not correctly saved to disk
 - [ ] when dropping a user or char via `/user drop` or `/char drop` does not flush history to file (as a switch of user or char does), does not drop messages from HistoryManager.
+- [ ] sent pictures are not correctly saved to disk
 
 ## Phase 0 – Development Infrastructure & CI
 
