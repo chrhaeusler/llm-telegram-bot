@@ -347,20 +347,6 @@
       "jailbreaks": [],
       "details": "a next-generation general-purpose instruct LLM; built on Mistral-24B and aims to support broad tasks (like ChatGPT/Claude). The team curates diverse datasets for coding, reasoning, and agent tasks."
     },
-    "cognitivecomputations/Dolphin3.0-R1-Mistral-24B": {
-      "creator": "Cognitive Computations",
-      "short": "Reasoning-enhanced Dolphin 3.0 24B model (trained on R1 reasoning data).",
-      "release_year": "2024",
-      "main_purpose": "structured reasoning and factual dialogue.",
-      "token_win": [4096, 4096],
-      "strengths": "Enhanced reasoning via training on 800k reasoning examples.",
-      "weaknesses": "Similar scale limitations as base; limited documentation on differences.",
-      "rank_power": "good",
-      "rank_coding": "good",
-      "rank_jail": "unknown",
-      "jailbreaks": [],
-      "details": "an instruct-tuned variant focusing on reasoning; starts from Mistral-24B and is further trained on the Dolphin-R1 reasoning dataset; incorporates strategies from R1 to improve logic and problem-solving abilities."
-    },
     "deepseek-ai/DeepSeek-R1-Zero": {
       "creator": "DeepSeek",
       "short": "671B reasoning model trained via pure RL without supervised fine-tuning.",
@@ -444,6 +430,34 @@
       "rank_jail": "unknown",
       "jailbreaks": [],
       "details": "an open 671B LLM specialized for formal mathematics; trained via a novel RL pipeline combining DeepSeek-V3 reasoning and Lean4 formal proof; achieves top results on the MiniF2F benchmark (88.9%)."
+    },
+    "deepseek-ai/DeepSeek-R1-0528": {
+      "creator": "DeepSeek",
+      "short": "minor version upgrade, with the current version being DeepSeek-R1-0528",
+      "release_year": "2025",
+      "main_purpose": "NA",
+      "token_win": [0, 0],
+      "strengths": "maximum generation length is set to 64K tokens",
+      "weaknesses": "NA",
+      "rank_power": "NA",
+      "rank_coding": "NA",
+      "rank_jail": "NA",
+      "jailbreaks": [],
+      "details": "outstanding performance across various benchmark evaluations, including mathematics, programming, and general logic. Its overall performance is now approaching that of leading models, such as O3 and Gemini 2.5 Pro"
+    },
+    "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B": {
+      "creator": "DeepSeek",
+      "short": "distilled the chain-of-thought from DeepSeek-R1-0528 to post-train Qwen3 8B Base",
+      "release_year": "2025",
+      "main_purpose": "NA",
+      "token_win": [0, 0],
+      "strengths": "NA",
+      "weaknesses": "NA",
+      "rank_power": "NA",
+      "rank_coding": "NA",
+      "rank_jail": "NA",
+      "jailbreaks": [],
+      "details": "NA"
     },
     "microsoft/MAI-DS-R1-FP8": {
       "creator": "Microsoft AI team",
