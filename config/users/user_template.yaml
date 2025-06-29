@@ -2,7 +2,10 @@
 
 # ── Metadata ───────────────────────────────────────────────────────────
 key: john-doe # unique identifier
-role: Friend # high-level category (teacher, casual, spicy, etc.)
+role: > # high-level category (teacher, casual, etc.)
+  friend.
+
+  John is just a everyday normal guy.
 
 description: > # short human-readable summary
   Just a everyday normal guy
@@ -29,18 +32,4 @@ context:
 identity:
   name: "Johnny"
   first: "John"
-  last: "Do"
-  age: 29
-  biography:
-    - "Born in London"
-    - "Studied economics"
-  appearance:
-    - "Chubby"
-  personality:
-    - "curious"
-    - "many interests"
-  hobbies_skills:
-    - "programming in Python"
-  interests:
-    - "Cats"
-    - "Movies"
+  last: "Doe"

@@ -1,57 +1,18 @@
-# 🚧 llm-telegram-bot (Alpha)
+# 🤖 llm-telegram-bot
 
-> **⚠️ Alpha quality** (aka "it works on my computer") – won’t "just work" by `pip install`; frequent breaking changes.
+A lightweight, modular Telegram chatbot framework. It proxies messages between a Telegram chat and one of multiple Large Language Model (LLM) services, while maintaining a persistent, tiered memory.
 
-## Note
+Built in Python, it runs smoothly on resource‑constrained hardware (e.g. Raspberry Pi) and is highly configurable for persona management, summarization strategies, and LLM provider integration.
 
-This readme is outdated every couple of days, so I'll stop updating it until I am finished
-testing the package thoroughly and put it in beta
-(s. [issues.md](/issues.md) for the current state). Anyhow:
+> ⚠️ Currently, in **Alpha testing phase** (aka "it works on my computers and I am pretty happy with it"); won’t "just work" by `pip install`; s. [issues.md](/issues.md) for the current state of the project's roadmap; do not expect major changes before my next holidays.
 
-A lightweight Python bot that proxies messages between Telegram and various LLM APIs.
-Modular, configurable, and extendable—switch services, models, temperature, and token limits on the fly.
+## What It Does
 
-## Project Goal
-
-- **Bridge** Telegram ↔️ multiple LLM services ([groq.com](https://console.groq.com/docs/models), [mistral.ai](https://docs.mistral.ai/getting-started/models/models_overview/), [chutes.ai](https://chutes.ai/app?type=llm))
-- **Maintain** conversational memory with tiered summarization
-- **Highly** configurable: services, models, tokens, personas
-
-### Sub-goals
-
-1. **Char/User Management**  
-   – pick personas with `/char`, `/user`
-2. **Stateless Routing & Polling**  
-   – `poller.py` receives updates, dispatches to LLM or handlers
-3. **In-chat Commands**  
-   – `/help`, `/service`, `/model`, `/history`, `/slp`, `/slr`
-4. **History Manager**  
-   – Tier-0 raw, Tier-1 midterm summaries, Tier-2 “mega” summaries  
-   – auto-promote & cap tokens
-5. **Prompt Builder**  
-   – inject `[SYSTEM]`, `[OVERVIEW]`, `[SUMMARY]`, `[RECENT]`, `[PROMPT]`
-
-## Project Logic
-
-1. **Startup**
-   - `run.sh` sets `PYTHONPATH`, NLTK data, spawns virtualenv, invokes `poller.py`
-2. **PollingLoop (poller.py)**
-   - instantiates `Session`, `HistoryManager`
-   - on text: detect language, build full prompt from context, call LLM service, record reply
-3. **Session & HistoryManager**
-   - `Session.history_mgr` holds 3 deques (tier0,1,2)
-   - Just-in-time compress tier0 entries, `_maybe_promote()` to tier1 & tier2
-   - periodic & manual flush to JSON files, load on persona switch & startup
-4. **Prompt Assembly**
-   - `build_full_prompt()` concatenates:
-     1. rendered system/Jailbreak
-     2. `[OVERVIEW]` (tier-2 mega summaries)
-     3. `[SUMMARY]` (tier-1 summaries)
-     4. `[RECENT]` (tier-0 compressed/raw)
-     5. `[PROMPT]` user’s new message
-5. **Commands**
-   - `/history` controls logging & flush/load
-   - `/slp`, `/slr` save last prompt/response from tier-0
+- **Multi‑Provider Support**: Out‑of‑the‑box adapters for [groq.com](https://console.groq.com/docs/models), [mistral.ai](https://docs.mistral.ai/getting-started/models/models_overview/), [chutes.ai](https://chutes.ai/app?type=llm).
+- **In‑Chat Commands**: e.g., `/help`, `/service`, `/model`, `/bot` etc. (s. [in-chat commands](/config/commands.yaml)).
+- **Persona & User Profiles**: Configure different character or user roles via YAML; switch on‑the‑fly with `/char` and `/user`.
+- **Tiered Memory**: Maintains multi-tier conversational memory with increasing summarization / compression.
+- **Dynamic Prompt Composition**: Injects system instructions, context blocks, summaries, and recent messages into each prompt.
 
 ## If you do not have a Telegram Bot yet...
 

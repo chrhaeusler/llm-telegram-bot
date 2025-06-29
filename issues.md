@@ -2,15 +2,18 @@
 
 ## Fixes
 
-- [ ] check (free) chutes models (e.g. DeepSeek R1 0528 models are not working)
-- [ ] when dropping a user or char via `/user drop` or `/char drop` does not flush history to file (as a switch of user or char does), does not drop messages from HistoryManager.
+- [ ] update templates of configuration files.
+- [ ] create **CLI runner** (bin/cli-chatbot.py) with Markdown rendering
+- [ ] test chutes models (e.g. DeepSeek R1 0528 models are not working [?])
+- [ ] when dropping a user or char via `/user drop` or `/char drop`, messages are (probably) flushed to correct history but not removed from HistoryManager.
 - [ ] sent pictures are not correctly saved to disk
 
 ## Phase 0 – Development Infrastructure & CI
 
 - [ ] Add & configure pre-commit hooks (black, isort, flake8, mypy)
 - [ ] Enforce mypy typing on all public interfaces
-- [ ] `requirement.txt` and `requirements-dev.txt` `pip install pipreqs pip-audit renovate`, `pipreqs src --force --ignore ../.venv --savepath requirements.txt`
+- [ ] Create `requirement.txt` and `requirements-dev.txt`
+- [ ] `pip install pipreqs pip-audit renovate`, `pipreqs src --force --ignore ../.venv --savepath requirements.txt`
 - [ ] Create a lightweight CI pipeline to run pre-commit, pytest, mypy
 - [ ] Add CI status badges to README
 
@@ -80,9 +83,9 @@
 
 ## Phase 5 – Configuration & Tuning
 
-- [ ] create command to turn on / off think blocks (and show status in output of `\bot`)
-- [ ] Maybe, switch to topic modeling for tier1 with updated weights such that old topics fade
-- [ ] Move `N0`, `N1`, `K`, `T0_cap`, `T1_cap`, `T2_cap`, etc. into `config.yaml` per-bot
+- [x] create command `think on|off` to turn on / off showing think blocks
+- [ ] Maybe, switch to topic modeling for tier2 with updated weights such that old topics fade
+- [ ] Move parameters for summary (e.g., `N0`, `N1`, `K`, `T0_cap`, `T1_cap`, `T2_cap`) into `config.yaml` per-bot
 - [ ] Read parameters at startup and pass into `HistoryManager`
 - [ ] Expose `/sum [params]` to tweak summarization on the fly
 - [ ] `/dlm`: delete the last message in the history buffer and HistoryManager
@@ -92,7 +95,6 @@
 - [x] Enhanced send_message logs (chat_id, duration, preview)
 - [x] HTML‐safe escapes for all outgoing messages
 - [x] telegram_splitter.py for Telegram’s 4096-char limit
-- [ ] CLI runner (bin/cli-chatbot.py) with Markdown rendering
 - [ ] Update README.md with examples
 
 ## Phase 7 – Mid-Term & Testing
@@ -107,12 +109,12 @@
 - [ ] `/undo`, `/reset`, `/defaults`, `/jb` (auto jailbreaks)
 - [ ] `/memory` to inspect current tiers
 - [ ] Implement more services ([s. Free LLM resources](https://github.com/cheahjs/free-llm-api-resources?tab=readme-ov-file))
-- [ ] Explore speech-to-text, text-to-speech, image analysis, etc.
+- [ ] Implement other models: image analysis, text-to-speech, speech-to-text
 
 ## Out of scope at the moment
 
-- migrate raw history from JSON → SQLite or vector DB
-- use mem0 or langmem
+- use graph database to improve memory / replies
+- use langmem or mem0
 
 ## Project Structure & Status (Updated 2025-05-04)
 
