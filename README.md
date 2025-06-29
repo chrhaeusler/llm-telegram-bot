@@ -10,9 +10,9 @@ Built in Python, it runs smoothly on resource‑constrained hardware (e.g. Raspb
 
 - **Multi‑Provider Support**: Out‑of‑the‑box adapters for [groq.com](https://console.groq.com/docs/models), [mistral.ai](https://docs.mistral.ai/getting-started/models/models_overview/), [chutes.ai](https://chutes.ai/app?type=llm).
 - **In‑Chat Commands**: e.g., `/help`, `/service`, `/model`, `/bot` etc. (s. [in-chat commands](/config/commands.yaml)).
-- **Persona & User Profiles**: Configure different character or user roles via YAML; switch on‑the‑fly with `/char` and `/user`.
+- **Char & User Profiles**: Configure different roles for the LLM and user via YAML; switch on‑the‑fly with `/char` and `/user`.
 - **Tiered Memory**: Maintains multi-tier conversational memory with increasing summarization / compression.
-- **Dynamic Prompt Composition**: Injects system instructions, context blocks, summaries, and recent messages into each prompt.
+- **Dynamic Prompt Composition**: Injects system instructions, context blocks, summaries of earlier messages, and recent messages into each prompt.
 
 ## If you do not have a Telegram Bot yet...
 
@@ -22,6 +22,12 @@ Built in Python, it runs smoothly on resource‑constrained hardware (e.g. Raspb
    - `https://api.telegram.org/bot12345678:xxxxxxxxxx:yyyyyyyyyyyyy_zzzzzzzzzzzzzzzzzzzzz/getUpdates"
 
 ## Usage
+
+adjust:
+
+- [config-template.yaml](/config/config-template.yaml) (note: outdated!)
+- [role config of LLM char](config/chars/char_template.yaml)
+- [role config of user chars](/config/users/user_template.yaml)
 
 ```bash
 ./run.sh
