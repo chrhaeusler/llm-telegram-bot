@@ -1,24 +1,34 @@
 # Configuration for LLM bot integration
-# Make sure to save as "config.yaml" so it will be ignore by git
-# ANY comments will be overwritten by the script if you set your current bot
-# (service, model, temperature, maximum tokens) as defaults!
+# Make sure to save as "config.yaml" (will be ignored bit git)
 
 # Supported LLM services and credentials
 services:
+  chutes:
+    enabled: true
+    endpoint: "https://llm.chutes.ai/v1/chat/completions"
+    api_key: "<your_token>"
+    model: "deepseek-ai/DeepSeek-V3" # the services default model = elected that model when switching from a bot's default services
+    show_think_blocks: false
+    timeout: 90 # seconds
+    retries: 3
+    model_params:
+
   groq:
     enabled: true
     endpoint: "https://api.groq.com/openai/v1/chat/completions"
     api_key: "<your_token>"
-    model: "compound-beta" # the service's default mode = select that model when switching a bot from its default service to groq
-    timeout: 30 # seconds
+    model: "compound-beta" # the services default model = elected that model when switching from a bot's default services
+    show_think_blocks: false
+    timeout: 90 # seconds
     retries: 3
 
   mistral:
     enabled: true
     endpoint: "https://api.mistral.ai/v1/chat/completions"
     api_key: "<your_token>"
-    model: "mistral-small-latest" # the services default model = elected that model when switching a bot from its default service to mistral
-    timeout: 30 # seconds
+    model: "mistral-small-latest" # the services default model = elected that model when switching from a bot's default services
+    show_think_blocks: false
+    timeout: 90 # seconds
     retries: 3
 
 # Config for Telegram & its Bots
@@ -44,27 +54,19 @@ telegram:
     logging_enabled: true # Whether to log messages to console
     history_enabled: true # Whether to save conversation to file
     history_flush_count: 5
-    jailbreak: "ultimate_freeform" # the standard jailbreak to use (false = off)
+    jailbreak: "developer_mode" # the standard jailbreak to use (false = off)
     history_file: "{{user.identity.name}}_{{user.role}}_with_{{char.identity.name}}_{{char.role}}.json"
 
     # LLM default config for this bots
     default:
       service: groq
-      model: llama-3.1-8b-instant
+      model: compound-beta # or, e.g., llama-3.1-8b-instant
+      show_think_blocks: false
       temperature: 0.7
       maxtoken: 4096
       top_p: 0.9 # New parameter for controlling the nucleus sampling
       frequency_penalty: 0.5 # New parameter for controlling the model's penalization of frequent tokens
       presence_penalty: 0.5 # New parameter for controlling the model's penalization of previously mentioned tokens
-
-    # per‐bot tiered history parameters:
-    history_tiers:
-      N0: 10 # number of raw messages to keep in Tier-0
-      N1: 20 # number of summaries to keep in Tier-1
-      K: 5 # how many Tier-1 entries to batch into Tier-2
-      T0_cap: 100 # max tokens for Tier-0 summaries
-      T1_cap: 50 # max tokens for Tier-1 summaries
-      T2_cap: 200 # max tokens for Tier-2 (mega) summaries
 
   bot_2:
     enabled: true
@@ -73,44 +75,38 @@ telegram:
     token: "12345678:AAFoxxxxn0hwA-2TVSxxxNf4c"
     chat_id: 291254423
 
-	polling_active_period: 600 # after this many seconds of inactivity back off from polling_interval_active to polling_interval_idle
-    polling_interval_active: 2 # bot-specific override of global default
-    polling_interval_idle: 120 # increment waiting intervall after this is reached
-
     char: char_template
     user: user_template
+
+    polling_active_period: 1200 # after this many seconds of inactivity back off from polling_interval_active to polling_interval_idle
+    polling_interval_active: 2 # bot-specific override of global default
+    polling_interval_idle: 120 # increment waiting intervall after this is reached
 
     # Chatbot-specific behavior
     command_prefix: "/" # Slash command prefix (e.g. /help)
     logging_enabled: true # Whether to log messages to console
     history_enabled: true # Whether to save conversation to file
     history_flush_count: 5
-    jailbreak: "ultimate_freeform" # the standard jailbreak to use (false = off)
+    jailbreak: "developer_mode" # the standard jailbreak to use (false = off)
     history_file: "{{user.identity.name}}_{{user.role}}_with_{{char.identity.name}}_{{char.role}}.json"
 
     # LLM default config for this bot
     default:
       service: groq # the bots default serice!
       model: meta-llama/llama-4-maverick-17b-128e-instruct # the bots default model
+      show_think_blocks: false
       temperature: 0.7
       maxtoken: 4096
+
       top_p: 0.9 # nucleus sampling
       frequency_penalty: 0.5 # penalization of frequent tokens
       presence_penalty: 0.5 # penalization of previously mentioned tokens
-
-    # per‐bot tiered history parameters:
-    history_tiers:
-      N0: 10 # number of raw messages to keep in Tier-0
-      N1: 20 # number of summaries to keep in Tier-1
-      K: 5 # how many Tier-1 entries to batch into Tier-2
-      T0_cap: 100 # max tokens for Tier-0 summaries
-      T1_cap: 50 # max tokens for Tier-1 summaries
-      T2_cap: 200 # max tokens for Tier-2 (mega) summaries
 
 # Hard reset values when resetting a bot to defaults (via /reset)
 factorydefault:
   service: groq
   model: compound-beta
+  show_think_blocks: false
   temperature: 1
   maxtoken: 4096
   top_p: 0.9 # nucleus sampling

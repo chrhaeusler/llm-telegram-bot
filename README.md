@@ -25,7 +25,7 @@ Built in Python, it runs smoothly on resource‑constrained hardware (e.g. Raspb
 
 adjust:
 
-- [config-template.yaml](/config/config-template.yaml) (note: outdated!)
+- [config-template.yaml](/config/config-template.yaml)
 - [role config of LLM char](config/chars/char_template.yaml)
 - [role config of user chars](/config/users/user_template.yaml)
 
