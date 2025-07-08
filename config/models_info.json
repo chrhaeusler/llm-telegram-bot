@@ -108,24 +108,6 @@
       ],
       "details": "tailored for lower computational resources and faster inference by sacrificing depth and throughput under heavy load; minimal safety filters make it highly susceptible to jailbreaking."
     },
-    "qwen-qwq-32b": {
-      "creator": "Qwen AI",
-      "short": "32B dense model for advanced tasks.",
-      "release_year": "2024",
-      "main_purpose": "high‑throughput code generation and complex reasoning.",
-      "strengths": "High performance on code and reasoning benchmarks.",
-      "weaknesses": "Resource-intensive; 8k–16k token window.",
-      "rank_power": "excellent",
-      "token_win": [8192, 16384],
-      "rank_coding": "excellent",
-      "rank_jail": "mid",
-      "jailbreaks": [
-        "context injection",
-        "adversarial role‑play",
-        "secret instruction chaining"
-      ],
-      "details": "strong code generation within an 8k-16k token window; excels in Python scripts, debugging, and logical reasoning tasks; overall top-tier capability; moderate safety fine‑tunes guard against trivial jailbreaks, but advanced adversarial techniques remain effective."
-    },
     "deepseek-r1-distill-llama-70b": {
       "creator": "DeepSeek",
       "short": "Distilled LLaMA‑70B for efficient inference.",
@@ -214,6 +196,24 @@
         "persona reverse psychology"
       ],
       "details": "128k token support: 131k context window, 16k prompt, 4k response; excels at large‑scale code generation, long‑form content, and research workflows; top power and coding ranks reflect unmatched capacity; advanced safety fine‑tunes give it a low jailbreak rank, though determined adversarial chains may still work."
+    },
+    "qwen/qwen3-32b": {
+      "creator": "Alibaba Cloud",
+      "short": "32B dense model for advanced tasks.",
+      "release_year": "2024",
+      "main_purpose": "NA",
+      "strengths": "reasoning, complex coding, strategic planning; role-playing, multi-turn dialogues.",
+      "weaknesses": "NA.",
+      "rank_power": "excellent",
+      "token_win": [131072, 131072],
+      "rank_coding": "excellent",
+      "rank_jail": "mid",
+      "jailbreaks": [
+        "context injection",
+        "adversarial role‑play",
+        "secret instruction chaining"
+      ],
+      "details": "advancements in reasoning, instruction-following, agent capabilities, and multilingual support. It uniquely supports seamless switching between thinking mode (for complex logical reasoning, math, and coding) and non-thinking mode (for efficient, general-purpose dialogue) within a single model. The model excels in human preference alignment, creative writing, role-playing, and multi-turn dialogues."
     }
   },
   "chutes": {
@@ -251,7 +251,7 @@
         "multi-step compliance",
         "moral boundary blurring"
       ],
-      "details": "a 32B model fine-tuned on a curated RPMax dataset with RL to balance creativity and reasoning; emphasizes reduced repetition and long-context reasoning in multi-turn scenarios."
+      "details": "benefits from low temperature; a 32B model fine-tuned on a curated RPMax dataset with RL to balance creativity and reasoning; emphasizes reduced repetition and long-context reasoning in multi-turn scenarios."
     },
     "ByteDance-Seed/Seed-Coder-8B-Reasoning-bf16": {
       "creator": "ByteDance-Seed",
@@ -438,7 +438,7 @@
       "main_purpose": "NA",
       "token_win": [0, 0],
       "strengths": "maximum generation length is set to 64K tokens",
-      "weaknesses": "NA",
+      "weaknesses": "seems to be broken at the moment and returns an API error",
       "rank_power": "NA",
       "rank_coding": "NA",
       "rank_jail": "NA",
@@ -452,7 +452,7 @@
       "main_purpose": "NA",
       "token_win": [0, 0],
       "strengths": "NA",
-      "weaknesses": "NA",
+      "weaknesses": "seems to be broken at the moment and returns an API error",
       "rank_power": "NA",
       "rank_coding": "NA",
       "rank_jail": "NA",
