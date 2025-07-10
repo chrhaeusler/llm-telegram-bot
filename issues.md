@@ -2,8 +2,10 @@
 
 ## Fixes
 
+- [x] update to new mistral.ai models
+- [ ] test new mistral.ai models
+- [ ] at the moment, chutes.ai does not offer free models anymore
 - [ ] create **CLI runner** (bin/cli-chatbot.py) with Markdown rendering
-- [ ] update chutes' free models (free-to-use models change weekly anway...)
 - [ ] when dropping a user or char via `/user drop` or `/char drop`, messages are (probably) flushed to correct history but not removed from HistoryManager.
 - [ ] sent pictures are not correctly saved to disk
 

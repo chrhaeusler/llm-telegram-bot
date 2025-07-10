@@ -26,7 +26,7 @@ services:
     enabled: true
     endpoint: "https://api.mistral.ai/v1/chat/completions"
     api_key: "<your_token>"
-    model: "mistral-small-latest" # the services default model = elected that model when switching from a bot's default services
+    model: "mistral-small-2506" # the services default model = elected that model when switching from a bot's default services
     show_think_blocks: false
     timeout: 90 # seconds
     retries: 3
