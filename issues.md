@@ -2,9 +2,8 @@
 
 ## Fixes
 
-- [ ] update templates of configuration files.
 - [ ] create **CLI runner** (bin/cli-chatbot.py) with Markdown rendering
-- [ ] test chutes models (e.g. DeepSeek R1 0528 models are not working [?])
+- [ ] update chutes' free models (free-to-use models change weekly anway...)
 - [ ] when dropping a user or char via `/user drop` or `/char drop`, messages are (probably) flushed to correct history but not removed from HistoryManager.
 - [ ] sent pictures are not correctly saved to disk
 
