@@ -4,7 +4,7 @@ A lightweight, modular Telegram chatbot framework. It proxies messages between a
 
 Built in Python, it runs smoothly on resource‑constrained hardware (e.g. Raspberry Pi) and is highly configurable for persona management, summarization strategies, and LLM provider integration.
 
-> ⚠️ Currently, in **Alpha testing phase** (aka "it works on my computers and I am pretty happy with it"); won’t "just work" by `pip install`; s. [issues.md](/issues.md) for the current state of the project's roadmap; do not expect major changes before my next holidays.
+> ⚠️ Currently, in **Alpha testing phase** (aka "it works on my computers and I am pretty happy with it"); won’t "just work" by `pip install -r requirements.txt`; s. [issues.md](/issues.md) for the current state of the project's roadmap; do not expect major changes before my next holidays.
 
 ## What It Does
 

@@ -1,4 +1,4 @@
-# config/users/<user-key>.yaml
+# config/users/user_template.yaml
 
 # ── Metadata ───────────────────────────────────────────────────────────
 key: john-doe # unique identifier
